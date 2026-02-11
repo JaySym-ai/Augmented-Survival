@@ -1,20 +1,75 @@
 /**
- * Augmented Survival - Medieval City Builder
- * Web entry point (placeholder)
+ * Augmented Survival — Medieval City Builder
+ * Web entry point: creates GameApp, starts render loop
  */
+import { GameRenderer } from './renderer/GameRenderer.js';
+import { PRESET_HIGH } from './renderer/RenderSettings.js';
+import { RTSCameraController } from './camera/RTSCameraController.js';
 
-import { GAME_VERSION } from '@augmented-survival/game-core';
+class GameApp {
+  private gameRenderer: GameRenderer;
+  private cameraController: RTSCameraController;
+  private lastTime = 0;
+  private animationFrameId = 0;
 
-const app = document.getElementById('app')!;
-app.innerHTML = `
-  <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e0e0e0;font-family:sans-serif;">
-    <div style="text-align:center;">
-      <h1>Augmented Survival</h1>
-      <p>Medieval City Builder — v${GAME_VERSION}</p>
-      <p style="margin-top:1rem;color:#888;">Three.js game loading...</p>
-    </div>
-  </div>
-`;
+  constructor(container: HTMLElement) {
+    // Camera controller (creates THREE.PerspectiveCamera internally)
+    this.cameraController = new RTSCameraController(container, {
+      fov: 50,
+      tiltAngle: 45,
+      initialDistance: 60,
+      minDistance: 10,
+      maxDistance: 200,
+    });
 
-console.log(`[Augmented Survival] v${GAME_VERSION} — placeholder loaded`);
+    // Core renderer (creates scene, lights, sky, ground, postprocessing)
+    this.gameRenderer = new GameRenderer(container, this.cameraController.camera, PRESET_HIGH);
+
+    // Resize handling
+    window.addEventListener('resize', this.onResize);
+    this.onResize();
+
+    console.log('[Augmented Survival] Game initialized');
+  }
+
+  /** Start the render loop */
+  start(): void {
+    this.lastTime = performance.now();
+    this.loop(this.lastTime);
+  }
+
+  private loop = (time: number): void => {
+    this.animationFrameId = requestAnimationFrame(this.loop);
+
+    const dt = Math.min((time - this.lastTime) / 1000, 0.1); // cap at 100ms
+    this.lastTime = time;
+
+    // Update camera with smooth interpolation
+    this.cameraController.update(dt);
+
+    // Render through postprocessing pipeline
+    this.gameRenderer.render();
+  };
+
+  private onResize = (): void => {
+    this.cameraController.onResize();
+    this.gameRenderer.onResize();
+  };
+
+  dispose(): void {
+    cancelAnimationFrame(this.animationFrameId);
+    window.removeEventListener('resize', this.onResize);
+    this.cameraController.dispose();
+    this.gameRenderer.dispose();
+  }
+}
+
+// ---- Bootstrap ----
+const container = document.getElementById('app');
+if (!container) {
+  throw new Error('Missing #app container element');
+}
+
+const app = new GameApp(container);
+app.start();
 
