@@ -113,3 +113,29 @@ export type { ResourceDef } from './content/ResourceDefs';
 export { JOB_DEFS } from './content/JobDefs';
 export type { JobDef } from './content/JobDefs';
 export { DEFAULT_GAME_CONFIG } from './content/DefaultGameConfig';
+
+// Save/Load
+export type { IStorageProvider } from './save/IStorageProvider';
+export { LocalStorageProvider } from './save/LocalStorageProvider';
+export {
+  serialize,
+  deserialize,
+  saveGame,
+  loadGame,
+  listSaves,
+  deleteSave,
+} from './save/SaveLoadSystem';
+
+// Stub Systems — interfaces and no-op implementations for future features
+export type { ITradeSystem } from './stubs/TradeSystem';
+export { TradeSystemStub } from './stubs/TradeSystem';
+export type { IEconomySystem } from './stubs/EconomySystem';
+export { EconomySystemStub } from './stubs/EconomySystem';
+export type { ISicknessSystem } from './stubs/SicknessSystem';
+export { SicknessSystemStub } from './stubs/SicknessSystem';
+export type { ILivestockSystem } from './stubs/LivestockSystem';
+export { LivestockSystemStub } from './stubs/LivestockSystem';
+export type { IMilitarySystem } from './stubs/MilitarySystem';
+export { MilitarySystemStub } from './stubs/MilitarySystem';
+export type { IExplorationSystem } from './stubs/ExplorationSystem';
+export { ExplorationSystemStub } from './stubs/ExplorationSystem';
