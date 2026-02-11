@@ -1,0 +1,26 @@
+{
+  "name": "augmented-survival",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=packages/game-web",
+    "build:web": "npm run build --workspace=packages/game-web",
+    "preview:web": "npm run preview --workspace=packages/game-web",
+    "mobile:sync": "npm run build:web && npm run sync --workspace=apps/mobile",
+    "mobile:android": "npm run run:android --workspace=apps/mobile",
+    "mobile:ios": "npm run run:ios --workspace=apps/mobile",
+    "mobile:build:android": "npm run build:web && npm run sync --workspace=apps/mobile && echo 'Open android/ in Android Studio and build release APK'",
+    "mobile:build:ios": "npm run build:web && npm run sync --workspace=apps/mobile && echo 'Open ios/ in Xcode and archive for distribution'",
+    "dev:desktop": "npm run build:web && npm run dev --workspace=apps/desktop",
+    "build:desktop": "npm run build:web && npm run build --workspace=apps/desktop",
+    "package:desktop": "npm run build:desktop && npm run package --workspace=apps/desktop"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
+
