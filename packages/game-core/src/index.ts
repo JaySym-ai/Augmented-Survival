@@ -81,6 +81,10 @@ export type {
   GameEventMap,
 } from './events/GameEvents';
 
+// Terrain
+export { TerrainGenerator } from './terrain/TerrainGenerator';
+export type { TerrainData } from './terrain/TerrainGenerator';
+
 // Types
 export { ResourceType } from './types/resources';
 export { BuildingType } from './types/buildings';
