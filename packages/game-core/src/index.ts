@@ -85,6 +85,18 @@ export type {
 export { TerrainGenerator } from './terrain/TerrainGenerator';
 export type { TerrainData } from './terrain/TerrainGenerator';
 
+// Systems
+export { TimeSystem } from './systems/TimeSystem';
+export { MovementSystem } from './systems/MovementSystem';
+export { PathFollowSystem } from './systems/PathFollowSystem';
+export { JobAssignmentSystem, findNearestEntity, findNearestStorage } from './systems/JobAssignmentSystem';
+export { GatherSystem } from './systems/GatherSystem';
+export { CarrySystem } from './systems/CarrySystem';
+export { DeliverySystem } from './systems/DeliverySystem';
+export { ConstructionSystem } from './systems/ConstructionSystem';
+export { ResourceStoreSystem } from './systems/ResourceStoreSystem';
+export { BuildingPlacementSystem } from './systems/BuildingPlacementSystem';
+
 // Types
 export { ResourceType } from './types/resources';
 export { BuildingType } from './types/buildings';
@@ -92,3 +104,12 @@ export { JobType } from './types/jobs';
 export { CitizenState } from './types/citizens';
 export type { BuildingConfig, GameConfig } from './types/config';
 export type { SavedEntity, SaveData } from './types/save';
+
+// Content — data-driven definitions
+export { BUILDING_DEFS } from './content/BuildingDefs';
+export type { ExtendedBuildingDef } from './content/BuildingDefs';
+export { RESOURCE_DEFS } from './content/ResourceDefs';
+export type { ResourceDef } from './content/ResourceDefs';
+export { JOB_DEFS } from './content/JobDefs';
+export type { JobDef } from './content/JobDefs';
+export { DEFAULT_GAME_CONFIG } from './content/DefaultGameConfig';
