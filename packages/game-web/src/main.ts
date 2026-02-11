@@ -8,6 +8,7 @@ import { RTSCameraController } from './camera/RTSCameraController.js';
 import { GameWorld } from './game/GameWorld.js';
 import { SelectionManager } from './game/SelectionManager.js';
 import { BuildingGhostPreview } from './game/BuildingGhostPreview.js';
+import { GameUI } from './ui/GameUI.js';
 
 class GameApp {
   private gameRenderer: GameRenderer;
@@ -15,10 +16,14 @@ class GameApp {
   private gameWorld: GameWorld;
   private selectionManager: SelectionManager;
   private buildingGhost: BuildingGhostPreview;
+  private gameUI: GameUI;
+  private container: HTMLElement;
   private lastTime = 0;
   private animationFrameId = 0;
 
   constructor(container: HTMLElement) {
+    this.container = container;
+
     // Camera controller (creates THREE.PerspectiveCamera internally)
     this.cameraController = new RTSCameraController(container, {
       fov: 50,
@@ -53,6 +58,34 @@ class GameApp {
       this.cameraController.camera,
     );
 
+    // UI overlay — connects HUD panels to game systems
+    this.gameUI = new GameUI({
+      container,
+      eventBus: this.gameWorld.eventBus,
+      resourceStore: this.gameWorld.resourceStore,
+      timeSystem: this.gameWorld.timeSystem,
+      buildingPlacement: this.gameWorld.buildingPlacement,
+      world: this.gameWorld.world,
+      gameRenderer: this.gameRenderer,
+      onBuildingSelected: (type) => {
+        this.buildingGhost.startPlacement(type);
+      },
+      onBuildingCancelled: () => {
+        this.buildingGhost.cancel();
+      },
+    });
+
+    // Wire click-to-place: capture phase so it fires before SelectionManager
+    container.addEventListener('click', this.onPlacementClick, true);
+
+    // Wire selection events to UI
+    this.gameWorld.eventBus.on('EntitySelected', ({ entityId }) => {
+      this.gameUI.showSelection(entityId);
+    });
+    this.gameWorld.eventBus.on('EntityDeselected', () => {
+      this.gameUI.hideSelection();
+    });
+
     // Expose to window for UI layer access
     (window as unknown as Record<string, unknown>).__gameApp = this;
 
@@ -76,6 +109,20 @@ class GameApp {
     this.loop(this.lastTime);
   }
 
+  /** Handle click-to-place when building ghost is active */
+  private onPlacementClick = (event: MouseEvent): void => {
+    if (!this.buildingGhost.isActive()) return;
+
+    // Prevent SelectionManager from also handling this click
+    event.stopPropagation();
+
+    const type = this.buildingGhost.getActiveType()!;
+    const pos = this.buildingGhost.confirm();
+    if (pos && type) {
+      this.gameWorld.placeBuilding(type, pos);
+    }
+  };
+
   private loop = (time: number): void => {
     this.animationFrameId = requestAnimationFrame(this.loop);
 
@@ -91,6 +138,9 @@ class GameApp {
     // Update selection ring position
     this.selectionManager.update();
 
+    // Update UI overlay (resource bar, build menu affordability, etc.)
+    this.gameUI.update();
+
     // Render through postprocessing pipeline
     this.gameRenderer.render();
   };
@@ -103,6 +153,8 @@ class GameApp {
   dispose(): void {
     cancelAnimationFrame(this.animationFrameId);
     window.removeEventListener('resize', this.onResize);
+    this.container.removeEventListener('click', this.onPlacementClick, true);
+    this.gameUI.dispose();
     this.selectionManager.dispose();
     this.buildingGhost.dispose();
     this.gameWorld.dispose();
