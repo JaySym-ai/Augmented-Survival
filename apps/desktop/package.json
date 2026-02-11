@@ -8,6 +8,26 @@
     "build": "tsc -p tsconfig.json",
     "package": "electron-builder"
   },
+  "build": {
+    "appId": "com.augmentedsurvival.desktop",
+    "productName": "Augmented Survival",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "../../packages/game-web/dist/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
   "dependencies": {
     "electron": "^34.0.0"
   },
