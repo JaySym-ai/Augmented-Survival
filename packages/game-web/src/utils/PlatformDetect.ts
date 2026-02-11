@@ -16,13 +16,13 @@ export interface PlatformInfo {
  */
 export function detectPlatform(): PlatformInfo {
   // Check for Electron desktop environment
-  const platformBridge = (window as Record<string, unknown>).platform as
+  const platformBridge = (window as unknown as Record<string, unknown>).platform as
     | { isDesktop?: boolean; platform?: string }
     | undefined;
   const isDesktop = !!platformBridge?.isDesktop;
 
   // Check for Capacitor mobile environment
-  const capacitor = (window as Record<string, unknown>).Capacitor as
+  const capacitor = (window as unknown as Record<string, unknown>).Capacitor as
     | { isNativePlatform?: () => boolean; getPlatform?: () => string }
     | undefined;
   const isMobile =
