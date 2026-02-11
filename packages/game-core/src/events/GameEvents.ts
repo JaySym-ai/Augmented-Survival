@@ -1,0 +1,109 @@
+import type { EntityId } from '../ecs/Entity';
+import type { ResourceType } from '../types/resources';
+import type { BuildingType } from '../types/buildings';
+import type { JobType } from '../types/jobs';
+import type { CitizenState } from '../types/citizens';
+import type { Vector3 } from '../ecs/components/TransformComponent';
+import type { EventMap } from './EventBus';
+
+// --- Resource Events ---
+
+export interface ResourcePickedUpEvent {
+  entityId: EntityId;
+  resourceType: ResourceType;
+  amount: number;
+  sourceId: EntityId;
+}
+
+export interface ResourceDeliveredEvent {
+  entityId: EntityId;
+  resourceType: ResourceType;
+  amount: number;
+  destinationBuildingId: EntityId;
+}
+
+export interface InventoryChangedEvent {
+  entityId: EntityId;
+  diff: Partial<Record<ResourceType, number>>;
+}
+
+// --- Building Events ---
+
+export interface BuildingPlacedEvent {
+  buildingId: EntityId;
+  buildingType: BuildingType;
+  position: Vector3;
+}
+
+export interface ConstructionProgressEvent {
+  buildingId: EntityId;
+  deliveredMaterials: Partial<Record<ResourceType, number>>;
+}
+
+export interface ConstructionCompleteEvent {
+  buildingId: EntityId;
+  buildingType: BuildingType;
+}
+
+// --- Citizen Events ---
+
+export interface CitizenAssignedJobEvent {
+  entityId: EntityId;
+  jobType: JobType;
+}
+
+export interface CitizenStateChangedEvent {
+  entityId: EntityId;
+  oldState: CitizenState;
+  newState: CitizenState;
+}
+
+// --- Selection Events ---
+
+export interface EntitySelectedEvent {
+  entityId: EntityId;
+}
+
+export interface EntityDeselectedEvent {
+  entityId: EntityId;
+}
+
+// --- Game State Events ---
+
+export interface GameSavedEvent {
+  slot: string;
+  timestamp: string;
+}
+
+export interface GameLoadedEvent {
+  slot: string;
+  timestamp: string;
+}
+
+export interface TimeScaleChangedEvent {
+  oldScale: number;
+  newScale: number;
+}
+
+// --- Aggregate Event Map ---
+
+/**
+ * All game events mapped by their string type key.
+ * Use with EventBus<GameEventMap> for full type safety.
+ */
+export interface GameEventMap extends EventMap {
+  ResourcePickedUp: ResourcePickedUpEvent;
+  ResourceDelivered: ResourceDeliveredEvent;
+  InventoryChanged: InventoryChangedEvent;
+  BuildingPlaced: BuildingPlacedEvent;
+  ConstructionProgress: ConstructionProgressEvent;
+  ConstructionComplete: ConstructionCompleteEvent;
+  CitizenAssignedJob: CitizenAssignedJobEvent;
+  CitizenStateChanged: CitizenStateChangedEvent;
+  EntitySelected: EntitySelectedEvent;
+  EntityDeselected: EntityDeselectedEvent;
+  GameSaved: GameSavedEvent;
+  GameLoaded: GameLoadedEvent;
+  TimeScaleChanged: TimeScaleChangedEvent;
+}
+
