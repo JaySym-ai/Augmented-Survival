@@ -78,7 +78,13 @@ export class CitizenAnimator {
 
   /** Set facing direction toward a target. */
   setFacingTarget(dx: number, dz: number): void {
-    this.targetYRotation = Math.atan2(dx, dz);
+    let angle = Math.atan2(dx, dz);
+    // When chopping, stand sideways to tree (like a lumberjack) so the
+    // lateral arm swing (rotation.z) sweeps INTO the tree
+    if (this.isGathering && this.gatherType === 'chop') {
+      angle -= Math.PI / 2;
+    }
+    this.targetYRotation = angle;
   }
 
   /** Check if currently in gathering animation mode. */
