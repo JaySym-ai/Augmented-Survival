@@ -15,6 +15,37 @@ export interface TerrainData {
   gridCellSize: number; // world units per grid cell
 }
 
+// ---- Standalone Height Sampling ----
+
+/** Get interpolated terrain height at a world position using bilinear interpolation. */
+export function sampleTerrainHeight(data: TerrainData, worldX: number, worldZ: number): number {
+  const { width, depth, resolution, heightMap } = data;
+  // Convert world coords to grid coords
+  const gx = ((worldX + width / 2) / width) * (resolution - 1);
+  const gz = ((worldZ + depth / 2) / depth) * (resolution - 1);
+
+  const ix = Math.floor(gx);
+  const iz = Math.floor(gz);
+  const fx = gx - ix;
+  const fz = gz - iz;
+
+  // Clamp indices
+  const ix0 = Math.max(0, Math.min(ix, resolution - 1));
+  const ix1 = Math.max(0, Math.min(ix + 1, resolution - 1));
+  const iz0 = Math.max(0, Math.min(iz, resolution - 1));
+  const iz1 = Math.max(0, Math.min(iz + 1, resolution - 1));
+
+  // Bilinear interpolation
+  const h00 = heightMap[iz0 * resolution + ix0];
+  const h10 = heightMap[iz0 * resolution + ix1];
+  const h01 = heightMap[iz1 * resolution + ix0];
+  const h11 = heightMap[iz1 * resolution + ix1];
+
+  const h0 = h00 + fx * (h10 - h00);
+  const h1 = h01 + fx * (h11 - h01);
+  return h0 + fz * (h1 - h0);
+}
+
 // ---- Seeded Noise Implementation ----
 
 /** Simple seeded PRNG (mulberry32) */
@@ -185,31 +216,7 @@ export class TerrainGenerator {
 
   /** Get interpolated height at world position */
   getHeightAt(data: TerrainData, worldX: number, worldZ: number): number {
-    const { width, depth, resolution, heightMap } = data;
-    // Convert world coords to grid coords
-    const gx = ((worldX + width / 2) / width) * (resolution - 1);
-    const gz = ((worldZ + depth / 2) / depth) * (resolution - 1);
-
-    const ix = Math.floor(gx);
-    const iz = Math.floor(gz);
-    const fx = gx - ix;
-    const fz = gz - iz;
-
-    // Clamp indices
-    const ix0 = Math.max(0, Math.min(ix, resolution - 1));
-    const ix1 = Math.max(0, Math.min(ix + 1, resolution - 1));
-    const iz0 = Math.max(0, Math.min(iz, resolution - 1));
-    const iz1 = Math.max(0, Math.min(iz + 1, resolution - 1));
-
-    // Bilinear interpolation
-    const h00 = heightMap[iz0 * resolution + ix0];
-    const h10 = heightMap[iz0 * resolution + ix1];
-    const h01 = heightMap[iz1 * resolution + ix0];
-    const h11 = heightMap[iz1 * resolution + ix1];
-
-    const h0 = h00 + fx * (h10 - h00);
-    const h1 = h01 + fx * (h11 - h01);
-    return h0 + fz * (h1 - h0);
+    return sampleTerrainHeight(data, worldX, worldZ);
   }
 
   /** Get surface normal at world position */

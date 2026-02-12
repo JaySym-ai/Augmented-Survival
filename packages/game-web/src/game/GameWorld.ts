@@ -97,6 +97,7 @@ export class GameWorld {
     const jobAssignment = new JobAssignmentSystem(this.timeSystem, this.eventBus);
     const pathFollow = new PathFollowSystem(this.timeSystem, this.eventBus);
     const movement = new MovementSystem(this.timeSystem);
+    movement.setTerrainData(terrainData);
     const gather = new GatherSystem(this.timeSystem, this.eventBus);
     const carry = new CarrySystem();
     const delivery = new DeliverySystem(this.timeSystem, this.eventBus);

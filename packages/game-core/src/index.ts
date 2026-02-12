@@ -82,7 +82,7 @@ export type {
 } from './events/GameEvents';
 
 // Terrain
-export { TerrainGenerator } from './terrain/TerrainGenerator';
+export { TerrainGenerator, sampleTerrainHeight } from './terrain/TerrainGenerator';
 export type { TerrainData } from './terrain/TerrainGenerator';
 
 // Systems
