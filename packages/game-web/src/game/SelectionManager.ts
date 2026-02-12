@@ -36,14 +36,14 @@ export class SelectionManager {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera.camera);
 
-    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersection = new THREE.Vector3();
-    raycaster.ray.intersectPlane(groundPlane, intersection);
-
-    if (intersection) {
-      const worldPos = { x: intersection.x, y: intersection.y, z: intersection.z };
-      const entity = this.gameWorld.getEntityAtPosition(worldPos, 2.0);
+    const hits = raycaster.intersectObject(this.gameWorld.terrainMesh.mesh);
+    if (hits.length > 0) {
+      const point = hits[0].point;
+      const worldPos = { x: point.x, y: point.y, z: point.z };
+      const entity = this.gameWorld.getEntityAtPosition(worldPos, 3.5);
       this.select(entity);
+    } else {
+      this.select(null);
     }
   };
 
