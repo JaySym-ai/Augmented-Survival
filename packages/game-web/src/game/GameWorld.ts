@@ -9,6 +9,7 @@ import {
   type GameEventMap,
   type EntityId,
   type TransformComponent,
+  type VelocityComponent,
   type Vector3,
   TRANSFORM,
   VELOCITY,
@@ -49,6 +50,7 @@ import {
 import { MeshFactory } from '../assets/MeshFactory.js';
 import { TerrainMesh } from '../world/TerrainMesh.js';
 import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
+import { CitizenAnimator } from '../animation/CitizenAnimator.js';
 
 const CITIZEN_NAMES = [
   'Aldric', 'Beatrice', 'Cedric', 'Dorothea', 'Edmund',
@@ -73,6 +75,9 @@ export class GameWorld {
 
   // Entity-to-mesh mapping
   private entityMeshes = new Map<EntityId, THREE.Object3D>();
+
+  // Walk animation controllers for citizen entities
+  private citizenAnimators = new Map<EntityId, CitizenAnimator>();
 
   // Round-robin counter for default job assignment
   private nextJobIndex = 0;
@@ -201,6 +206,10 @@ export class GameWorld {
     this.scene.add(mesh);
     this.entityMeshes.set(entity, mesh);
 
+    // Create walk animator
+    const animator = new CitizenAnimator(mesh);
+    this.citizenAnimators.set(entity, animator);
+
     return entity;
   }
 
@@ -257,14 +266,23 @@ export class GameWorld {
     this.world.step(dt);
 
     // Sync ECS transforms → Three.js meshes
-    this.syncMeshPositions();
+    this.syncMeshPositions(dt);
   }
 
-  private syncMeshPositions(): void {
+  private syncMeshPositions(dt: number): void {
     for (const [entityId, mesh] of this.entityMeshes) {
       const transform = this.world.getComponent<TransformComponent>(entityId, TRANSFORM);
       if (transform) {
         mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
+      }
+
+      // Animate citizens
+      const animator = this.citizenAnimators.get(entityId);
+      if (animator) {
+        const vel = this.world.getComponent<VelocityComponent>(entityId, VELOCITY);
+        const vx = vel?.velocity.x ?? 0;
+        const vz = vel?.velocity.z ?? 0;
+        animator.update(dt, vx, vz);
       }
     }
   }
@@ -292,6 +310,7 @@ export class GameWorld {
       this.scene.remove(mesh);
     }
     this.entityMeshes.clear();
+    this.citizenAnimators.clear();
     this.terrainMesh.dispose();
     this.environment.dispose();
     this.meshFactory.dispose();
