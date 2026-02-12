@@ -16,6 +16,7 @@ import {
   JOB_DEFS,
   PATH_FOLLOW,
   GATHERING,
+  CARRY,
   CitizenState,
 } from '@augmented-survival/game-core';
 import type {
@@ -149,7 +150,10 @@ export class SelectionPanel {
         btn.classList.add('active');
       }
       btn.textContent = def.displayName;
-      btn.addEventListener('click', () => this.assignJob(entityId, jobType));
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.assignJob(entityId, jobType);
+      });
       jobRow.appendChild(btn);
     }
 
@@ -175,6 +179,11 @@ export class SelectionPanel {
     // Remove GATHERING if present
     if (this.world.hasComponent(entityId, GATHERING)) {
       this.world.removeComponent(entityId, GATHERING);
+    }
+
+    // Remove CARRY if present (clean state for new job)
+    if (this.world.hasComponent(entityId, CARRY)) {
+      this.world.removeComponent(entityId, CARRY);
     }
 
     // Re-render the panel
