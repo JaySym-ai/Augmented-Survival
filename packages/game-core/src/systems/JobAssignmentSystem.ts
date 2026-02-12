@@ -105,6 +105,21 @@ export class JobAssignmentSystem extends System {
     const scaledDt = this.timeSystem.getScaledDt(dt);
     const entities = world.query(CITIZEN, JOB_ASSIGNMENT);
 
+    // Build set of already-claimed targets so multiple villagers don't pick the same node
+    const claimedTargets = new Set<EntityId>();
+    for (const eid of world.query(GATHERING)) {
+      const gathering = world.getComponent<GatheringComponent>(eid, GATHERING);
+      if (gathering?.targetEntity != null) {
+        claimedTargets.add(gathering.targetEntity);
+      }
+    }
+    for (const eid of world.query(CONSTRUCTION_WORK)) {
+      const work = world.getComponent<ConstructionWorkComponent>(eid, CONSTRUCTION_WORK);
+      if (work) {
+        claimedTargets.add(work.targetBuilding);
+      }
+    }
+
     for (const entityId of entities) {
       const citizen = world.getComponent<CitizenComponent>(entityId, CITIZEN)!;
       const job = world.getComponent<JobAssignmentComponent>(entityId, JOB_ASSIGNMENT)!;
@@ -118,7 +133,7 @@ export class JobAssignmentSystem extends System {
 
       // Only act on Idle or Carrying citizens
       if (citizen.state === CitizenState.Idle) {
-        this.handleIdle(world, entityId, citizen, job, transform);
+        this.handleIdle(world, entityId, citizen, job, transform, claimedTargets);
       } else if (citizen.state === CitizenState.Carrying) {
         this.handleCarrying(world, entityId, citizen, transform);
       } else if (citizen.state === CitizenState.Walking) {
@@ -168,73 +183,87 @@ export class JobAssignmentSystem extends System {
     citizen: CitizenComponent,
     job: JobAssignmentComponent,
     transform: TransformComponent,
+    claimedTargets: Set<EntityId>,
   ): void {
     const pos = transform.position;
 
     switch (job.jobType) {
       case JobType.Woodcutter: {
-        // Find nearest tree (ResourceNode with type Wood that has amount > 0)
+        // Find nearest unclaimed tree (ResourceNode with type Wood that has amount > 0)
         const target = findNearestEntity(world, pos, RESOURCE_NODE, (eid, w) => {
+          if (claimedTargets.has(eid)) return false;
           const rn = w.getComponent<ResourceNodeComponent>(eid, RESOURCE_NODE)!;
           return rn.type === ResourceType.Wood && rn.amount > 0;
         });
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
+          claimedTargets.add(target);
         }
         break;
       }
       case JobType.Farmer: {
-        // Find nearest FarmField building that is constructed
+        // Find nearest unclaimed FarmField building that is constructed
         const target = findNearestEntity(world, pos, BUILDING, (eid, w) => {
+          if (claimedTargets.has(eid)) return false;
           const b = w.getComponent<BuildingComponent>(eid, BUILDING)!;
           return b.type === BuildingType.FarmField && b.isConstructed;
         });
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
+          claimedTargets.add(target);
         }
         break;
       }
       case JobType.Quarrier: {
-        // Find nearest rock (ResourceNode with type Stone that has amount > 0)
+        // Find nearest unclaimed rock (ResourceNode with type Stone that has amount > 0)
         const target = findNearestEntity(world, pos, RESOURCE_NODE, (eid, w) => {
+          if (claimedTargets.has(eid)) return false;
           const rn = w.getComponent<ResourceNodeComponent>(eid, RESOURCE_NODE)!;
           return rn.type === ResourceType.Stone && rn.amount > 0;
         });
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
+          claimedTargets.add(target);
         }
         break;
       }
       case JobType.Builder: {
-        // Find nearest unconstructed building (has CONSTRUCTION_SITE component)
-        const target = findNearestEntity(world, pos, CONSTRUCTION_SITE);
+        // Find nearest unclaimed unconstructed building (has CONSTRUCTION_SITE component)
+        const target = findNearestEntity(world, pos, CONSTRUCTION_SITE, (eid) => {
+          return !claimedTargets.has(eid);
+        });
         if (target != null) {
           this.pathToConstruction(world, entityId, citizen, transform, target);
+          claimedTargets.add(target);
         } else {
-          // No construction sites — wander
+          // No unclaimed construction sites — wander
           this.wanderRandomly(world, entityId, citizen, transform);
         }
         break;
       }
       case JobType.Miner: {
-        // Find nearest Iron or Gold node with amount > 0
+        // Find nearest unclaimed Iron or Gold node with amount > 0
         const target = findNearestEntity(world, pos, RESOURCE_NODE, (eid, w) => {
+          if (claimedTargets.has(eid)) return false;
           const rn = w.getComponent<ResourceNodeComponent>(eid, RESOURCE_NODE)!;
           return (rn.type === ResourceType.Iron || rn.type === ResourceType.Gold) && rn.amount > 0;
         });
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
+          claimedTargets.add(target);
         }
         break;
       }
       case JobType.Forager: {
-        // Find nearest Hemp or Branch node with amount > 0
+        // Find nearest unclaimed Hemp or Branch node with amount > 0
         const target = findNearestEntity(world, pos, RESOURCE_NODE, (eid, w) => {
+          if (claimedTargets.has(eid)) return false;
           const rn = w.getComponent<ResourceNodeComponent>(eid, RESOURCE_NODE)!;
           return (rn.type === ResourceType.Hemp || rn.type === ResourceType.Branch) && rn.amount > 0;
         });
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
+          claimedTargets.add(target);
         }
         break;
       }
