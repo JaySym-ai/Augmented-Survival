@@ -41,13 +41,11 @@ export class CitizenAnimator {
     // Attach tool to right arm group near the hand position
     if (this.rightArm) {
       toolMesh.position.set(0, -0.37, 0);
-      // For chopping, rotate the axe so the blade faces outward (toward the tree)
-      // during the horizontal swing. rotation.z = -PI/2 flips the blade to lead
-      // the inward strike, and rotation.y = PI mirrors it so the cutting edge
-      // faces away from the hand.
+      // For chopping, rotate the axe so the blade is HORIZONTAL (parallel to
+      // ground) with the cutting edge facing forward. rotation.z = PI/2 rotates
+      // the blade 90° so it lies flat, ready for a forward chopping swing.
       if (gatherType === 'chop') {
-        toolMesh.rotation.z = -Math.PI / 2;
-        toolMesh.rotation.y = Math.PI;
+        toolMesh.rotation.z = Math.PI / 2;
       }
       this.rightArm.add(toolMesh);
     }
@@ -187,7 +185,7 @@ export class CitizenAnimator {
     }
   }
 
-  /** Chopping animation — horizontal lateral swing on the right arm for wood cutting. */
+  /** Chopping animation — forward swing on the right arm for wood cutting. */
   private updateChopGathering(dt: number): void {
     // Lerp legs to rest (standing still while gathering)
     const legT = Math.min(1, IDLE_LERP_SPEED * dt);
@@ -208,30 +206,31 @@ export class CitizenAnimator {
       }
     }
 
-    // Map phase to arm rotation for horizontal chopping motion
-    // rotation.z = lateral swing (outward/inward), rotation.x = slight forward lean
-    let lateralSwing: number;
-    let forwardLean: number;
+    // Map phase to arm rotation for forward chopping motion
+    // rotation.x = primary swing axis (arm swings back then forward toward tree)
+    // rotation.z = subtle lateral offset for a natural "coming from the side" feel
+    let forwardSwing: number;
+    let lateralOffset: number;
     if (this.gatherPhase < 0.4) {
-      // Phase 0–0.4: wind-up — arm pulls outward (rotation.z positive = away from body)
+      // Phase 0–0.4: wind-up — arm pulls BACK (negative rotation.x)
       const t = this.gatherPhase / 0.4;
-      lateralSwing = 1.2 * t;
-      forwardLean = -0.3 * t;  // slight forward lean during wind-up
+      forwardSwing = -1.0 * t;
+      lateralOffset = 0.25 * t;  // subtle outward offset during wind-up
     } else if (this.gatherPhase < 0.6) {
-      // Phase 0.4–0.6: fast strike — arm swings inward toward tree
+      // Phase 0.4–0.6: fast strike — arm swings FORWARD into tree
       const t = (this.gatherPhase - 0.4) / 0.2;
-      lateralSwing = 1.2 - 1.6 * t;  // from 1.2 to -0.4 (past center, toward body/tree)
-      forwardLean = -0.3 + 0.1 * t;  // lean eases slightly
+      forwardSwing = -1.0 + 1.3 * t;  // from -1.0 to +0.3
+      lateralOffset = 0.25 * (1 - t);  // lateral offset snaps back to 0 during strike
     } else {
-      // Phase 0.6–1.0: hold/recover — arm returns to rest
+      // Phase 0.6–1.0: recover — arm eases back to rest
       const t = (this.gatherPhase - 0.6) / 0.4;
-      lateralSwing = -0.4 * (1 - t);  // from -0.4 back to 0
-      forwardLean = -0.2 * (1 - t);   // lean returns to 0
+      forwardSwing = 0.3 * (1 - t);  // from +0.3 back to 0
+      lateralOffset = 0;  // no lateral offset during recovery
     }
 
     if (this.rightArm) {
-      this.rightArm.rotation.z = lateralSwing;
-      this.rightArm.rotation.x = forwardLean;
+      this.rightArm.rotation.x = forwardSwing;
+      this.rightArm.rotation.z = lateralOffset;
     }
   }
 }
