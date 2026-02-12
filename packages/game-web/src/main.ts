@@ -56,6 +56,7 @@ class GameApp {
       this.gameWorld.meshFactory,
       container,
       this.cameraController.camera,
+      this.gameWorld.terrainMesh.mesh,
     );
 
     // UI overlay — connects HUD panels to game systems

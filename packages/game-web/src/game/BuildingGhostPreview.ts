@@ -17,6 +17,7 @@ export class BuildingGhostPreview {
     private meshFactory: MeshFactory,
     private container: HTMLElement,
     private camera: THREE.Camera,
+    private terrainMesh: THREE.Mesh,
   ) {}
 
   startPlacement(type: BuildingType): void {
@@ -48,13 +49,21 @@ export class BuildingGhostPreview {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
-    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersection = new THREE.Vector3();
-    raycaster.ray.intersectPlane(groundPlane, intersection);
-
-    if (intersection) {
-      this.ghostMesh.position.set(intersection.x, intersection.y, intersection.z);
-      this.currentPosition = { x: intersection.x, y: intersection.y, z: intersection.z };
+    // Try raycasting against the terrain mesh first
+    const terrainHits = raycaster.intersectObject(this.terrainMesh);
+    if (terrainHits.length > 0) {
+      const hit = terrainHits[0].point;
+      this.ghostMesh.position.set(hit.x, hit.y, hit.z);
+      this.currentPosition = { x: hit.x, y: hit.y, z: hit.z };
+    } else {
+      // Fall back to flat plane if cursor is off the terrain
+      const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const intersection = new THREE.Vector3();
+      raycaster.ray.intersectPlane(groundPlane, intersection);
+      if (intersection) {
+        this.ghostMesh.position.set(intersection.x, intersection.y, intersection.z);
+        this.currentPosition = { x: intersection.x, y: intersection.y, z: intersection.z };
+      }
     }
   };
 
