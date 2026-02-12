@@ -33,6 +33,16 @@ const GATHER_TIME = 3;
 /** Default citizen movement speed */
 const CITIZEN_SPEED = 3;
 
+/** Min wander radius for idle citizens */
+const WANDER_RADIUS_MIN = 5;
+
+/** Max wander radius for idle citizens */
+const WANDER_RADIUS_MAX = 8;
+
+/** Cooldown range (seconds) between idle wander paths */
+const WANDER_COOLDOWN_MIN = 2;
+const WANDER_COOLDOWN_MAX = 4;
+
 function distanceSq(a: Vector3, b: Vector3): number {
   const dx = a.x - b.x;
   const dz = a.z - b.z;
@@ -86,9 +96,10 @@ export class JobAssignmentSystem extends System {
     super('JobAssignmentSystem');
   }
 
-  update(world: World, _dt: number): void {
+  update(world: World, dt: number): void {
     if (this.timeSystem.isPaused()) return;
 
+    const scaledDt = this.timeSystem.getScaledDt(dt);
     const entities = world.query(CITIZEN, JOB_ASSIGNMENT);
 
     for (const entityId of entities) {
@@ -96,6 +107,11 @@ export class JobAssignmentSystem extends System {
       const job = world.getComponent<JobAssignmentComponent>(entityId, JOB_ASSIGNMENT)!;
       const transform = world.getComponent<TransformComponent>(entityId, TRANSFORM);
       if (!transform) continue;
+
+      // Tick down wander cooldown
+      if (citizen.wanderCooldown > 0) {
+        citizen.wanderCooldown = Math.max(0, citizen.wanderCooldown - scaledDt);
+      }
 
       // Only act on Idle or Carrying citizens
       if (citizen.state === CitizenState.Idle) {
@@ -150,7 +166,8 @@ export class JobAssignmentSystem extends System {
         break;
       }
       default:
-        // Idle, Builder, Hauler — no automatic behavior yet
+        // Idle, Builder, Hauler — wander randomly when not busy
+        this.wanderRandomly(world, entityId, citizen, transform);
         break;
     }
   }
@@ -233,6 +250,47 @@ export class JobAssignmentSystem extends System {
         resourceType,
       });
     }
+  }
+
+  /**
+   * Pick a random nearby point and path to it for idle wandering.
+   * Respects a cooldown so citizens pause between wander paths.
+   */
+  private wanderRandomly(
+    world: World,
+    entityId: EntityId,
+    citizen: CitizenComponent,
+    transform: TransformComponent,
+  ): void {
+    // Don't wander if already following a path
+    if (world.getComponent<PathFollowComponent>(entityId, PATH_FOLLOW)) return;
+
+    // Wait for cooldown to expire
+    if (citizen.wanderCooldown > 0) return;
+
+    // Pick a random point within WANDER_RADIUS_MIN..WANDER_RADIUS_MAX of current position
+    const angle = Math.random() * Math.PI * 2;
+    const radius = WANDER_RADIUS_MIN + Math.random() * (WANDER_RADIUS_MAX - WANDER_RADIUS_MIN);
+    const dest: Vector3 = {
+      x: transform.position.x + Math.cos(angle) * radius,
+      y: transform.position.y,
+      z: transform.position.z + Math.sin(angle) * radius,
+    };
+
+    const path: Vector3[] = [
+      { ...transform.position },
+      dest,
+    ];
+
+    world.addComponent<PathFollowComponent>(entityId, PATH_FOLLOW, {
+      path,
+      currentIndex: 0,
+      speed: CITIZEN_SPEED,
+    });
+
+    // Set cooldown so we don't immediately pick a new destination on arrival
+    citizen.wanderCooldown =
+      WANDER_COOLDOWN_MIN + Math.random() * (WANDER_COOLDOWN_MAX - WANDER_COOLDOWN_MIN);
   }
 }
 

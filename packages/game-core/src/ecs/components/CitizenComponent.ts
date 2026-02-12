@@ -10,6 +10,8 @@ export interface CitizenComponent {
   state: CitizenState;
   hunger: number;
   health: number;
+  /** Seconds remaining before the citizen can pick a new wander destination. */
+  wanderCooldown: number;
 }
 
 export const CITIZEN = 'Citizen' as const;
@@ -21,6 +23,6 @@ export function createCitizen(
   hunger = 100,
   health = 100,
 ): CitizenComponent {
-  return { name, job, state, hunger, health };
+  return { name, job, state, hunger, health, wanderCooldown: 0 };
 }
 
