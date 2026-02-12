@@ -168,6 +168,11 @@ const CSS = /* css */ `
 }
 .ui-selection-panel .bar-health .bar-fill { background: var(--ui-success); }
 .ui-selection-panel .bar-hunger .bar-fill { background: var(--ui-accent); }
+.ui-selection-panel .bar-construction .bar-fill { background: #f59e0b; }
+.ui-selection-panel .construction-pct {
+  font-size: 12px; color: var(--ui-text-muted);
+  text-align: right; margin-top: 2px;
+}
 
 /* Job assignment buttons */
 .ui-selection-panel .sel-job-row {
