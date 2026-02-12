@@ -42,11 +42,11 @@ export class CitizenAnimator {
     if (this.rightArm) {
       toolMesh.position.set(0, -0.37, 0);
       // For chopping, rotate the axe so the blade face points toward the tree.
-      // rotation.x = PI/2 tilts the blade forward (compensates for arm extending
-      // forward via rotation.x = -PI/2), rotation.y = PI/2 orients the blade
-      // face perpendicular to the horizontal sweep direction.
+      // rotation.x = -PI/2 tilts the blade toward the tree (compensates for arm
+      // extending forward via rotation.x = -PI/2), rotation.y = PI/2 orients the
+      // blade face perpendicular to the horizontal sweep direction.
       if (gatherType === 'chop') {
-        toolMesh.rotation.set(Math.PI / 2, Math.PI / 2, 0);
+        toolMesh.rotation.set(-Math.PI / 2, Math.PI / 2, 0);
       }
       this.rightArm.add(toolMesh);
     }
