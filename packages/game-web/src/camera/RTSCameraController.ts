@@ -30,7 +30,7 @@ const DEFAULT_CONFIG: RTSCameraConfig = {
   rotateSpeed: 2,
   zoomSpeed: 8,
   smoothing: 0.1,
-  edgeScrollEnabled: true,
+  edgeScrollEnabled: false,
   edgeScrollThreshold: 30,
   edgeScrollSpeed: 40,
   minY: 5,
