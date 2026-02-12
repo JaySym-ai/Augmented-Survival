@@ -76,10 +76,6 @@ export class DeliverySystem extends System {
         diff: { [carry.resourceType]: -carry.amount } as Partial<Record<string, number>>,
       });
 
-      // Clear carry state
-      carry.resourceType = null;
-      carry.amount = 0;
-
       // Change citizen state to Idle
       const oldState = citizen.state;
       citizen.state = CitizenState.Idle;
@@ -88,6 +84,9 @@ export class DeliverySystem extends System {
         oldState,
         newState: CitizenState.Idle,
       });
+
+      // Remove CARRY component entirely so next gather cycle starts clean
+      world.removeComponent(entityId, CARRY);
     }
   }
 

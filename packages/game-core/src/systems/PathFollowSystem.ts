@@ -51,7 +51,7 @@ export class PathFollowSystem extends System {
 
       // Update citizen state to Walking if applicable
       const citizen = world.getComponent<CitizenComponent>(entityId, CITIZEN);
-      if (citizen && citizen.state !== CitizenState.Walking) {
+      if (citizen && citizen.state !== CitizenState.Walking && citizen.state !== CitizenState.Delivering) {
         const oldState = citizen.state;
         citizen.state = CitizenState.Walking;
         this.eventBus.emit('CitizenStateChanged', {
