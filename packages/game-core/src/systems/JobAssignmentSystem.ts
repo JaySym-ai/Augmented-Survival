@@ -198,6 +198,8 @@ export class JobAssignmentSystem extends System {
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
           claimedTargets.add(target);
+        } else {
+          this.wanderRandomly(world, entityId, citizen, transform);
         }
         break;
       }
@@ -211,6 +213,8 @@ export class JobAssignmentSystem extends System {
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
           claimedTargets.add(target);
+        } else {
+          this.wanderRandomly(world, entityId, citizen, transform);
         }
         break;
       }
@@ -224,6 +228,8 @@ export class JobAssignmentSystem extends System {
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
           claimedTargets.add(target);
+        } else {
+          this.wanderRandomly(world, entityId, citizen, transform);
         }
         break;
       }
@@ -251,6 +257,8 @@ export class JobAssignmentSystem extends System {
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
           claimedTargets.add(target);
+        } else {
+          this.wanderRandomly(world, entityId, citizen, transform);
         }
         break;
       }
@@ -264,6 +272,8 @@ export class JobAssignmentSystem extends System {
         if (target != null) {
           this.pathToTarget(world, entityId, citizen, transform, target);
           claimedTargets.add(target);
+        } else {
+          this.wanderRandomly(world, entityId, citizen, transform);
         }
         break;
       }
