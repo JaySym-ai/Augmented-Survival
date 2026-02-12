@@ -82,6 +82,8 @@ export class GatherSystem extends System {
       gathering.elapsed += scaledDt;
 
       if (gathering.elapsed >= gathering.gatherTime) {
+        let didPickUp = false;
+
         // Gathering complete — pick up resource
         if (gathering.targetEntity != null) {
           const resourceNode = world.getComponent<ResourceNodeComponent>(
@@ -90,6 +92,7 @@ export class GatherSystem extends System {
           );
           if (resourceNode && resourceNode.amount > 0) {
             resourceNode.amount -= 1;
+            didPickUp = true;
 
             // Set carry component
             world.addComponent<CarryComponent>(entityId, CARRY, {
@@ -110,14 +113,14 @@ export class GatherSystem extends System {
         // Remove gathering component
         world.removeComponent(entityId, GATHERING);
 
-        // Change citizen state to Carrying
+        // Change citizen state based on whether pickup succeeded
         if (citizen) {
           const oldState = citizen.state;
-          citizen.state = CitizenState.Carrying;
+          citizen.state = didPickUp ? CitizenState.Carrying : CitizenState.Idle;
           this.eventBus.emit('CitizenStateChanged', {
             entityId,
             oldState,
-            newState: CitizenState.Carrying,
+            newState: citizen.state,
           });
         }
       }

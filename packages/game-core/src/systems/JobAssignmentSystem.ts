@@ -118,6 +118,28 @@ export class JobAssignmentSystem extends System {
         this.handleIdle(world, entityId, citizen, job, transform);
       } else if (citizen.state === CitizenState.Carrying) {
         this.handleCarrying(world, entityId, citizen, transform);
+      } else if (citizen.state === CitizenState.Walking) {
+        // Recovery: Walking citizen with no PATH_FOLLOW and no GATHERING is stuck
+        if (!world.hasComponent(entityId, PATH_FOLLOW) && !world.hasComponent(entityId, GATHERING)) {
+          const oldState = citizen.state;
+          citizen.state = CitizenState.Idle;
+          this.eventBus.emit('CitizenStateChanged', {
+            entityId,
+            oldState,
+            newState: CitizenState.Idle,
+          });
+        }
+      } else if (citizen.state === CitizenState.Delivering) {
+        // Recovery: Delivering citizen with no PATH_FOLLOW and no CARRY is stuck
+        if (!world.hasComponent(entityId, PATH_FOLLOW) && !world.hasComponent(entityId, CARRY)) {
+          const oldState = citizen.state;
+          citizen.state = CitizenState.Idle;
+          this.eventBus.emit('CitizenStateChanged', {
+            entityId,
+            oldState,
+            newState: CitizenState.Idle,
+          });
+        }
       }
     }
   }
