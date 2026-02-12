@@ -51,20 +51,28 @@ export class MeshFactory {
     head.castShadow = true;
     group.add(head);
 
-    // Arms
+    // Arms (pivot at shoulder so they can swing)
     for (const side of [-1, 1]) {
+      const armPivot = new THREE.Group();
+      armPivot.name = side === -1 ? 'leftArm' : 'rightArm';
+      armPivot.position.set(side * 0.22, 0.75, 0);
       const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6), cloth);
-      arm.position.set(side * 0.22, 0.6, 0);
+      arm.position.set(0, -0.175, 0);
       arm.castShadow = true;
-      group.add(arm);
+      armPivot.add(arm);
+      group.add(armPivot);
     }
 
-    // Legs
+    // Legs (pivot at hip so they can swing)
     for (const side of [-1, 1]) {
+      const legPivot = new THREE.Group();
+      legPivot.name = side === -1 ? 'leftLeg' : 'rightLeg';
+      legPivot.position.set(side * 0.08, 0.30, 0);
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6), cloth);
-      leg.position.set(side * 0.08, 0.15, 0);
+      leg.position.set(0, -0.15, 0);
       leg.castShadow = true;
-      group.add(leg);
+      legPivot.add(leg);
+      group.add(legPivot);
     }
 
     return group;
