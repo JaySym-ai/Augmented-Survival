@@ -1,6 +1,6 @@
 /**
  * ResourceBar — Top-center resource display.
- * Shows Wood, Food, Stone counts and Population.
+ * Shows all resource counts and Population.
  */
 import {
   ResourceType,
@@ -27,7 +27,10 @@ export class ResourceBar {
     this.el.className = 'ui-resource-bar ui-panel';
 
     // Resource items
-    for (const rType of [ResourceType.Wood, ResourceType.Food, ResourceType.Stone]) {
+    for (const rType of [
+      ResourceType.Wood, ResourceType.Branch, ResourceType.Hemp,
+      ResourceType.Food, ResourceType.Stone, ResourceType.Iron, ResourceType.Gold,
+    ]) {
       const def = RESOURCE_DEFS[rType];
       const item = document.createElement('div');
       item.className = 'res-item';
@@ -53,7 +56,10 @@ export class ResourceBar {
 
   update(): void {
     // Update resource counts
-    for (const rType of [ResourceType.Wood, ResourceType.Food, ResourceType.Stone]) {
+    for (const rType of [
+      ResourceType.Wood, ResourceType.Branch, ResourceType.Hemp,
+      ResourceType.Food, ResourceType.Stone, ResourceType.Iron, ResourceType.Gold,
+    ]) {
       const val = this.resourceStore.getResource(rType);
       const el = this.valueEls.get(rType)!;
       const prev = this.prevValues.get(rType) ?? 0;
