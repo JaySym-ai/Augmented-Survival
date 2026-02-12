@@ -34,6 +34,14 @@ export class SelectionPanel {
   private onEntitySelected: (e: { entityId: EntityId }) => void;
   private onEntityDeselected: (e: { entityId: EntityId }) => void;
 
+  // Cached citizen DOM elements — created once, updated per-frame
+  private citizenBuiltForEntity: EntityId | null = null;
+  private citizenJobText: HTMLSpanElement | null = null;
+  private citizenStateText: HTMLSpanElement | null = null;
+  private citizenHealthFill: HTMLDivElement | null = null;
+  private citizenHungerFill: HTMLDivElement | null = null;
+  private citizenJobButtons: Map<JobType, HTMLButtonElement> = new Map();
+
   constructor(
     parent: HTMLElement,
     private world: World,
@@ -77,6 +85,7 @@ export class SelectionPanel {
   hide(): void {
     this.selectedEntity = null;
     this.el.style.display = 'none';
+    this.clearCitizenCache();
     if (this.onClose) this.onClose();
   }
 
@@ -84,6 +93,11 @@ export class SelectionPanel {
     if (this.selectedEntity === null) return;
     if (!this.world.isAlive(this.selectedEntity)) {
       this.hide();
+      return;
+    }
+    // If citizen DOM is already built for this entity, just update dynamic values
+    if (this.citizenBuiltForEntity === this.selectedEntity) {
+      this.updateCitizenValues();
       return;
     }
     this.renderContent();
@@ -94,12 +108,16 @@ export class SelectionPanel {
     const eid = this.selectedEntity;
     const titleEl = this.el.querySelector('.sel-title') as HTMLSpanElement;
 
+    // Clear cached citizen state when switching away from a citizen
+    this.clearCitizenCache();
+
     // Check entity type and render accordingly
     const citizen = this.world.getComponent<CitizenComponent>(eid, CITIZEN);
     if (citizen) {
       titleEl.textContent = citizen.name;
       this.contentEl.innerHTML = '';
-      this.renderCitizen(eid, citizen);
+      this.buildCitizenDOM(eid, citizen);
+      this.updateCitizenValues();
       return;
     }
 
@@ -123,41 +141,125 @@ export class SelectionPanel {
     this.contentEl.innerHTML = '<div class="sel-row">No details available</div>';
   }
 
-  private renderCitizen(entityId: EntityId, c: CitizenComponent): void {
-    // Info rows (HTML string for the static parts)
-    const infoHtml = `<div class="sel-row"><span class="label">Job</span><span>${c.job ?? 'None'}</span></div>`
-      + `<div class="sel-row"><span class="label">State</span><span>${c.state}</span></div>`
-      + `<div class="sel-row"><span class="label">Health</span></div>`
-      + `<div class="bar-container bar-health"><div class="bar-fill" style="width:${c.health}%"></div></div>`
-      + `<div class="sel-row"><span class="label">Hunger</span></div>`
-      + `<div class="bar-container bar-hunger"><div class="bar-fill" style="width:${c.hunger}%"></div></div>`;
+  private clearCitizenCache(): void {
+    this.citizenBuiltForEntity = null;
+    this.citizenJobText = null;
+    this.citizenStateText = null;
+    this.citizenHealthFill = null;
+    this.citizenHungerFill = null;
+    this.citizenJobButtons.clear();
+  }
 
-    const infoDiv = document.createElement('div');
-    infoDiv.innerHTML = infoHtml;
-    this.contentEl.appendChild(infoDiv);
+  /** Build the citizen DOM structure once and cache element references. */
+  private buildCitizenDOM(entityId: EntityId, _c: CitizenComponent): void {
+    // Job row
+    const jobRow = document.createElement('div');
+    jobRow.className = 'sel-row';
+    const jobLabel = document.createElement('span');
+    jobLabel.className = 'label';
+    jobLabel.textContent = 'Job';
+    const jobValue = document.createElement('span');
+    jobRow.appendChild(jobLabel);
+    jobRow.appendChild(jobValue);
+    this.citizenJobText = jobValue;
+
+    // State row
+    const stateRow = document.createElement('div');
+    stateRow.className = 'sel-row';
+    const stateLabel = document.createElement('span');
+    stateLabel.className = 'label';
+    stateLabel.textContent = 'State';
+    const stateValue = document.createElement('span');
+    stateRow.appendChild(stateLabel);
+    stateRow.appendChild(stateValue);
+    this.citizenStateText = stateValue;
+
+    // Health label + bar
+    const healthLabelRow = document.createElement('div');
+    healthLabelRow.className = 'sel-row';
+    const healthLabel = document.createElement('span');
+    healthLabel.className = 'label';
+    healthLabel.textContent = 'Health';
+    healthLabelRow.appendChild(healthLabel);
+
+    const healthBar = document.createElement('div');
+    healthBar.className = 'bar-container bar-health';
+    const healthFill = document.createElement('div');
+    healthFill.className = 'bar-fill';
+    healthBar.appendChild(healthFill);
+    this.citizenHealthFill = healthFill;
+
+    // Hunger label + bar
+    const hungerLabelRow = document.createElement('div');
+    hungerLabelRow.className = 'sel-row';
+    const hungerLabel = document.createElement('span');
+    hungerLabel.className = 'label';
+    hungerLabel.textContent = 'Hunger';
+    hungerLabelRow.appendChild(hungerLabel);
+
+    const hungerBar = document.createElement('div');
+    hungerBar.className = 'bar-container bar-hunger';
+    const hungerFill = document.createElement('div');
+    hungerFill.className = 'bar-fill';
+    hungerBar.appendChild(hungerFill);
+    this.citizenHungerFill = hungerFill;
+
+    // Append info rows
+    this.contentEl.appendChild(jobRow);
+    this.contentEl.appendChild(stateRow);
+    this.contentEl.appendChild(healthLabelRow);
+    this.contentEl.appendChild(healthBar);
+    this.contentEl.appendChild(hungerLabelRow);
+    this.contentEl.appendChild(hungerBar);
 
     // Job assignment button row
-    const jobRow = document.createElement('div');
-    jobRow.className = 'sel-job-row';
-
-    const currentJob = c.job ?? JobType.Idle;
+    const btnRow = document.createElement('div');
+    btnRow.className = 'sel-job-row';
 
     for (const jobType of Object.values(JobType)) {
       const def = JOB_DEFS[jobType];
       const btn = document.createElement('button');
       btn.className = 'sel-job-btn';
-      if (jobType === currentJob) {
-        btn.classList.add('active');
-      }
       btn.textContent = def.displayName;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.assignJob(entityId, jobType);
       });
-      jobRow.appendChild(btn);
+      this.citizenJobButtons.set(jobType, btn);
+      btnRow.appendChild(btn);
     }
 
-    this.contentEl.appendChild(jobRow);
+    this.contentEl.appendChild(btnRow);
+
+    // Mark which entity this DOM was built for
+    this.citizenBuiltForEntity = entityId;
+  }
+
+  /** Update only the dynamic values in the cached citizen DOM. */
+  private updateCitizenValues(): void {
+    if (this.selectedEntity === null) return;
+    const citizen = this.world.getComponent<CitizenComponent>(this.selectedEntity, CITIZEN);
+    if (!citizen) return;
+
+    const currentJob = citizen.job ?? JobType.Idle;
+
+    if (this.citizenJobText) {
+      this.citizenJobText.textContent = citizen.job ?? 'None';
+    }
+    if (this.citizenStateText) {
+      this.citizenStateText.textContent = citizen.state;
+    }
+    if (this.citizenHealthFill) {
+      this.citizenHealthFill.style.width = `${citizen.health}%`;
+    }
+    if (this.citizenHungerFill) {
+      this.citizenHungerFill.style.width = `${citizen.hunger}%`;
+    }
+
+    // Update active class on job buttons
+    for (const [jobType, btn] of this.citizenJobButtons) {
+      btn.classList.toggle('active', jobType === currentJob);
+    }
   }
 
   private assignJob(entityId: EntityId, jobType: JobType): void {
@@ -186,8 +288,8 @@ export class SelectionPanel {
       this.world.removeComponent(entityId, CARRY);
     }
 
-    // Re-render the panel
-    this.renderContent();
+    // Update the panel values directly (no DOM rebuild)
+    this.updateCitizenValues();
   }
 
   private renderBuilding(b: BuildingComponent, desc: string): string {
