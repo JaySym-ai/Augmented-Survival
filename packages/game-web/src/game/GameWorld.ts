@@ -20,6 +20,8 @@ import {
   SELECTABLE,
   CARRY,
   JOB_ASSIGNMENT,
+  GATHERING,
+  type GatheringComponent,
   createTransform,
   createVelocity,
   createCitizen,
@@ -78,6 +80,9 @@ export class GameWorld {
 
   // Walk animation controllers for citizen entities
   private citizenAnimators = new Map<EntityId, CitizenAnimator>();
+
+  // Tool meshes attached to citizens during gathering
+  private citizenTools = new Map<EntityId, THREE.Group>();
 
   // Round-robin counter for default job assignment
   private nextJobIndex = 0;
@@ -258,6 +263,37 @@ export class GameWorld {
         });
       }
     });
+
+    // When a gather hit occurs, start gathering animation if not already active
+    this.eventBus.on('GatherHit', (event) => {
+      const animator = this.citizenAnimators.get(event.entityId);
+      if (!animator) return;
+
+      // If not already in gathering mode, start it
+      if (!animator.isInGatheringMode()) {
+        // Create appropriate tool
+        const tool = event.resourceType === ResourceType.Wood
+          ? this.meshFactory.createAxeMesh()
+          : event.resourceType === ResourceType.Stone
+            ? this.meshFactory.createPickaxeMesh()
+            : null;
+
+        if (tool) {
+          this.citizenTools.set(event.entityId, tool);
+        }
+
+        // Get hit interval from gathering component
+        const gathering = this.world.getComponent<GatheringComponent>(event.entityId, GATHERING);
+        const hitInterval = gathering?.hitInterval ?? 1;
+
+        if (tool) {
+          animator.startGathering(hitInterval, tool);
+        }
+      }
+
+      // Reset the swing phase on each hit so the animation stays in sync
+      animator.resetGatherPhase();
+    });
   }
 
   /** Call every frame to step simulation and sync visuals */
@@ -279,6 +315,31 @@ export class GameWorld {
       // Animate citizens
       const animator = this.citizenAnimators.get(entityId);
       if (animator) {
+        // Check if citizen was gathering but no longer has GATHERING component
+        if (animator.isInGatheringMode()) {
+          if (!this.world.hasComponent(entityId, GATHERING)) {
+            animator.stopGathering();
+            const tool = this.citizenTools.get(entityId);
+            if (tool) {
+              tool.removeFromParent();
+              this.citizenTools.delete(entityId);
+            }
+          }
+        }
+
+        // If gathering, make citizen face the target resource
+        if (animator.isInGatheringMode()) {
+          const gathering = this.world.getComponent<GatheringComponent>(entityId, GATHERING);
+          if (gathering?.targetEntity != null) {
+            const targetTransform = this.world.getComponent<TransformComponent>(gathering.targetEntity, TRANSFORM);
+            if (targetTransform && transform) {
+              const dx = targetTransform.position.x - transform.position.x;
+              const dz = targetTransform.position.z - transform.position.z;
+              animator.setFacingTarget(dx, dz);
+            }
+          }
+        }
+
         const vel = this.world.getComponent<VelocityComponent>(entityId, VELOCITY);
         const vx = vel?.velocity.x ?? 0;
         const vz = vel?.velocity.z ?? 0;
@@ -311,6 +372,11 @@ export class GameWorld {
     }
     this.entityMeshes.clear();
     this.citizenAnimators.clear();
+    // Clean up tool meshes
+    for (const tool of this.citizenTools.values()) {
+      tool.removeFromParent();
+    }
+    this.citizenTools.clear();
     this.terrainMesh.dispose();
     this.environment.dispose();
     this.meshFactory.dispose();

@@ -83,6 +83,42 @@ export class MeshFactory {
     return group;
   }
 
+  createAxeMesh(): THREE.Group {
+    const group = new THREE.Group();
+    const wood = this.mat('wood');
+    const metal = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.4, metalness: 0.6 });
+
+    // Handle (thin cylinder)
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 6), wood);
+    handle.position.y = -0.175;
+    group.add(handle);
+
+    // Blade (flattened box)
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.02), metal);
+    blade.position.set(0.06, 0, 0);
+    group.add(blade);
+
+    return group;
+  }
+
+  createPickaxeMesh(): THREE.Group {
+    const group = new THREE.Group();
+    const wood = this.mat('wood');
+    const metal = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.4, metalness: 0.6 });
+
+    // Handle
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 6), wood);
+    handle.position.y = -0.175;
+    group.add(handle);
+
+    // Pick head (two pointed ends)
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.04, 0.04), metal);
+    head.position.set(0, 0, 0);
+    group.add(head);
+
+    return group;
+  }
+
   createTreeMesh(): THREE.Group {
     const group = new THREE.Group();
     const wood = this.mat('wood');
