@@ -41,9 +41,13 @@ export class CitizenAnimator {
     // Attach tool to right arm group near the hand position
     if (this.rightArm) {
       toolMesh.position.set(0, -0.37, 0);
-      // For chopping, rotate the axe so the blade is oriented for horizontal swings
+      // For chopping, rotate the axe so the blade faces outward (toward the tree)
+      // during the horizontal swing. rotation.z = -PI/2 flips the blade to lead
+      // the inward strike, and rotation.y = PI mirrors it so the cutting edge
+      // faces away from the hand.
       if (gatherType === 'chop') {
-        toolMesh.rotation.z = Math.PI / 2;
+        toolMesh.rotation.z = -Math.PI / 2;
+        toolMesh.rotation.y = Math.PI;
       }
       this.rightArm.add(toolMesh);
     }
