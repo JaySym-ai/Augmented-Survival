@@ -25,6 +25,7 @@ import type {
   CitizenComponent,
   BuildingComponent,
   ResourceNodeComponent,
+  CarryComponent,
 } from '@augmented-survival/game-core';
 
 export class SelectionPanel {
@@ -41,6 +42,9 @@ export class SelectionPanel {
   private citizenHealthFill: HTMLDivElement | null = null;
   private citizenHungerFill: HTMLDivElement | null = null;
   private citizenJobButtons: Map<JobType, HTMLButtonElement> = new Map();
+  private citizenBagSlots: HTMLDivElement[] = [];
+  private citizenBagIcons: HTMLSpanElement[] = [];
+  private citizenBagCounts: HTMLSpanElement[] = [];
 
   constructor(
     parent: HTMLElement,
@@ -148,6 +152,9 @@ export class SelectionPanel {
     this.citizenHealthFill = null;
     this.citizenHungerFill = null;
     this.citizenJobButtons.clear();
+    this.citizenBagSlots = [];
+    this.citizenBagIcons = [];
+    this.citizenBagCounts = [];
   }
 
   /** Build the citizen DOM structure once and cache element references. */
@@ -212,6 +219,33 @@ export class SelectionPanel {
     this.contentEl.appendChild(hungerLabelRow);
     this.contentEl.appendChild(hungerBar);
 
+    // Bag inventory slots
+    const bagLabel = document.createElement('div');
+    bagLabel.className = 'sel-bag-label';
+    bagLabel.textContent = 'Bag';
+    this.contentEl.appendChild(bagLabel);
+
+    const bagGrid = document.createElement('div');
+    bagGrid.className = 'sel-bag-grid';
+    this.citizenBagSlots = [];
+    this.citizenBagIcons = [];
+    this.citizenBagCounts = [];
+    for (let i = 0; i < 3; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'sel-bag-slot empty';
+      const icon = document.createElement('span');
+      icon.className = 'sel-bag-icon';
+      const count = document.createElement('span');
+      count.className = 'sel-bag-count';
+      slot.appendChild(icon);
+      slot.appendChild(count);
+      bagGrid.appendChild(slot);
+      this.citizenBagSlots.push(slot);
+      this.citizenBagIcons.push(icon);
+      this.citizenBagCounts.push(count);
+    }
+    this.contentEl.appendChild(bagGrid);
+
     // Job assignment button row
     const btnRow = document.createElement('div');
     btnRow.className = 'sel-job-row';
@@ -259,6 +293,23 @@ export class SelectionPanel {
     // Update active class on job buttons
     for (const [jobType, btn] of this.citizenJobButtons) {
       btn.classList.toggle('active', jobType === currentJob);
+    }
+
+    // Update bag inventory slots
+    const carry = this.world.getComponent<CarryComponent>(this.selectedEntity, CARRY);
+    for (let i = 0; i < this.citizenBagSlots.length; i++) {
+      const slot = this.citizenBagSlots[i];
+      const icon = this.citizenBagIcons[i];
+      const count = this.citizenBagCounts[i];
+      if (i === 0 && carry && carry.resourceType != null && carry.amount > 0) {
+        icon.textContent = RESOURCE_DEFS[carry.resourceType].icon;
+        count.textContent = `×${carry.amount}`;
+        slot.classList.remove('empty');
+      } else {
+        icon.textContent = '';
+        count.textContent = '';
+        slot.classList.add('empty');
+      }
     }
   }
 

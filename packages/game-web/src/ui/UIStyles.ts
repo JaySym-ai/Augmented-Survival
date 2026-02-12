@@ -195,6 +195,42 @@ const CSS = /* css */ `
   font-weight: 700;
 }
 
+/* Bag inventory slots */
+.ui-selection-panel .sel-bag-label {
+  color: var(--ui-text-muted);
+  font-size: 13px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-border);
+}
+.ui-selection-panel .sel-bag-grid {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ui-selection-panel .sel-bag-slot {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.05);
+}
+.ui-selection-panel .sel-bag-slot.empty {
+  opacity: 0.4;
+  border-style: dashed;
+}
+.ui-selection-panel .sel-bag-icon {
+  font-size: 20px;
+}
+.ui-selection-panel .sel-bag-count {
+  font-size: 10px;
+  color: var(--ui-text-muted);
+}
+
 /* ===== Settings Overlay ===== */
 .ui-settings-overlay {
   position: absolute;
