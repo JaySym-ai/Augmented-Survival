@@ -27,6 +27,14 @@ export interface InventoryChangedEvent {
   diff: Partial<Record<ResourceType, number>>;
 }
 
+export interface GatherHitEvent {
+  entityId: EntityId;
+  resourceType: ResourceType;
+  currentHit: number;
+  totalHits: number;
+  targetEntity: EntityId;
+}
+
 // --- Building Events ---
 
 export interface BuildingPlacedEvent {
@@ -95,6 +103,7 @@ export interface GameEventMap extends EventMap {
   ResourcePickedUp: ResourcePickedUpEvent;
   ResourceDelivered: ResourceDeliveredEvent;
   InventoryChanged: InventoryChangedEvent;
+  GatherHit: GatherHitEvent;
   BuildingPlaced: BuildingPlacedEvent;
   ConstructionProgress: ConstructionProgressEvent;
   ConstructionComplete: ConstructionCompleteEvent;

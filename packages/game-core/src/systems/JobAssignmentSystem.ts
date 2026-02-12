@@ -265,11 +265,16 @@ export class JobAssignmentSystem extends System {
       if (jobAssignment?.jobType === JobType.Farmer) {
         resourceType = ResourceType.Food;
       }
+      const totalHits = Math.floor(Math.random() * 4) + 3; // 3–6
       world.addComponent<GatheringComponent>(entityId, GATHERING, {
         targetEntity: targetId,
         gatherTime: GATHER_TIME,
         elapsed: 0,
         resourceType,
+        totalHits,
+        currentHits: 0,
+        hitInterval: GATHER_TIME / totalHits,
+        hitElapsed: 0,
       });
     }
   }

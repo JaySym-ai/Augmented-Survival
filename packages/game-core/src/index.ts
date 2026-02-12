@@ -68,6 +68,7 @@ export type {
   ResourcePickedUpEvent,
   ResourceDeliveredEvent,
   InventoryChangedEvent,
+  GatherHitEvent,
   BuildingPlacedEvent,
   ConstructionProgressEvent,
   ConstructionCompleteEvent,

@@ -78,13 +78,31 @@ export class GatherSystem extends System {
         });
       }
 
-      // Increment gather timer
+      // Increment hit-based gather timer
       gathering.elapsed += scaledDt;
+      gathering.hitElapsed += scaledDt;
 
-      if (gathering.elapsed >= gathering.gatherTime) {
+      // Check for hit completion
+      while (gathering.hitElapsed >= gathering.hitInterval && gathering.currentHits < gathering.totalHits) {
+        gathering.hitElapsed -= gathering.hitInterval;
+        gathering.currentHits += 1;
+
+        // Emit GatherHit event for each strike
+        if (gathering.targetEntity != null) {
+          this.eventBus.emit('GatherHit', {
+            entityId,
+            resourceType: gathering.resourceType,
+            currentHit: gathering.currentHits,
+            totalHits: gathering.totalHits,
+            targetEntity: gathering.targetEntity,
+          });
+        }
+      }
+
+      // All hits complete — do pickup
+      if (gathering.currentHits >= gathering.totalHits) {
         let didPickUp = false;
 
-        // Gathering complete — pick up resource
         if (gathering.targetEntity != null) {
           const resourceNode = world.getComponent<ResourceNodeComponent>(
             gathering.targetEntity,
