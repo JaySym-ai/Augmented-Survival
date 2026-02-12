@@ -60,6 +60,11 @@ export class MeshFactory {
       arm.position.set(0, -0.175, 0);
       arm.castShadow = true;
       armPivot.add(arm);
+      // Hand (small sphere at arm tip)
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), skin);
+      hand.position.set(0, -0.37, 0);
+      hand.castShadow = true;
+      armPivot.add(hand);
       group.add(armPivot);
     }
 
