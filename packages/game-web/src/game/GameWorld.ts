@@ -178,6 +178,30 @@ export class GameWorld {
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Stone, 3, 3));
     }
+    // Iron ore rocks → Iron resource nodes
+    for (const pos of this.environment.getIronPositions()) {
+      const entity = this.world.createEntity();
+      this.world.addComponent(entity, TRANSFORM, createTransform(pos));
+      this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Iron, 2, 2));
+    }
+    // Gold ore rocks → Gold resource nodes
+    for (const pos of this.environment.getGoldPositions()) {
+      const entity = this.world.createEntity();
+      this.world.addComponent(entity, TRANSFORM, createTransform(pos));
+      this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Gold, 1, 1));
+    }
+    // Hemp plants → Hemp resource nodes (regenerating)
+    for (const pos of this.environment.getHempPositions()) {
+      const entity = this.world.createEntity();
+      this.world.addComponent(entity, TRANSFORM, createTransform(pos));
+      this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Hemp, 3, 3, true));
+    }
+    // Fallen branches → Branch resource nodes (regenerating)
+    for (const pos of this.environment.getBranchPositions()) {
+      const entity = this.world.createEntity();
+      this.world.addComponent(entity, TRANSFORM, createTransform(pos));
+      this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Branch, 2, 2, true));
+    }
   }
 
   spawnCitizen(position?: Vector3, jobType?: JobType): EntityId {

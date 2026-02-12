@@ -18,6 +18,10 @@ function mulberry32(seed: number): () => number {
 const CENTER_EXCLUSION_RADIUS = 20;
 const TREE_COUNT = 600;
 const ROCK_COUNT = 150;
+const IRON_COUNT = 30;
+const GOLD_COUNT = 10;
+const HEMP_COUNT = 200;
+const BRANCH_COUNT = 300;
 const MAX_PLACEMENT_ATTEMPTS = 5000;
 
 function applyVertexColor(geometry: THREE.BufferGeometry, color: THREE.Color): void {
@@ -97,6 +101,68 @@ function createRockGeometry(rng: () => number): THREE.BufferGeometry {
   return rock;
 }
 
+function createIronRockGeometry(rng: () => number): THREE.BufferGeometry {
+  const rock = new THREE.DodecahedronGeometry(0.55, 1);
+  const pos = rock.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const d = 0.85 + rng() * 0.3;
+    pos.setX(i, pos.getX(i) * d);
+    pos.setY(i, pos.getY(i) * (0.6 + rng() * 0.4));
+    pos.setZ(i, pos.getZ(i) * d);
+  }
+  pos.needsUpdate = true;
+  rock.computeVertexNormals();
+  applyVertexColor(rock, new THREE.Color(0x8B4513));
+  return rock;
+}
+
+function createGoldRockGeometry(rng: () => number): THREE.BufferGeometry {
+  const rock = new THREE.DodecahedronGeometry(0.45, 1);
+  const pos = rock.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const d = 0.85 + rng() * 0.3;
+    pos.setX(i, pos.getX(i) * d);
+    pos.setY(i, pos.getY(i) * (0.6 + rng() * 0.4));
+    pos.setZ(i, pos.getZ(i) * d);
+  }
+  pos.needsUpdate = true;
+  rock.computeVertexNormals();
+  applyVertexColor(rock, new THREE.Color(0xDAA520));
+  return rock;
+}
+
+function createHempGeometry(): THREE.BufferGeometry {
+  // Thin stem
+  const stem = new THREE.CylinderGeometry(0.03, 0.04, 0.8, 5);
+  stem.translate(0, 0.4, 0);
+  // Leaf-like top (flattened cone)
+  const leaf = new THREE.ConeGeometry(0.25, 0.4, 6);
+  leaf.translate(0, 0.95, 0);
+  applyVertexColor(stem, new THREE.Color(0x6B8E23));
+  applyVertexColor(leaf, new THREE.Color(0x6B8E23));
+  return mergeGeometries([stem, leaf]);
+}
+
+function createBranchGeometry(rng: () => number): THREE.BufferGeometry {
+  // Main twig laid flat on ground
+  const main = new THREE.CylinderGeometry(0.03, 0.025, 0.5, 4);
+  main.rotateZ(Math.PI / 2);
+  main.translate(0, 0.02, 0);
+  // Secondary twig at an angle forming a slight Y
+  const secondary = new THREE.CylinderGeometry(0.025, 0.02, 0.35, 4);
+  secondary.rotateZ(Math.PI / 2 + 0.5);
+  secondary.translate(0.1, 0.04, 0.03);
+  // Third small twig
+  const third = new THREE.CylinderGeometry(0.02, 0.015, 0.25, 4);
+  third.rotateZ(Math.PI / 2 - 0.4);
+  third.translate(-0.08, 0.03, -0.02);
+  const color = new THREE.Color(0x8B6914);
+  applyVertexColor(main, color);
+  applyVertexColor(secondary, color);
+  applyVertexColor(third, color);
+  return mergeGeometries([main, secondary, third]);
+}
+
 function getTerrainHeight(data: TerrainData, worldX: number, worldZ: number): number {
   const { width, depth, resolution, heightMap } = data;
   const gx = ((worldX + width / 2) / width) * (resolution - 1);
@@ -130,8 +196,16 @@ function getTerrainSlope(data: TerrainData, worldX: number, worldZ: number): num
 export class EnvironmentObjects {
   private treeInstances: THREE.InstancedMesh;
   private rockInstances: THREE.InstancedMesh;
+  private ironInstances: THREE.InstancedMesh;
+  private goldInstances: THREE.InstancedMesh;
+  private hempInstances: THREE.InstancedMesh;
+  private branchInstances: THREE.InstancedMesh;
   private treePositions: Array<{ x: number; y: number; z: number }> = [];
   private rockPositions: Array<{ x: number; y: number; z: number }> = [];
+  private ironPositions: Array<{ x: number; y: number; z: number }> = [];
+  private goldPositions: Array<{ x: number; y: number; z: number }> = [];
+  private hempPositions: Array<{ x: number; y: number; z: number }> = [];
+  private branchPositions: Array<{ x: number; y: number; z: number }> = [];
 
   constructor(scene: THREE.Scene, terrainData: TerrainData, seed: number) {
     const rng = mulberry32(seed + 12345);
@@ -211,6 +285,152 @@ export class EnvironmentObjects {
     this.rockInstances.count = rocksPlaced;
     this.rockInstances.instanceMatrix.needsUpdate = true;
     scene.add(this.rockInstances);
+
+    // ---- Iron Ore Rocks ----
+    const ironGeometry = createIronRockGeometry(rng);
+    const ironMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.4 });
+    this.ironInstances = new THREE.InstancedMesh(ironGeometry, ironMaterial, IRON_COUNT);
+    this.ironInstances.castShadow = true;
+    this.ironInstances.receiveShadow = true;
+    this.ironInstances.name = 'ironRocks';
+
+    const ironMatrix = new THREE.Matrix4();
+    let ironPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && ironPlaced < IRON_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const slope = getTerrainSlope(terrainData, x, z);
+      const height = getTerrainHeight(terrainData, x, z);
+      const heightNorm = height / 8;
+      // Prefer higher elevation and steeper slopes
+      const ironProbability = slope * 0.5 + heightNorm * 0.5;
+      if (rng() > ironProbability * 0.6) continue;
+      const scale = 0.4 + rng() * 0.6;
+      const rotX = rng() * Math.PI * 0.3;
+      const rotY = rng() * Math.PI * 2;
+      const rotZ = rng() * Math.PI * 0.3;
+      ironMatrix.identity();
+      ironMatrix.makeRotationFromEuler(new THREE.Euler(rotX, rotY, rotZ));
+      ironMatrix.scale(new THREE.Vector3(scale, scale * (0.6 + rng() * 0.4), scale));
+      ironMatrix.setPosition(x, height - 0.1 * scale, z);
+      this.ironInstances.setMatrixAt(ironPlaced, ironMatrix);
+      this.ironPositions.push({ x, y: height, z });
+      ironPlaced++;
+    }
+    this.ironInstances.count = ironPlaced;
+    this.ironInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.ironInstances);
+
+    // ---- Gold Ore Rocks ----
+    const goldGeometry = createGoldRockGeometry(rng);
+    const goldMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.6 });
+    this.goldInstances = new THREE.InstancedMesh(goldGeometry, goldMaterial, GOLD_COUNT);
+    this.goldInstances.castShadow = true;
+    this.goldInstances.receiveShadow = true;
+    this.goldInstances.name = 'goldRocks';
+
+    const goldMatrix = new THREE.Matrix4();
+    let goldPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && goldPlaced < GOLD_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const height = getTerrainHeight(terrainData, x, z);
+      const heightNorm = height / 8;
+      // Only at the highest elevations
+      if (heightNorm < 0.7) continue;
+      if (rng() > heightNorm * 0.5) continue;
+      const scale = 0.35 + rng() * 0.5;
+      const rotX = rng() * Math.PI * 0.3;
+      const rotY = rng() * Math.PI * 2;
+      const rotZ = rng() * Math.PI * 0.3;
+      goldMatrix.identity();
+      goldMatrix.makeRotationFromEuler(new THREE.Euler(rotX, rotY, rotZ));
+      goldMatrix.scale(new THREE.Vector3(scale, scale * (0.6 + rng() * 0.4), scale));
+      goldMatrix.setPosition(x, height - 0.1 * scale, z);
+      this.goldInstances.setMatrixAt(goldPlaced, goldMatrix);
+      this.goldPositions.push({ x, y: height, z });
+      goldPlaced++;
+    }
+    this.goldInstances.count = goldPlaced;
+    this.goldInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.goldInstances);
+
+    // ---- Hemp Plants ----
+    const hempGeometry = createHempGeometry();
+    const hempMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.0 });
+    this.hempInstances = new THREE.InstancedMesh(hempGeometry, hempMaterial, HEMP_COUNT);
+    this.hempInstances.castShadow = true;
+    this.hempInstances.receiveShadow = true;
+    this.hempInstances.name = 'hemp';
+
+    const hempMatrix = new THREE.Matrix4();
+    let hempPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && hempPlaced < HEMP_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const slope = getTerrainSlope(terrainData, x, z);
+      if (slope > 0.25) continue;
+      const height = getTerrainHeight(terrainData, x, z);
+      const heightNorm = height / 8;
+      // Prefer grasslands / low areas
+      if (heightNorm > 0.5) continue;
+      if (rng() > 0.5) continue;
+      const scale = 0.7 + rng() * 0.6;
+      const rotY = rng() * Math.PI * 2;
+      hempMatrix.identity();
+      hempMatrix.makeRotationY(rotY);
+      hempMatrix.scale(new THREE.Vector3(scale, scale, scale));
+      hempMatrix.setPosition(x, height, z);
+      this.hempInstances.setMatrixAt(hempPlaced, hempMatrix);
+      this.hempPositions.push({ x, y: height, z });
+      hempPlaced++;
+    }
+    this.hempInstances.count = hempPlaced;
+    this.hempInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.hempInstances);
+
+    // ---- Fallen Branches ----
+    const branchGeometry = createBranchGeometry(rng);
+    const branchMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0.0 });
+    this.branchInstances = new THREE.InstancedMesh(branchGeometry, branchMaterial, BRANCH_COUNT);
+    this.branchInstances.receiveShadow = true;
+    this.branchInstances.name = 'branches';
+
+    const branchMatrix = new THREE.Matrix4();
+    let branchesPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && branchesPlaced < BRANCH_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const slope = getTerrainSlope(terrainData, x, z);
+      if (slope > 0.4) continue;
+      const height = getTerrainHeight(terrainData, x, z);
+      // Scatter widely — accept most terrain
+      if (rng() > 0.6) continue;
+      const scale = 0.6 + rng() * 0.8;
+      const rotY = rng() * Math.PI * 2;
+      branchMatrix.identity();
+      branchMatrix.makeRotationY(rotY);
+      branchMatrix.scale(new THREE.Vector3(scale, scale, scale));
+      branchMatrix.setPosition(x, height, z);
+      this.branchInstances.setMatrixAt(branchesPlaced, branchMatrix);
+      this.branchPositions.push({ x, y: height, z });
+      branchesPlaced++;
+    }
+    this.branchInstances.count = branchesPlaced;
+    this.branchInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.branchInstances);
   }
 
   getTreePositions(): Array<{ x: number; y: number; z: number }> {
@@ -221,6 +441,22 @@ export class EnvironmentObjects {
     return [...this.rockPositions];
   }
 
+  getIronPositions(): Array<{ x: number; y: number; z: number }> {
+    return [...this.ironPositions];
+  }
+
+  getGoldPositions(): Array<{ x: number; y: number; z: number }> {
+    return [...this.goldPositions];
+  }
+
+  getHempPositions(): Array<{ x: number; y: number; z: number }> {
+    return [...this.hempPositions];
+  }
+
+  getBranchPositions(): Array<{ x: number; y: number; z: number }> {
+    return [...this.branchPositions];
+  }
+
   dispose(): void {
     this.treeInstances.geometry.dispose();
     (this.treeInstances.material as THREE.Material).dispose();
@@ -228,6 +464,18 @@ export class EnvironmentObjects {
     this.rockInstances.geometry.dispose();
     (this.rockInstances.material as THREE.Material).dispose();
     this.rockInstances.dispose();
+    this.ironInstances.geometry.dispose();
+    (this.ironInstances.material as THREE.Material).dispose();
+    this.ironInstances.dispose();
+    this.goldInstances.geometry.dispose();
+    (this.goldInstances.material as THREE.Material).dispose();
+    this.goldInstances.dispose();
+    this.hempInstances.geometry.dispose();
+    (this.hempInstances.material as THREE.Material).dispose();
+    this.hempInstances.dispose();
+    this.branchInstances.geometry.dispose();
+    (this.branchInstances.material as THREE.Material).dispose();
+    this.branchInstances.dispose();
   }
 }
 
