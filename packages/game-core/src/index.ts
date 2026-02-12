@@ -61,6 +61,9 @@ export { STORAGE, createStorage } from './ecs/components/StorageComponent';
 export type { JobAssignmentComponent } from './ecs/components/JobAssignmentComponent';
 export { JOB_ASSIGNMENT, createJobAssignment } from './ecs/components/JobAssignmentComponent';
 
+export type { ConstructionWorkComponent } from './ecs/components/ConstructionWorkComponent';
+export { CONSTRUCTION_WORK, createConstructionWork } from './ecs/components/ConstructionWorkComponent';
+
 // Events
 export { EventBus } from './events/EventBus';
 export type { EventHandler, EventMap } from './events/EventBus';

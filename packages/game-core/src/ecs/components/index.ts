@@ -40,3 +40,6 @@ export { STORAGE, createStorage } from './StorageComponent';
 export type { JobAssignmentComponent } from './JobAssignmentComponent';
 export { JOB_ASSIGNMENT, createJobAssignment } from './JobAssignmentComponent';
 
+export type { ConstructionWorkComponent } from './ConstructionWorkComponent';
+export { CONSTRUCTION_WORK, createConstructionWork } from './ConstructionWorkComponent';
+

@@ -19,6 +19,9 @@ import { GATHERING } from '../ecs/components/GatheringComponent';
 import type { GatheringComponent } from '../ecs/components/GatheringComponent';
 import { CARRY } from '../ecs/components/CarryComponent';
 import type { CarryComponent } from '../ecs/components/CarryComponent';
+import { CONSTRUCTION_SITE } from '../ecs/components/ConstructionSiteComponent';
+import { CONSTRUCTION_WORK } from '../ecs/components/ConstructionWorkComponent';
+import type { ConstructionWorkComponent } from '../ecs/components/ConstructionWorkComponent';
 import { CitizenState } from '../types/citizens';
 import { JobType } from '../types/jobs';
 import { ResourceType } from '../types/resources';
@@ -119,8 +122,12 @@ export class JobAssignmentSystem extends System {
       } else if (citizen.state === CitizenState.Carrying) {
         this.handleCarrying(world, entityId, citizen, transform);
       } else if (citizen.state === CitizenState.Walking) {
-        // Recovery: Walking citizen with no PATH_FOLLOW and no GATHERING is stuck
-        if (!world.hasComponent(entityId, PATH_FOLLOW) && !world.hasComponent(entityId, GATHERING)) {
+        // Recovery: Walking citizen with no PATH_FOLLOW and no work component is stuck
+        if (
+          !world.hasComponent(entityId, PATH_FOLLOW) &&
+          !world.hasComponent(entityId, GATHERING) &&
+          !world.hasComponent(entityId, CONSTRUCTION_WORK)
+        ) {
           const oldState = citizen.state;
           citizen.state = CitizenState.Idle;
           this.eventBus.emit('CitizenStateChanged', {
@@ -132,6 +139,17 @@ export class JobAssignmentSystem extends System {
       } else if (citizen.state === CitizenState.Delivering) {
         // Recovery: Delivering citizen with no PATH_FOLLOW and no CARRY is stuck
         if (!world.hasComponent(entityId, PATH_FOLLOW) && !world.hasComponent(entityId, CARRY)) {
+          const oldState = citizen.state;
+          citizen.state = CitizenState.Idle;
+          this.eventBus.emit('CitizenStateChanged', {
+            entityId,
+            oldState,
+            newState: CitizenState.Idle,
+          });
+        }
+      } else if (citizen.state === CitizenState.Building) {
+        // Recovery: Building citizen with no CONSTRUCTION_WORK is stuck
+        if (!world.hasComponent(entityId, CONSTRUCTION_WORK)) {
           const oldState = citizen.state;
           citizen.state = CitizenState.Idle;
           this.eventBus.emit('CitizenStateChanged', {
@@ -187,8 +205,19 @@ export class JobAssignmentSystem extends System {
         }
         break;
       }
+      case JobType.Builder: {
+        // Find nearest unconstructed building (has CONSTRUCTION_SITE component)
+        const target = findNearestEntity(world, pos, CONSTRUCTION_SITE);
+        if (target != null) {
+          this.pathToConstruction(world, entityId, citizen, transform, target);
+        } else {
+          // No construction sites — wander
+          this.wanderRandomly(world, entityId, citizen, transform);
+        }
+        break;
+      }
       default:
-        // Idle, Builder, Hauler — wander randomly when not busy
+        // Idle, Hauler — wander randomly when not busy
         this.wanderRandomly(world, entityId, citizen, transform);
         break;
     }
@@ -277,6 +306,49 @@ export class JobAssignmentSystem extends System {
         hitElapsed: 0,
       });
     }
+  }
+
+  /**
+   * Create a path to a construction site and assign a ConstructionWork component.
+   */
+  private pathToConstruction(
+    world: World,
+    entityId: EntityId,
+    citizen: CitizenComponent,
+    transform: TransformComponent,
+    targetId: EntityId,
+  ): void {
+    // Already has a path? Don't re-assign
+    if (world.getComponent<PathFollowComponent>(entityId, PATH_FOLLOW)) return;
+
+    const targetTransform = world.getComponent<TransformComponent>(targetId, TRANSFORM);
+    if (!targetTransform) return;
+
+    // MVP pathfinding: direct line
+    const path: Vector3[] = [
+      { ...transform.position },
+      { ...targetTransform.position },
+    ];
+
+    world.addComponent<PathFollowComponent>(entityId, PATH_FOLLOW, {
+      path,
+      currentIndex: 0,
+      speed: CITIZEN_SPEED,
+    });
+
+    // Mark intent to construct
+    world.addComponent<ConstructionWorkComponent>(entityId, CONSTRUCTION_WORK, {
+      targetBuilding: targetId,
+    });
+
+    // Set state to Walking
+    const oldState = citizen.state;
+    citizen.state = CitizenState.Walking;
+    this.eventBus.emit('CitizenStateChanged', {
+      entityId,
+      oldState,
+      newState: CitizenState.Walking,
+    });
   }
 
   /**

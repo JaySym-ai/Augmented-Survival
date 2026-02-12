@@ -111,7 +111,7 @@ export class GameWorld {
     const gather = new GatherSystem(this.timeSystem, this.eventBus);
     const carry = new CarrySystem();
     const delivery = new DeliverySystem(this.timeSystem, this.eventBus);
-    const construction = new ConstructionSystem(this.eventBus);
+    const construction = new ConstructionSystem(this.timeSystem, this.eventBus);
     this.resourceStore = new ResourceStoreSystem(this.eventBus);
     this.buildingPlacement = new BuildingPlacementSystem(this.eventBus);
 
@@ -229,6 +229,7 @@ export class GameWorld {
       cost: def.cost,
       workerSlots: def.workerSlots,
       storageCapacity: def.storageCapacity,
+      buildTime: def.buildTime,
     });
 
     if (entityId != null) {

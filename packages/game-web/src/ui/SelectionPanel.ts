@@ -17,6 +17,7 @@ import {
   PATH_FOLLOW,
   GATHERING,
   CARRY,
+  CONSTRUCTION_WORK,
   CitizenState,
 } from '@augmented-survival/game-core';
 import type {
@@ -337,6 +338,11 @@ export class SelectionPanel {
     // Remove CARRY if present (clean state for new job)
     if (this.world.hasComponent(entityId, CARRY)) {
       this.world.removeComponent(entityId, CARRY);
+    }
+
+    // Remove CONSTRUCTION_WORK if present
+    if (this.world.hasComponent(entityId, CONSTRUCTION_WORK)) {
+      this.world.removeComponent(entityId, CONSTRUCTION_WORK);
     }
 
     // Update the panel values directly (no DOM rebuild)

@@ -38,6 +38,7 @@ export class BuildingPlacementSystem extends System {
       cost: Partial<Record<ResourceType, number>>;
       workerSlots: number;
       storageCapacity: number;
+      buildTime: number;
     },
   ): EntityId | null {
     const entityId = world.createEntity();
@@ -68,6 +69,8 @@ export class BuildingPlacementSystem extends System {
       requiredMaterials,
       deliveredMaterials: new Map(),
       progress: 0,
+      buildTime: config.buildTime,
+      buildProgress: 0,
     });
 
     // Add storage component if building has storage capacity
