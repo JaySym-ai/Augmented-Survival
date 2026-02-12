@@ -1,0 +1,39 @@
+{
+  "name": "@augmented-survival/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.ts",
+  "scripts": {
+    "dev": "electron .",
+    "build": "tsc -p tsconfig.json",
+    "package": "electron-builder"
+  },
+  "build": {
+    "appId": "com.augmentedsurvival.desktop",
+    "productName": "Augmented Survival",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "../../packages/game-web/dist/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "dependencies": {
+    "electron": "^34.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.3.3"
+  }
+}
+
