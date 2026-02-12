@@ -95,7 +95,7 @@ export class MeshFactory {
 
     // Blade (flattened box)
     const blade = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.02), metal);
-    blade.position.set(0.06, 0, 0);
+    blade.position.set(0.06, -0.35, 0);
     group.add(blade);
 
     return group;
