@@ -17,6 +17,7 @@ export class CitizenAnimator {
 
   // Gathering animation state
   private isGathering = false;
+  private gatherType: 'chop' | 'mine' = 'mine';
   private gatherPhase = 0;     // phase within a single swing cycle (0 to 1)
   private hitInterval = 0;     // seconds per hit
   private toolMesh: THREE.Object3D | null = null;
@@ -30,8 +31,9 @@ export class CitizenAnimator {
   }
 
   /** Start gathering animation with tool attached to right hand. */
-  startGathering(hitInterval: number, toolMesh: THREE.Group): void {
+  startGathering(hitInterval: number, toolMesh: THREE.Group, gatherType: 'chop' | 'mine' = 'mine'): void {
     this.isGathering = true;
+    this.gatherType = gatherType;
     this.hitInterval = hitInterval;
     this.gatherPhase = 0;
     this.toolMesh = toolMesh;
@@ -39,6 +41,10 @@ export class CitizenAnimator {
     // Attach tool to right arm group near the hand position
     if (this.rightArm) {
       toolMesh.position.set(0, -0.37, 0);
+      // For chopping, rotate the axe so the blade is oriented for horizontal swings
+      if (gatherType === 'chop') {
+        toolMesh.rotation.z = Math.PI / 2;
+      }
       this.rightArm.add(toolMesh);
     }
   }
@@ -54,8 +60,11 @@ export class CitizenAnimator {
     }
     this.toolMesh = null;
 
-    // Reset arm rotations
-    if (this.rightArm) this.rightArm.rotation.x = 0;
+    // Reset arm rotations (both x and z axes)
+    if (this.rightArm) {
+      this.rightArm.rotation.x = 0;
+      this.rightArm.rotation.z = 0;
+    }
     if (this.leftArm) this.leftArm.rotation.x = 0;
   }
 
@@ -82,7 +91,11 @@ export class CitizenAnimator {
    */
   update(dt: number, vx: number, vz: number): void {
     if (this.isGathering) {
-      this.updateGathering(dt);
+      if (this.gatherType === 'chop') {
+        this.updateChopGathering(dt);
+      } else {
+        this.updateMineGathering(dt);
+      }
     } else {
       this.updateWalkIdle(dt, vx, vz);
     }
@@ -128,8 +141,8 @@ export class CitizenAnimator {
     }
   }
 
-  /** Gathering animation — chopping/mining motion on the right arm. */
-  private updateGathering(dt: number): void {
+  /** Mining animation — vertical up/down motion on the right arm (original behavior). */
+  private updateMineGathering(dt: number): void {
     // Lerp legs to rest (standing still while gathering)
     const legT = Math.min(1, IDLE_LERP_SPEED * dt);
     if (this.leftLeg) this.leftLeg.rotation.x *= (1 - legT);
@@ -149,7 +162,7 @@ export class CitizenAnimator {
       }
     }
 
-    // Map phase to arm rotation for chopping motion
+    // Map phase to arm rotation for mining motion (vertical swing)
     let armRotation: number;
     if (this.gatherPhase < 0.4) {
       // Phase 0–0.4: arm raises up (rotation.x from 0 to -1.5 radians — back/up)
@@ -167,6 +180,54 @@ export class CitizenAnimator {
 
     if (this.rightArm) {
       this.rightArm.rotation.x = armRotation;
+    }
+  }
+
+  /** Chopping animation — horizontal lateral swing on the right arm for wood cutting. */
+  private updateChopGathering(dt: number): void {
+    // Lerp legs to rest (standing still while gathering)
+    const legT = Math.min(1, IDLE_LERP_SPEED * dt);
+    if (this.leftLeg) this.leftLeg.rotation.x *= (1 - legT);
+    if (this.rightLeg) this.rightLeg.rotation.x *= (1 - legT);
+
+    // Left arm slightly raised (bracing posture)
+    if (this.leftArm) {
+      const targetLeftArm = -0.3;
+      this.leftArm.rotation.x += (targetLeftArm - this.leftArm.rotation.x) * Math.min(1, 6 * dt);
+    }
+
+    // Advance gather phase
+    if (this.hitInterval > 0) {
+      this.gatherPhase += dt / this.hitInterval;
+      if (this.gatherPhase >= 1) {
+        this.gatherPhase -= Math.floor(this.gatherPhase);
+      }
+    }
+
+    // Map phase to arm rotation for horizontal chopping motion
+    // rotation.z = lateral swing (outward/inward), rotation.x = slight forward lean
+    let lateralSwing: number;
+    let forwardLean: number;
+    if (this.gatherPhase < 0.4) {
+      // Phase 0–0.4: wind-up — arm pulls outward (rotation.z positive = away from body)
+      const t = this.gatherPhase / 0.4;
+      lateralSwing = 1.2 * t;
+      forwardLean = -0.3 * t;  // slight forward lean during wind-up
+    } else if (this.gatherPhase < 0.6) {
+      // Phase 0.4–0.6: fast strike — arm swings inward toward tree
+      const t = (this.gatherPhase - 0.4) / 0.2;
+      lateralSwing = 1.2 - 1.6 * t;  // from 1.2 to -0.4 (past center, toward body/tree)
+      forwardLean = -0.3 + 0.1 * t;  // lean eases slightly
+    } else {
+      // Phase 0.6–1.0: hold/recover — arm returns to rest
+      const t = (this.gatherPhase - 0.6) / 0.4;
+      lateralSwing = -0.4 * (1 - t);  // from -0.4 back to 0
+      forwardLean = -0.2 * (1 - t);   // lean returns to 0
+    }
+
+    if (this.rightArm) {
+      this.rightArm.rotation.z = lateralSwing;
+      this.rightArm.rotation.x = forwardLean;
     }
   }
 }

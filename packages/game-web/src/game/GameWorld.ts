@@ -312,7 +312,8 @@ export class GameWorld {
         const hitInterval = gathering?.hitInterval ?? 1;
 
         if (tool) {
-          animator.startGathering(hitInterval, tool);
+          const gatherType = event.resourceType === ResourceType.Wood ? 'chop' as const : 'mine' as const;
+          animator.startGathering(hitInterval, tool, gatherType);
         }
       }
 
