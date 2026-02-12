@@ -41,12 +41,10 @@ export class CitizenAnimator {
     // Attach tool to right arm group near the hand position
     if (this.rightArm) {
       toolMesh.position.set(0, -0.37, 0);
-      // For chopping, rotate the axe so the blade's cutting edge faces outward
-      // (away from the villager's body) for a lateral/horizontal swing.
-      // rotation.x tilts the blade forward, rotation.z rotates it to align
-      // with the horizontal swing direction.
+      // For chopping, rotate the axe so the blade face is perpendicular to
+      // the horizontal sweep direction (arm extends forward then sweeps via rotation.z).
       if (gatherType === 'chop') {
-        toolMesh.rotation.set(0, 0, Math.PI / 2);
+        toolMesh.rotation.set(0, Math.PI / 2, 0);
       }
       this.rightArm.add(toolMesh);
     }
@@ -78,13 +76,7 @@ export class CitizenAnimator {
 
   /** Set facing direction toward a target. */
   setFacingTarget(dx: number, dz: number): void {
-    let angle = Math.atan2(dx, dz);
-    // When chopping, stand sideways to tree (like a lumberjack) so the
-    // lateral arm swing (rotation.z) sweeps INTO the tree
-    if (this.isGathering && this.gatherType === 'chop') {
-      angle -= Math.PI / 2;
-    }
-    this.targetYRotation = angle;
+    this.targetYRotation = Math.atan2(dx, dz);
   }
 
   /** Check if currently in gathering animation mode. */
@@ -213,26 +205,30 @@ export class CitizenAnimator {
       }
     }
 
-    // Map phase to arm rotation for HORIZONTAL chopping motion
-    // rotation.z = primary swing axis (arm swings laterally / side-to-side)
-    // rotation.x = small fixed forward lean so arm reaches toward the tree
-    let lateralSwing: number;
+    // Map phase to arm rotation for HORIZONTAL chopping motion.
+    // KEY: extend arm FORWARD first (rotation.x = -PI/2 makes arm horizontal),
+    // then sweep with rotation.z which creates a HORIZONTAL arc at trunk height.
+    let armExtend: number;  // rotation.x: 0 = hanging, -PI/2 = extended forward/horizontal
+    let lateralSwing: number;  // rotation.z: positive = right, negative = left
     if (this.gatherPhase < 0.4) {
-      // Phase 0–0.4: wind-up — arm lifts outward (positive rotation.z)
+      // Wind-up: arm extends forward and pulls to the right
       const t = this.gatherPhase / 0.4;
-      lateralSwing = 0.9 * t;
+      armExtend = -Math.PI / 2 * t;       // 0 → -PI/2 (arm becomes horizontal)
+      lateralSwing = 0.8 * t;             // 0 → +0.8 (arm pulls right)
     } else if (this.gatherPhase < 0.6) {
-      // Phase 0.4–0.6: fast strike — arm swings inward toward tree
+      // Strike: arm stays horizontal, sweeps LEFT through tree
       const t = (this.gatherPhase - 0.4) / 0.2;
-      lateralSwing = 0.9 - 1.2 * t;  // from +0.9 to -0.3
+      armExtend = -Math.PI / 2;           // stays horizontal
+      lateralSwing = 0.8 - 1.1 * t;      // +0.8 → -0.3 (sweeps left)
     } else {
-      // Phase 0.6–1.0: recover — arm eases back to rest
+      // Recover: arm drops back to rest, sweep returns to center
       const t = (this.gatherPhase - 0.6) / 0.4;
-      lateralSwing = -0.3 * (1 - t);  // from -0.3 back to 0
+      armExtend = -Math.PI / 2 * (1 - t); // -PI/2 → 0 (arm drops)
+      lateralSwing = -0.3 * (1 - t);      // -0.3 → 0 (returns center)
     }
 
     if (this.rightArm) {
-      this.rightArm.rotation.x = -0.3;  // fixed forward lean toward tree
+      this.rightArm.rotation.x = armExtend;
       this.rightArm.rotation.z = lateralSwing;
     }
   }
