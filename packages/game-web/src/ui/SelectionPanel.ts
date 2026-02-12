@@ -335,8 +335,15 @@ export class SelectionPanel {
       this.world.removeComponent(entityId, GATHERING);
     }
 
-    // Remove CARRY if present (clean state for new job)
-    if (this.world.hasComponent(entityId, CARRY)) {
+    // If carrying a resource, keep CARRY and set state to Carrying so
+    // JobAssignmentSystem.handleCarrying routes the citizen to storage.
+    // Otherwise remove CARRY for a clean slate.
+    const carry = this.world.getComponent<CarryComponent>(entityId, CARRY);
+    if (carry && carry.resourceType != null && carry.amount > 0) {
+      if (citizen) {
+        citizen.state = CitizenState.Carrying;
+      }
+    } else if (this.world.hasComponent(entityId, CARRY)) {
       this.world.removeComponent(entityId, CARRY);
     }
 
