@@ -48,5 +48,17 @@ export const JOB_DEFS: Record<JobType, JobDef> = {
     targetResource: null,
     description: 'Carries resources between buildings.',
   },
+  [JobType.Miner]: {
+    type: JobType.Miner,
+    displayName: 'Miner',
+    targetResource: ResourceType.Iron,
+    description: 'Mines iron and gold ore from deposits.',
+  },
+  [JobType.Forager]: {
+    type: JobType.Forager,
+    displayName: 'Forager',
+    targetResource: ResourceType.Hemp,
+    description: 'Gathers hemp, branches and other natural materials.',
+  },
 };
 

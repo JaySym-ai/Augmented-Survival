@@ -19,6 +19,10 @@ export class ResourceStoreSystem extends System {
     this.resources.set(ResourceType.Wood, 0);
     this.resources.set(ResourceType.Food, 0);
     this.resources.set(ResourceType.Stone, 0);
+    this.resources.set(ResourceType.Iron, 0);
+    this.resources.set(ResourceType.Gold, 0);
+    this.resources.set(ResourceType.Hemp, 0);
+    this.resources.set(ResourceType.Branch, 0);
 
     // Listen to ResourceDelivered events to increment totals
     this.eventBus.on('ResourceDelivered', (event) => {

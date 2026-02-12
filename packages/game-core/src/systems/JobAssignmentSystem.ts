@@ -216,6 +216,28 @@ export class JobAssignmentSystem extends System {
         }
         break;
       }
+      case JobType.Miner: {
+        // Find nearest Iron or Gold node with amount > 0
+        const target = findNearestEntity(world, pos, RESOURCE_NODE, (eid, w) => {
+          const rn = w.getComponent<ResourceNodeComponent>(eid, RESOURCE_NODE)!;
+          return (rn.type === ResourceType.Iron || rn.type === ResourceType.Gold) && rn.amount > 0;
+        });
+        if (target != null) {
+          this.pathToTarget(world, entityId, citizen, transform, target);
+        }
+        break;
+      }
+      case JobType.Forager: {
+        // Find nearest Hemp or Branch node with amount > 0
+        const target = findNearestEntity(world, pos, RESOURCE_NODE, (eid, w) => {
+          const rn = w.getComponent<ResourceNodeComponent>(eid, RESOURCE_NODE)!;
+          return (rn.type === ResourceType.Hemp || rn.type === ResourceType.Branch) && rn.amount > 0;
+        });
+        if (target != null) {
+          this.pathToTarget(world, entityId, citizen, transform, target);
+        }
+        break;
+      }
       default:
         // Idle, Hauler — wander randomly when not busy
         this.wanderRandomly(world, entityId, citizen, transform);

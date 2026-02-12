@@ -13,6 +13,10 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     [ResourceType.Wood]: 50,
     [ResourceType.Food]: 30,
     [ResourceType.Stone]: 20,
+    [ResourceType.Iron]: 0,
+    [ResourceType.Gold]: 0,
+    [ResourceType.Hemp]: 0,
+    [ResourceType.Branch]: 0,
   },
 
   startingCitizens: 5,
