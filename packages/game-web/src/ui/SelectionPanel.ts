@@ -10,6 +10,13 @@ import {
   RESOURCE_NODE,
   BUILDING_DEFS,
   RESOURCE_DEFS,
+  JOB_ASSIGNMENT,
+  createJobAssignment,
+  JobType,
+  JOB_DEFS,
+  PATH_FOLLOW,
+  GATHERING,
+  CitizenState,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -90,7 +97,8 @@ export class SelectionPanel {
     const citizen = this.world.getComponent<CitizenComponent>(eid, CITIZEN);
     if (citizen) {
       titleEl.textContent = citizen.name;
-      this.contentEl.innerHTML = this.renderCitizen(citizen);
+      this.contentEl.innerHTML = '';
+      this.renderCitizen(eid, citizen);
       return;
     }
 
@@ -114,13 +122,63 @@ export class SelectionPanel {
     this.contentEl.innerHTML = '<div class="sel-row">No details available</div>';
   }
 
-  private renderCitizen(c: CitizenComponent): string {
-    return `<div class="sel-row"><span class="label">Job</span><span>${c.job ?? 'None'}</span></div>`
+  private renderCitizen(entityId: EntityId, c: CitizenComponent): void {
+    // Info rows (HTML string for the static parts)
+    const infoHtml = `<div class="sel-row"><span class="label">Job</span><span>${c.job ?? 'None'}</span></div>`
       + `<div class="sel-row"><span class="label">State</span><span>${c.state}</span></div>`
       + `<div class="sel-row"><span class="label">Health</span></div>`
       + `<div class="bar-container bar-health"><div class="bar-fill" style="width:${c.health}%"></div></div>`
       + `<div class="sel-row"><span class="label">Hunger</span></div>`
       + `<div class="bar-container bar-hunger"><div class="bar-fill" style="width:${c.hunger}%"></div></div>`;
+
+    const infoDiv = document.createElement('div');
+    infoDiv.innerHTML = infoHtml;
+    this.contentEl.appendChild(infoDiv);
+
+    // Job assignment button row
+    const jobRow = document.createElement('div');
+    jobRow.className = 'sel-job-row';
+
+    const currentJob = c.job ?? JobType.Idle;
+
+    for (const jobType of Object.values(JobType)) {
+      const def = JOB_DEFS[jobType];
+      const btn = document.createElement('button');
+      btn.className = 'sel-job-btn';
+      if (jobType === currentJob) {
+        btn.classList.add('active');
+      }
+      btn.textContent = def.displayName;
+      btn.addEventListener('click', () => this.assignJob(entityId, jobType));
+      jobRow.appendChild(btn);
+    }
+
+    this.contentEl.appendChild(jobRow);
+  }
+
+  private assignJob(entityId: EntityId, jobType: JobType): void {
+    // Update JOB_ASSIGNMENT component
+    this.world.addComponent(entityId, JOB_ASSIGNMENT, createJobAssignment(jobType));
+
+    // Update citizen component
+    const citizen = this.world.getComponent<CitizenComponent>(entityId, CITIZEN);
+    if (citizen) {
+      citizen.job = jobType;
+      citizen.state = CitizenState.Idle;
+    }
+
+    // Remove PATH_FOLLOW if present
+    if (this.world.hasComponent(entityId, PATH_FOLLOW)) {
+      this.world.removeComponent(entityId, PATH_FOLLOW);
+    }
+
+    // Remove GATHERING if present
+    if (this.world.hasComponent(entityId, GATHERING)) {
+      this.world.removeComponent(entityId, GATHERING);
+    }
+
+    // Re-render the panel
+    this.renderContent();
   }
 
   private renderBuilding(b: BuildingComponent, desc: string): string {

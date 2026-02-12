@@ -169,6 +169,32 @@ const CSS = /* css */ `
 .ui-selection-panel .bar-health .bar-fill { background: var(--ui-success); }
 .ui-selection-panel .bar-hunger .bar-fill { background: var(--ui-accent); }
 
+/* Job assignment buttons */
+.ui-selection-panel .sel-job-row {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--ui-border);
+}
+.ui-selection-panel .sel-job-btn {
+  background: transparent;
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+  color: var(--ui-text);
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  letter-spacing: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ui-selection-panel .sel-job-btn:hover { background: var(--ui-bg-hover); border-color: var(--ui-accent); }
+.ui-selection-panel .sel-job-btn.active {
+  background: var(--ui-accent);
+  color: #1a1206;
+  border-color: var(--ui-accent);
+  font-weight: 700;
+}
+
 /* ===== Settings Overlay ===== */
 .ui-settings-overlay {
   position: absolute;
