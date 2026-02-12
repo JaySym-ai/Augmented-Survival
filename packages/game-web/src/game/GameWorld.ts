@@ -18,6 +18,7 @@ import {
   STORAGE,
   SELECTABLE,
   CARRY,
+  JOB_ASSIGNMENT,
   createTransform,
   createVelocity,
   createCitizen,
@@ -26,9 +27,11 @@ import {
   createStorage,
   createSelectable,
   createCarry,
+  createJobAssignment,
   createInventory,
   ResourceType,
   BuildingType,
+  JobType,
   TimeSystem,
   MovementSystem,
   PathFollowSystem,
@@ -52,6 +55,9 @@ const CITIZEN_NAMES = [
   'Fiona', 'Gilbert', 'Helena', 'Ivar', 'Juliana',
 ];
 
+/** Jobs to cycle through when spawning starting citizens */
+const STARTING_JOBS: JobType[] = [JobType.Woodcutter, JobType.Quarrier];
+
 export class GameWorld {
   readonly world: World;
   readonly eventBus: EventBus<GameEventMap>;
@@ -67,6 +73,9 @@ export class GameWorld {
 
   // Entity-to-mesh mapping
   private entityMeshes = new Map<EntityId, THREE.Object3D>();
+
+  // Round-robin counter for default job assignment
+  private nextJobIndex = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -160,7 +169,7 @@ export class GameWorld {
     }
   }
 
-  spawnCitizen(position?: Vector3): EntityId {
+  spawnCitizen(position?: Vector3, jobType?: JobType): EntityId {
     const pos = position ?? {
       x: (Math.random() - 0.5) * 8,
       y: 0,
@@ -168,14 +177,21 @@ export class GameWorld {
     };
     pos.y = this.terrainMesh.getHeightAt(pos.x, pos.z);
 
+    // Determine job: use provided jobType, or round-robin through STARTING_JOBS
+    const assignedJob = jobType ?? STARTING_JOBS[this.nextJobIndex % STARTING_JOBS.length];
+    if (jobType == null) {
+      this.nextJobIndex++;
+    }
+
     const name = CITIZEN_NAMES[Math.floor(Math.random() * CITIZEN_NAMES.length)];
 
     const entity = this.world.createEntity();
     this.world.addComponent(entity, TRANSFORM, createTransform(pos));
     this.world.addComponent(entity, VELOCITY, createVelocity());
-    this.world.addComponent(entity, CITIZEN, createCitizen(name));
+    this.world.addComponent(entity, CITIZEN, createCitizen(name, assignedJob));
     this.world.addComponent(entity, CARRY, createCarry());
     this.world.addComponent(entity, SELECTABLE, createSelectable());
+    this.world.addComponent(entity, JOB_ASSIGNMENT, createJobAssignment(assignedJob));
 
     // Create citizen mesh
     const mesh = this.meshFactory.createCitizenMesh();
