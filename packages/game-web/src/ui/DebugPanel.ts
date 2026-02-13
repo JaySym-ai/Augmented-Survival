@@ -80,7 +80,7 @@ export class DebugPanel {
     this.el.appendChild(this.listEl);
 
     // Delegated click handler for spawn buttons (stable — survives renderRows rebuilds)
-    this.listEl.addEventListener('click', (event) => {
+    this.listEl.addEventListener('pointerdown', (event) => {
       const target = event.target as HTMLElement;
       const btn = target.closest<HTMLButtonElement>('.debug-spawn-btn');
       if (!btn) return;
