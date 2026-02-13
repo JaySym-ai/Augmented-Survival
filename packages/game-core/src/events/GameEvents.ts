@@ -63,6 +63,11 @@ export interface ConstructionCompleteEvent {
   buildingType: BuildingType;
 }
 
+export interface BuildingWallColorChangedEvent {
+  buildingId: EntityId;
+  color: number;
+}
+
 // --- Citizen Events ---
 
 export interface CitizenAssignedJobEvent {
@@ -119,6 +124,7 @@ export interface GameEventMap extends EventMap {
   BuildingPlaced: BuildingPlacedEvent;
   ConstructionProgress: ConstructionProgressEvent;
   ConstructionComplete: ConstructionCompleteEvent;
+  BuildingWallColorChanged: BuildingWallColorChangedEvent;
   CitizenAssignedJob: CitizenAssignedJobEvent;
   CitizenStateChanged: CitizenStateChangedEvent;
   EntitySelected: EntitySelectedEvent;

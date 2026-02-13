@@ -24,6 +24,7 @@ import {
   EquipmentSlot,
   ITEM_DEFS,
   CONSTRUCTION_SITE,
+  BuildingType,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -61,6 +62,7 @@ export class SelectionPanel {
   // Cached building DOM elements — created once, updated per-frame
   private buildingBuiltForEntity: EntityId | null = null;
   private buildingConstructionFill: HTMLDivElement | null = null;
+  private buildingColorSwatches: HTMLDivElement[] = [];
 
   constructor(
     parent: HTMLElement,
@@ -161,6 +163,10 @@ export class SelectionPanel {
         this.buildingBuiltForEntity = eid;
       } else {
         this.contentEl.innerHTML = this.renderBuilding(building, def.description);
+        if (building.type === BuildingType.House) {
+          this.buildColorPickerDOM(eid, building);
+        }
+        this.buildingBuiltForEntity = eid;
       }
       return;
     }
@@ -203,6 +209,7 @@ export class SelectionPanel {
   private clearBuildingCache(): void {
     this.buildingBuiltForEntity = null;
     this.buildingConstructionFill = null;
+    this.buildingColorSwatches = [];
   }
 
   private buildConstructionBarDOM(construction: ConstructionSiteComponent): void {
@@ -235,6 +242,61 @@ export class SelectionPanel {
     this.buildingConstructionFill = progressFill;
   }
 
+  private static readonly WALL_COLORS: { name: string; value: number }[] = [
+    { name: 'Cream', value: 0xF5E6CC },
+    { name: 'Stone Gray', value: 0xA0A0A0 },
+    { name: 'Terracotta', value: 0xC4644A },
+    { name: 'Sky Blue', value: 0x7BA7C9 },
+    { name: 'Forest Green', value: 0x5A8C5A },
+  ];
+
+  private static readonly DEFAULT_WALL_COLOR = 0xF5E6CC;
+
+  private buildColorPickerDOM(entityId: EntityId, building: BuildingComponent): void {
+    const row = document.createElement('div');
+    row.className = 'wall-color-picker';
+
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = 'Wall Color';
+    row.appendChild(label);
+
+    const currentColor = building.wallColor ?? SelectionPanel.DEFAULT_WALL_COLOR;
+    this.buildingColorSwatches = [];
+
+    for (const colorDef of SelectionPanel.WALL_COLORS) {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.backgroundColor = `#${colorDef.value.toString(16).padStart(6, '0')}`;
+      swatch.title = colorDef.name;
+      if (colorDef.value === currentColor) {
+        swatch.classList.add('active');
+      }
+      swatch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectWallColor(entityId, colorDef.value);
+      });
+      row.appendChild(swatch);
+      this.buildingColorSwatches.push(swatch);
+    }
+
+    this.contentEl.appendChild(row);
+  }
+
+  private selectWallColor(entityId: EntityId, color: number): void {
+    const building = this.world.getComponent<BuildingComponent>(entityId, BUILDING);
+    if (!building) return;
+
+    building.wallColor = color;
+    this.eventBus.emit('BuildingWallColorChanged', { buildingId: entityId, color });
+
+    // Update active swatch highlight
+    for (let i = 0; i < this.buildingColorSwatches.length; i++) {
+      const isActive = SelectionPanel.WALL_COLORS[i].value === color;
+      this.buildingColorSwatches[i].classList.toggle('active', isActive);
+    }
+  }
+
   private updateBuildingValues(): void {
     if (this.selectedEntity === null) return;
     const building = this.world.getComponent<BuildingComponent>(this.selectedEntity, BUILDING);
@@ -247,6 +309,15 @@ export class SelectionPanel {
       );
       if (construction && this.buildingConstructionFill) {
         this.buildingConstructionFill.style.width = `${construction.progress * 100}%`;
+      }
+    }
+
+    // Update active color swatch
+    if (this.buildingColorSwatches.length > 0) {
+      const currentColor = building.wallColor ?? SelectionPanel.DEFAULT_WALL_COLOR;
+      for (let i = 0; i < this.buildingColorSwatches.length; i++) {
+        const isActive = SelectionPanel.WALL_COLORS[i].value === currentColor;
+        this.buildingColorSwatches[i].classList.toggle('active', isActive);
       }
     }
   }

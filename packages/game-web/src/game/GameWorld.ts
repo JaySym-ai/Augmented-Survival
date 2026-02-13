@@ -455,6 +455,20 @@ export class GameWorld {
         this.environment.showResourceInstance(info.type, info.index);
       }
     });
+
+    // When a building's wall color changes, update the wall mesh material
+    this.eventBus.on('BuildingWallColorChanged', (event) => {
+      const mesh = this.entityMeshes.get(event.buildingId);
+      if (mesh) {
+        mesh.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.name === 'walls') {
+            if (child.material instanceof THREE.MeshStandardMaterial) {
+              child.material.color.setHex(event.color);
+            }
+          }
+        });
+      }
+    });
   }
 
   /** Call every frame to step simulation and sync visuals */
