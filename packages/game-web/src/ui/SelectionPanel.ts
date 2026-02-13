@@ -25,6 +25,7 @@ import {
   ITEM_DEFS,
   CONSTRUCTION_SITE,
   BuildingType,
+  ResourceType,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -168,6 +169,10 @@ export class SelectionPanel {
         }
         this.buildingBuiltForEntity = eid;
       }
+      // Add destroy button for all buildings except TownCenter
+      if (building.type !== BuildingType.TownCenter) {
+        this.buildDestroyButtonDOM(eid, building);
+      }
       return;
     }
 
@@ -294,6 +299,37 @@ export class SelectionPanel {
     for (let i = 0; i < this.buildingColorSwatches.length; i++) {
       const isActive = SelectionPanel.WALL_COLORS[i].value === color;
       this.buildingColorSwatches[i].classList.toggle('active', isActive);
+    }
+  }
+
+  private buildDestroyButtonDOM(entityId: EntityId, building: BuildingComponent): void {
+    const def = BUILDING_DEFS[building.type];
+
+    // Calculate 50% refund (floored)
+    const refundParts: string[] = [];
+    for (const [rType, amount] of Object.entries(def.cost)) {
+      if (amount == null || amount <= 0) continue;
+      const refund = Math.floor(amount / 2);
+      if (refund <= 0) continue;
+      const rDef = RESOURCE_DEFS[rType as ResourceType];
+      if (rDef) {
+        refundParts.push(`${rDef.icon}${refund}`);
+      }
+    }
+
+    const btn = document.createElement('button');
+    btn.className = 'sel-destroy-btn';
+    btn.textContent = '🗑️ Destroy';
+    btn.addEventListener('click', () => {
+      this.eventBus.emit('BuildingDestroyRequested', { buildingId: entityId });
+    });
+    this.contentEl.appendChild(btn);
+
+    if (refundParts.length > 0) {
+      const refundEl = document.createElement('div');
+      refundEl.className = 'sel-destroy-refund';
+      refundEl.textContent = `Refund: ${refundParts.join(' ')}`;
+      this.contentEl.appendChild(refundEl);
     }
   }
 
