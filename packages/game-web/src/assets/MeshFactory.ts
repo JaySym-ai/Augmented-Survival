@@ -400,6 +400,7 @@ export class MeshFactory {
 
     // Walls
     const walls = new THREE.Mesh(new THREE.BoxGeometry(2, 1.6, 2), plaster);
+    walls.name = 'walls';
     walls.position.y = 0.8;
     walls.castShadow = true;
     walls.receiveShadow = true;
