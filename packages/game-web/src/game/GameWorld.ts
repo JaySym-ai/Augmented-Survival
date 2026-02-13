@@ -171,36 +171,42 @@ export class GameWorld {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Wood, 5, 5));
+      this.world.addComponent(entity, SELECTABLE, createSelectable());
     }
     // Rocks → Stone resource nodes
     for (const pos of this.environment.getRockPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Stone, 3, 3));
+      this.world.addComponent(entity, SELECTABLE, createSelectable());
     }
     // Iron ore rocks → Iron resource nodes
     for (const pos of this.environment.getIronPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Iron, 2, 2));
+      this.world.addComponent(entity, SELECTABLE, createSelectable());
     }
     // Gold ore rocks → Gold resource nodes
     for (const pos of this.environment.getGoldPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Gold, 1, 1));
+      this.world.addComponent(entity, SELECTABLE, createSelectable());
     }
     // Hemp plants → Hemp resource nodes (regenerating)
     for (const pos of this.environment.getHempPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Hemp, 3, 3, true));
+      this.world.addComponent(entity, SELECTABLE, createSelectable());
     }
     // Fallen branches → Branch resource nodes (regenerating)
     for (const pos of this.environment.getBranchPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Branch, 2, 2, true));
+      this.world.addComponent(entity, SELECTABLE, createSelectable());
     }
   }
 
