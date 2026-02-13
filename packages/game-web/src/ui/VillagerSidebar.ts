@@ -21,7 +21,7 @@ export class VillagerSidebar {
 
     const titleEl = document.createElement('span');
     titleEl.className = 'villager-sidebar-title';
-    titleEl.textContent = 'Villagers';
+    titleEl.textContent = 'Villager';
     headerEl.appendChild(titleEl);
 
     this.toggleBtn = document.createElement('button');

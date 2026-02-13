@@ -132,7 +132,7 @@ const CSS = /* css */ `
 /* ===== Villager Sidebar ===== */
 .ui-villager-sidebar {
   position: absolute;
-  top: 56px; left: 12px;
+  top: 132px; left: 12px;
   width: 260px;
   max-height: 48vh;
   display: flex;
@@ -141,7 +141,7 @@ const CSS = /* css */ `
   gap: 8px;
 }
 .ui-villager-sidebar.collapsed {
-  width: 48px;
+  width: 112px;
 }
 .ui-villager-sidebar .villager-sidebar-header {
   display: flex;
@@ -195,7 +195,6 @@ const CSS = /* css */ `
   color: var(--ui-text-muted);
   padding: 4px 2px;
 }
-.ui-villager-sidebar.collapsed .villager-sidebar-title,
 .ui-villager-sidebar.collapsed .villager-sidebar-list {
   display: none;
 }
@@ -393,8 +392,8 @@ const CSS = /* css */ `
   .ui-build-card { width: 64px; height: 80px; }
   .ui-build-card .build-icon { font-size: 18px; }
   .ui-build-card .build-name { font-size: 10px; }
-  .ui-villager-sidebar { top: 52px; width: 220px; max-height: 42vh; }
-  .ui-villager-sidebar.collapsed { width: 46px; }
+  .ui-villager-sidebar { top: 112px; width: 220px; max-height: 42vh; }
+  .ui-villager-sidebar.collapsed { width: 106px; }
   .ui-selection-panel { min-width: 180px; max-width: 220px; }
   .ui-settings-modal { min-width: 280px; padding: 16px; }
 }
