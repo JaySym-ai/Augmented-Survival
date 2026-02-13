@@ -36,15 +36,15 @@ export class DebugPanel {
 
     // Header
     const headerEl = document.createElement('div');
-    headerEl.className = 'debug-panel-header';
+    headerEl.className = 'debug-header';
 
     const titleEl = document.createElement('span');
-    titleEl.className = 'debug-panel-title';
+    titleEl.className = 'debug-title';
     titleEl.textContent = 'Debug';
     headerEl.appendChild(titleEl);
 
     this.toggleBtn = document.createElement('button');
-    this.toggleBtn.className = 'debug-panel-toggle';
+    this.toggleBtn.className = 'debug-toggle';
     this.toggleBtn.textContent = '<';
     this.toggleBtn.setAttribute('aria-label', 'Collapse debug panel');
     this.toggleBtn.addEventListener('click', (event) => {
@@ -56,15 +56,15 @@ export class DebugPanel {
 
     // Section header: Resource Respawns
     const sectionHeaderEl = document.createElement('div');
-    sectionHeaderEl.className = 'debug-panel-section-header';
+    sectionHeaderEl.className = 'debug-section-header';
 
     const sectionTitleEl = document.createElement('span');
-    sectionTitleEl.className = 'debug-panel-section-title';
+    sectionTitleEl.className = 'debug-section-title';
     sectionTitleEl.textContent = 'Resource Respawns';
     sectionHeaderEl.appendChild(sectionTitleEl);
 
     this.sectionToggleBtn = document.createElement('button');
-    this.sectionToggleBtn.className = 'debug-panel-section-toggle';
+    this.sectionToggleBtn.className = 'debug-section-toggle';
     this.sectionToggleBtn.textContent = '▼';
     this.sectionToggleBtn.setAttribute('aria-label', 'Collapse resource respawns');
     this.sectionToggleBtn.addEventListener('click', (event) => {
@@ -76,7 +76,7 @@ export class DebugPanel {
 
     // List container
     this.listEl = document.createElement('div');
-    this.listEl.className = 'debug-panel-list';
+    this.listEl.className = 'debug-resource-list';
     this.el.appendChild(this.listEl);
 
     parent.appendChild(this.el);
@@ -121,7 +121,7 @@ export class DebugPanel {
 
     if (depletedIds.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'debug-panel-empty';
+      empty.className = 'debug-empty';
       empty.textContent = 'No depleted resources';
       this.listEl.appendChild(empty);
       return;
@@ -138,15 +138,15 @@ export class DebugPanel {
       const timeStr = this.formatTime(remaining);
 
       const row = document.createElement('div');
-      row.className = 'debug-panel-row';
+      row.className = 'debug-resource-row';
 
       const info = document.createElement('span');
-      info.className = 'debug-panel-row-info';
+      info.className = 'debug-res-info';
       info.textContent = `${def.icon} ${def.displayName} — ${timeStr}`;
       row.appendChild(info);
 
       const btn = document.createElement('button');
-      btn.className = 'debug-panel-spawn-btn';
+      btn.className = 'debug-spawn-btn';
       btn.textContent = '⚡ Spawn';
       btn.setAttribute('aria-label', `Force spawn ${def.displayName}`);
       btn.addEventListener('click', (event) => {
