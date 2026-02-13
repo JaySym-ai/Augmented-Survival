@@ -11,6 +11,7 @@ import {
   type TransformComponent,
   type VelocityComponent,
   type Vector3,
+  type BuildingComponent,
   TRANSFORM,
   VELOCITY,
   CITIZEN,
@@ -374,6 +375,36 @@ export class GameWorld {
             child.material.opacity = 1.0;
           }
         });
+      }
+
+      // Spawn a villager when a House is completed, if under population cap
+      if (event.buildingType === BuildingType.House) {
+        const citizenCount = this.world.query(CITIZEN).length;
+
+        // Calculate max population from all constructed buildings
+        const buildingEntities = this.world.query(BUILDING);
+        let maxPop = 0;
+        for (const eid of buildingEntities) {
+          const bComp = this.world.getComponent<BuildingComponent>(eid, BUILDING);
+          if (bComp && bComp.isConstructed) {
+            const def = BUILDING_DEFS[bComp.type];
+            if (def) {
+              maxPop += def.providesPopulation;
+            }
+          }
+        }
+
+        if (citizenCount < maxPop) {
+          const transform = this.world.getComponent<TransformComponent>(event.buildingId, TRANSFORM);
+          if (transform) {
+            const spawnPos: Vector3 = {
+              x: transform.position.x + (Math.random() - 0.5) * 2,
+              y: transform.position.y,
+              z: transform.position.z + (Math.random() - 0.5) * 2,
+            };
+            this.spawnCitizen(spawnPos);
+          }
+        }
       }
     });
 
