@@ -9,6 +9,8 @@ import { GameWorld } from './game/GameWorld.js';
 import { SelectionManager } from './game/SelectionManager.js';
 import { BuildingGhostPreview } from './game/BuildingGhostPreview.js';
 import { GameUI } from './ui/GameUI.js';
+import { VILLAGER_SIDEBAR_SELECT_EVENT } from './ui/VillagerSidebar.js';
+import type { EntityId } from '@augmented-survival/game-core';
 
 class GameApp {
   private gameRenderer: GameRenderer;
@@ -78,6 +80,7 @@ class GameApp {
 
     // Wire click-to-place: capture phase so it fires before SelectionManager
     container.addEventListener('click', this.onPlacementClick, true);
+    container.addEventListener(VILLAGER_SIDEBAR_SELECT_EVENT, this.onSidebarSelect as EventListener);
 
     // Wire selection events to UI
     this.gameWorld.eventBus.on('EntitySelected', ({ entityId }) => {
@@ -113,6 +116,8 @@ class GameApp {
   /** Handle click-to-place when building ghost is active */
   private onPlacementClick = (event: MouseEvent): void => {
     if (!this.buildingGhost.isActive()) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('#game-ui')) return;
 
     // Prevent SelectionManager from also handling this click
     event.stopPropagation();
@@ -155,6 +160,7 @@ class GameApp {
     cancelAnimationFrame(this.animationFrameId);
     window.removeEventListener('resize', this.onResize);
     this.container.removeEventListener('click', this.onPlacementClick, true);
+    this.container.removeEventListener(VILLAGER_SIDEBAR_SELECT_EVENT, this.onSidebarSelect as EventListener);
     this.gameUI.dispose();
     this.selectionManager.dispose();
     this.buildingGhost.dispose();
@@ -162,6 +168,13 @@ class GameApp {
     this.cameraController.dispose();
     this.gameRenderer.dispose();
   }
+
+  private onSidebarSelect = (event: Event): void => {
+    const custom = event as CustomEvent<{ entityId?: EntityId }>;
+    const entityId = custom.detail?.entityId;
+    if (entityId == null) return;
+    this.selectionManager.select(entityId);
+  };
 }
 
 // ---- Bootstrap ----
@@ -175,4 +188,3 @@ app.start();
 
 // Export type for UI
 export type { GameApp };
-
