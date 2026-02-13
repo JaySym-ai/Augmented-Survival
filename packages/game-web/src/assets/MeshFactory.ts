@@ -356,7 +356,7 @@ export class MeshFactory {
     const group = new THREE.Group();
     const stone = this.mat('stone');
     const wood = this.mat('wood');
-    const thatch = this.mat('thatch');
+    const thatch = this.createThatchMaterial();
 
     // Stone base platform
     const base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.4, 4), stone);
@@ -394,25 +394,17 @@ export class MeshFactory {
 
   private createHouse(): THREE.Group {
     const group = new THREE.Group();
-    const plaster = this.mat('plaster');
+    const brickMaterial = this.createBrickMaterial();
     const wood = this.mat('wood');
-    const thatch = this.mat('thatch');
+    const thatch = this.createThatchMaterial();
 
     // Walls
-    const walls = new THREE.Mesh(new THREE.BoxGeometry(2, 1.6, 2), plaster);
+    const walls = new THREE.Mesh(new THREE.BoxGeometry(2, 1.6, 2), brickMaterial);
     walls.name = 'walls';
     walls.position.y = 0.8;
     walls.castShadow = true;
     walls.receiveShadow = true;
     group.add(walls);
-
-    // Wood trim (horizontal beams)
-    for (const y of [0.4, 1.2]) {
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.08, 2.1), wood);
-      beam.position.y = y;
-      beam.castShadow = true;
-      group.add(beam);
-    }
 
     // Triangular roof (cone with 4 sides)
     const roof = new THREE.Mesh(new THREE.ConeGeometry(1.7, 1.0, 4), thatch);
@@ -425,6 +417,21 @@ export class MeshFactory {
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.05), wood);
     door.position.set(0, 0.4, 1.01);
     group.add(door);
+
+    // Window on right wall (positive X side)
+    const windowFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.5, 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.8 }),
+    );
+    windowFrame.position.set(1.01, 0.9, 0);
+    group.add(windowFrame);
+
+    const windowGlass = new THREE.Mesh(
+      new THREE.BoxGeometry(0.02, 0.4, 0.4),
+      new THREE.MeshStandardMaterial({ color: 0x87CEEB, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.7 }),
+    );
+    windowGlass.position.set(1.02, 0.9, 0);
+    group.add(windowGlass);
 
     return group;
   }
@@ -580,6 +587,87 @@ export class MeshFactory {
 
   private mat(name: string): THREE.MeshStandardMaterial {
     return this.materials.get(name)!;
+  }
+
+  private createBrickMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    const brickWidth = 64;
+    const brickHeight = 32;
+    const mortarSize = 4;
+
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(0, 0, 256, 256);
+
+    ctx.fillStyle = '#FFFFFF';
+    for (let row = 0; row < 8; row++) {
+      const offset = row % 2 === 0 ? 0 : brickWidth / 2;
+      for (let col = -1; col < 5; col++) {
+        const x = col * brickWidth + offset;
+        const y = row * brickHeight;
+        ctx.fillRect(
+          x + mortarSize / 2,
+          y + mortarSize / 2,
+          brickWidth - mortarSize,
+          brickHeight - mortarSize,
+        );
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0xA0522D,
+      roughness: 0.8,
+      metalness: 0.0,
+    });
+  }
+
+  private createThatchMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = '#C4A44A';
+    ctx.fillRect(0, 0, 128, 128);
+
+    for (let i = 0; i < 400; i++) {
+      const x = Math.random() * 128;
+      const y = Math.random() * 128;
+      const shade = Math.random() * 40 - 20;
+      const r = Math.min(255, Math.max(0, 196 + shade));
+      const g = Math.min(255, Math.max(0, 164 + shade));
+      const b = Math.min(255, Math.max(0, 74 + shade));
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, y, 2 + Math.random() * 3, 1);
+    }
+
+    for (let i = 0; i < 150; i++) {
+      const x = Math.random() * 128;
+      const y = Math.random() * 128;
+      ctx.fillStyle = 'rgba(80, 50, 20, 0.15)';
+      ctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 2);
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0xC4A44A,
+      roughness: 0.95,
+      metalness: 0.0,
+    });
   }
 
   private createMaterials(): Map<string, THREE.MeshStandardMaterial> {
