@@ -22,6 +22,7 @@ import {
   EQUIPMENT,
   EquipmentSlot,
   ITEM_DEFS,
+  CONSTRUCTION_SITE,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -31,6 +32,7 @@ import type {
   ResourceNodeComponent,
   CarryComponent,
   EquipmentComponent,
+  ConstructionSiteComponent,
 } from '@augmented-survival/game-core';
 
 export class SelectionPanel {
@@ -53,6 +55,10 @@ export class SelectionPanel {
   private citizenBagSlots: HTMLDivElement[] = [];
   private citizenBagIcons: HTMLSpanElement[] = [];
   private citizenBagCounts: HTMLSpanElement[] = [];
+
+  // Cached building DOM elements — created once, updated per-frame
+  private buildingBuiltForEntity: EntityId | null = null;
+  private buildingConstructionFill: HTMLDivElement | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -98,6 +104,7 @@ export class SelectionPanel {
     this.selectedEntity = null;
     this.el.style.display = 'none';
     this.clearCitizenCache();
+    this.clearBuildingCache();
     if (this.onClose) this.onClose();
   }
 
@@ -112,6 +119,11 @@ export class SelectionPanel {
       this.updateCitizenValues();
       return;
     }
+    // If building DOM is already built for this entity, just update dynamic values
+    if (this.buildingBuiltForEntity === this.selectedEntity) {
+      this.updateBuildingValues();
+      return;
+    }
     this.renderContent();
   }
 
@@ -120,8 +132,9 @@ export class SelectionPanel {
     const eid = this.selectedEntity;
     const titleEl = this.el.querySelector('.sel-title') as HTMLSpanElement;
 
-    // Clear cached citizen state when switching away from a citizen
+    // Clear cached state when switching entities
     this.clearCitizenCache();
+    this.clearBuildingCache();
 
     // Check entity type and render accordingly
     const citizen = this.world.getComponent<CitizenComponent>(eid, CITIZEN);
@@ -137,7 +150,16 @@ export class SelectionPanel {
     if (building) {
       const def = BUILDING_DEFS[building.type];
       titleEl.textContent = def.displayName;
-      this.contentEl.innerHTML = this.renderBuilding(building, def.description);
+      const construction = !building.isConstructed
+        ? this.world.getComponent<ConstructionSiteComponent>(eid, CONSTRUCTION_SITE)
+        : null;
+      if (construction) {
+        this.contentEl.innerHTML = this.renderBuilding(building, def.description);
+        this.buildConstructionBarDOM(construction);
+        this.buildingBuiltForEntity = eid;
+      } else {
+        this.contentEl.innerHTML = this.renderBuilding(building, def.description);
+      }
       return;
     }
 
@@ -166,6 +188,57 @@ export class SelectionPanel {
     this.citizenBagSlots = [];
     this.citizenBagIcons = [];
     this.citizenBagCounts = [];
+  }
+
+  private clearBuildingCache(): void {
+    this.buildingBuiltForEntity = null;
+    this.buildingConstructionFill = null;
+  }
+
+  private buildConstructionBarDOM(construction: ConstructionSiteComponent): void {
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'sel-row';
+    progressContainer.style.flexDirection = 'column';
+    progressContainer.style.alignItems = 'stretch';
+    progressContainer.style.marginTop = '8px';
+
+    const progressLabel = document.createElement('span');
+    progressLabel.className = 'label';
+    progressLabel.textContent = 'Construction Progress';
+
+    const progressBar = document.createElement('div');
+    progressBar.className = 'bar-container bar-construction';
+    const progressFill = document.createElement('div');
+    progressFill.className = 'bar-fill';
+    progressFill.style.width = `${construction.progress * 100}%`;
+    progressBar.appendChild(progressFill);
+
+    const progressText = document.createElement('span');
+    progressText.className = 'construction-pct';
+    progressText.textContent = `${Math.round(construction.progress * 100)}%`;
+
+    progressContainer.appendChild(progressLabel);
+    progressContainer.appendChild(progressBar);
+    progressContainer.appendChild(progressText);
+
+    this.contentEl.appendChild(progressContainer);
+    this.buildingConstructionFill = progressFill;
+  }
+
+  private updateBuildingValues(): void {
+    if (this.selectedEntity === null) return;
+    const building = this.world.getComponent<BuildingComponent>(this.selectedEntity, BUILDING);
+    if (!building) return;
+
+    if (!building.isConstructed) {
+      const construction = this.world.getComponent<ConstructionSiteComponent>(
+        this.selectedEntity,
+        CONSTRUCTION_SITE,
+      );
+      if (construction && this.buildingConstructionFill) {
+        this.buildingConstructionFill.style.width = `${construction.progress * 100}%`;
+      }
+    }
   }
 
   /** Build the citizen DOM structure once and cache element references. */
