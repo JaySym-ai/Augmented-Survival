@@ -16,10 +16,10 @@ function mulberry32(seed: number): () => number {
 }
 
 const CENTER_EXCLUSION_RADIUS = 20;
-const PINE_COUNT = 200;
-const OAK_COUNT = 180;
-const BIRCH_COUNT = 120;
-const DEAD_TREE_COUNT = 100;
+const PINE_COUNT = 120;
+const OAK_COUNT = 100;
+const BIRCH_COUNT = 70;
+const DEAD_TREE_COUNT = 50;
 const ROCK_COUNT = 150;
 const IRON_COUNT = 30;
 const GOLD_COUNT = 10;
@@ -107,7 +107,7 @@ function createBirchGeometry(): THREE.BufferGeometry {
   canopy.scale(1, 1.3, 1);
   canopy.translate(0, 2.8, 0);
   applyVertexColor(trunk, new THREE.Color(0xd4cfc4));
-  applyVertexColor(canopy, new THREE.Color(0x5a9e3e));
+  applyVertexColor(canopy, new THREE.Color(0x3d7a2a));
   return mergeGeometries([trunk, canopy]);
 }
 
