@@ -255,6 +255,15 @@ export class EnvironmentObjects {
   private hempPositions: Array<{ x: number; y: number; z: number }> = [];
   private branchPositions: Array<{ x: number; y: number; z: number }> = [];
 
+  // Cumulative tree counts for resolving global treePositions index → InstancedMesh + local index
+  private pinesPlaced = 0;
+  private oaksPlaced = 0;
+  private birchesPlaced = 0;
+  private deadPlaced = 0;
+
+  // Saved original matrices for hidden instances, keyed by type then index
+  private savedMatrices = new Map<string, Map<number, THREE.Matrix4>>();
+
   constructor(scene: THREE.Scene, terrainData: TerrainData, seed: number) {
     const rng = mulberry32(seed + 12345);
     const halfW = terrainData.width / 2;
@@ -297,6 +306,7 @@ export class EnvironmentObjects {
     }
     this.treeInstances.count = pinesPlaced;
     this.treeInstances.instanceMatrix.needsUpdate = true;
+    this.pinesPlaced = pinesPlaced;
     scene.add(this.treeInstances);
 
     // ---- Oak Trees (prefer low-mid elevation, flat terrain) ----
@@ -335,6 +345,7 @@ export class EnvironmentObjects {
     }
     this.oakInstances.count = oaksPlaced;
     this.oakInstances.instanceMatrix.needsUpdate = true;
+    this.oaksPlaced = oaksPlaced;
     scene.add(this.oakInstances);
 
     // ---- Birch Trees (prefer flat grasslands) ----
@@ -373,6 +384,7 @@ export class EnvironmentObjects {
     }
     this.birchInstances.count = birchesPlaced;
     this.birchInstances.instanceMatrix.needsUpdate = true;
+    this.birchesPlaced = birchesPlaced;
     scene.add(this.birchInstances);
 
     // ---- Dead Trees (anywhere, sparse) ----
@@ -408,6 +420,7 @@ export class EnvironmentObjects {
     }
     this.deadTreeInstances.count = deadPlaced;
     this.deadTreeInstances.instanceMatrix.needsUpdate = true;
+    this.deadPlaced = deadPlaced;
     scene.add(this.deadTreeInstances);
 
     // ---- Rocks ----
@@ -616,6 +629,96 @@ export class EnvironmentObjects {
 
   getBranchPositions(): Array<{ x: number; y: number; z: number }> {
     return [...this.branchPositions];
+  }
+
+  /**
+   * Resolve a resource type + global index to the correct InstancedMesh and local instance index.
+   */
+  private resolveInstance(type: string, globalIndex: number): { mesh: THREE.InstancedMesh; localIndex: number } | null {
+    switch (type) {
+      case 'tree': {
+        // treePositions is a combined array: pines, oaks, birches, dead trees (in that order)
+        if (globalIndex < this.pinesPlaced) {
+          return { mesh: this.treeInstances, localIndex: globalIndex };
+        }
+        const afterPines = globalIndex - this.pinesPlaced;
+        if (afterPines < this.oaksPlaced) {
+          return { mesh: this.oakInstances, localIndex: afterPines };
+        }
+        const afterOaks = afterPines - this.oaksPlaced;
+        if (afterOaks < this.birchesPlaced) {
+          return { mesh: this.birchInstances, localIndex: afterOaks };
+        }
+        const afterBirches = afterOaks - this.birchesPlaced;
+        if (afterBirches < this.deadPlaced) {
+          return { mesh: this.deadTreeInstances, localIndex: afterBirches };
+        }
+        return null;
+      }
+      case 'rock':
+        return { mesh: this.rockInstances, localIndex: globalIndex };
+      case 'iron':
+        return { mesh: this.ironInstances, localIndex: globalIndex };
+      case 'gold':
+        return { mesh: this.goldInstances, localIndex: globalIndex };
+      case 'hemp':
+        return { mesh: this.hempInstances, localIndex: globalIndex };
+      case 'branch':
+        return { mesh: this.branchInstances, localIndex: globalIndex };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Hide a resource instance by saving its original matrix and setting a zero-scale matrix.
+   */
+  hideResourceInstance(type: string, globalIndex: number): void {
+    const resolved = this.resolveInstance(type, globalIndex);
+    if (!resolved) return;
+
+    const { mesh, localIndex } = resolved;
+
+    // Save original matrix if not already saved
+    let typeMap = this.savedMatrices.get(type);
+    if (!typeMap) {
+      typeMap = new Map<number, THREE.Matrix4>();
+      this.savedMatrices.set(type, typeMap);
+    }
+    if (!typeMap.has(globalIndex)) {
+      const original = new THREE.Matrix4();
+      mesh.getMatrixAt(localIndex, original);
+      typeMap.set(globalIndex, original);
+    }
+
+    // Set zero-scale matrix to hide the instance
+    const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+    mesh.setMatrixAt(localIndex, zeroMatrix);
+    mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  /**
+   * Show a previously hidden resource instance by restoring its original matrix.
+   */
+  showResourceInstance(type: string, globalIndex: number): void {
+    const resolved = this.resolveInstance(type, globalIndex);
+    if (!resolved) return;
+
+    const { mesh, localIndex } = resolved;
+
+    // Restore original matrix
+    const typeMap = this.savedMatrices.get(type);
+    const original = typeMap?.get(globalIndex);
+    if (!original) return;
+
+    mesh.setMatrixAt(localIndex, original);
+    mesh.instanceMatrix.needsUpdate = true;
+
+    // Clean up saved matrix
+    typeMap!.delete(globalIndex);
+    if (typeMap!.size === 0) {
+      this.savedMatrices.delete(type);
+    }
   }
 
   dispose(): void {

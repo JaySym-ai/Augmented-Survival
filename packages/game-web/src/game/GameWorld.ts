@@ -21,6 +21,7 @@ import {
   CARRY,
   JOB_ASSIGNMENT,
   GATHERING,
+  DEPLETED_RESOURCE,
   type GatheringComponent,
   createTransform,
   createVelocity,
@@ -44,6 +45,7 @@ import {
   DeliverySystem,
   ConstructionSystem,
   ResourceStoreSystem,
+  ResourceDepletionSystem,
   BuildingPlacementSystem,
   TerrainGenerator,
   BUILDING_DEFS,
@@ -84,6 +86,9 @@ export class GameWorld {
   // Tool meshes attached to citizens during gathering
   private citizenTools = new Map<EntityId, THREE.Group>();
 
+  // Entity → environment instance mapping for hide/show on depletion
+  private resourceInstanceMap = new Map<EntityId, { type: string; index: number }>();
+
   // Round-robin counter for default job assignment
   private nextJobIndex = 0;
 
@@ -109,6 +114,7 @@ export class GameWorld {
     const movement = new MovementSystem(this.timeSystem);
     movement.setTerrainData(terrainData);
     const gather = new GatherSystem(this.timeSystem, this.eventBus);
+    const resourceDepletion = new ResourceDepletionSystem(this.timeSystem, this.eventBus);
     const carry = new CarrySystem();
     const delivery = new DeliverySystem(this.timeSystem, this.eventBus);
     const construction = new ConstructionSystem(this.timeSystem, this.eventBus);
@@ -120,6 +126,7 @@ export class GameWorld {
     this.world.addSystem(pathFollow);
     this.world.addSystem(movement);
     this.world.addSystem(gather);
+    this.world.addSystem(resourceDepletion);
     this.world.addSystem(carry);
     this.world.addSystem(delivery);
     this.world.addSystem(construction);
@@ -166,47 +173,59 @@ export class GameWorld {
   }
 
   private createResourceEntities(): void {
+    let treeIndex = 0;
     // Trees → Wood resource nodes
     for (const pos of this.environment.getTreePositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Wood, 5, 5));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
+      this.resourceInstanceMap.set(entity, { type: 'tree', index: treeIndex++ });
     }
+    let rockIndex = 0;
     // Rocks → Stone resource nodes
     for (const pos of this.environment.getRockPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Stone, 3, 3));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
+      this.resourceInstanceMap.set(entity, { type: 'rock', index: rockIndex++ });
     }
+    let ironIndex = 0;
     // Iron ore rocks → Iron resource nodes
     for (const pos of this.environment.getIronPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Iron, 2, 2));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
+      this.resourceInstanceMap.set(entity, { type: 'iron', index: ironIndex++ });
     }
+    let goldIndex = 0;
     // Gold ore rocks → Gold resource nodes
     for (const pos of this.environment.getGoldPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Gold, 1, 1));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
+      this.resourceInstanceMap.set(entity, { type: 'gold', index: goldIndex++ });
     }
+    let hempIndex = 0;
     // Hemp plants → Hemp resource nodes (regenerating)
     for (const pos of this.environment.getHempPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Hemp, 3, 3, true));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
+      this.resourceInstanceMap.set(entity, { type: 'hemp', index: hempIndex++ });
     }
+    let branchIndex = 0;
     // Fallen branches → Branch resource nodes (regenerating)
     for (const pos of this.environment.getBranchPositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
       this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Branch, 2, 2, true));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
+      this.resourceInstanceMap.set(entity, { type: 'branch', index: branchIndex++ });
     }
   }
 
@@ -325,6 +344,22 @@ export class GameWorld {
 
       // Reset the swing phase on each hit so the animation stays in sync
       animator.resetGatherPhase();
+    });
+
+    // When a resource is depleted, hide its visual instance
+    this.eventBus.on('ResourceDepleted', (event) => {
+      const info = this.resourceInstanceMap.get(event.entityId);
+      if (info) {
+        this.environment.hideResourceInstance(info.type, info.index);
+      }
+    });
+
+    // When a resource respawns, show its visual instance again
+    this.eventBus.on('ResourceRespawned', (event) => {
+      const info = this.resourceInstanceMap.get(event.entityId);
+      if (info) {
+        this.environment.showResourceInstance(info.type, info.index);
+      }
     });
   }
 
