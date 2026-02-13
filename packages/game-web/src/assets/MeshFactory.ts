@@ -51,6 +51,28 @@ export class MeshFactory {
     head.castShadow = true;
     group.add(head);
 
+    // Facial features
+    const dark = this.mat('dark');
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.025, 6, 6);
+    const leftEye = new THREE.Mesh(eyeGeo, dark);
+    leftEye.position.set(-0.05, 0.97, 0.09);
+    group.add(leftEye);
+    const rightEye = new THREE.Mesh(eyeGeo, dark);
+    rightEye.position.set(0.05, 0.97, 0.09);
+    group.add(rightEye);
+
+    // Nose
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), skin);
+    nose.position.set(0, 0.94, 0.11);
+    group.add(nose);
+
+    // Mouth
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.02), dark);
+    mouth.position.set(0, 0.91, 0.10);
+    group.add(mouth);
+
     // Arms (pivot at shoulder so they can swing)
     for (const side of [-1, 1]) {
       const armPivot = new THREE.Group();
@@ -418,6 +440,7 @@ export class MeshFactory {
     m.set('cloth', new THREE.MeshStandardMaterial({ color: 0x8B2222, roughness: 0.8, metalness: 0.0 }));
     m.set('leaf', new THREE.MeshStandardMaterial({ color: 0x2D5A27, roughness: 0.85, metalness: 0.0 }));
     m.set('water', new THREE.MeshStandardMaterial({ color: 0x4A7A8C, roughness: 0.3, metalness: 0.1 }));
+    m.set('dark', new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.0 }));
     return m;
   }
 }
