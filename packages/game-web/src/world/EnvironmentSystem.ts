@@ -238,6 +238,22 @@ function getTerrainSlope(data: TerrainData, worldX: number, worldZ: number): num
   return 1 - (ny / len);
 }
 
+/** Tracks an in-progress tree falling animation. */
+interface FallingTreeAnimation {
+  mesh: THREE.InstancedMesh;
+  localIndex: number;
+  originalMatrix: THREE.Matrix4;
+  elapsed: number;
+  duration: number;
+  type: string;
+  globalIndex: number;
+  // Decomposed from original matrix
+  position: THREE.Vector3;
+  scale: THREE.Vector3;
+  rotationY: number;
+  fallDirectionAngle: number; // Y-axis angle for fall direction
+}
+
 export class EnvironmentObjects {
   private treeInstances: THREE.InstancedMesh;
   private oakInstances: THREE.InstancedMesh;
@@ -263,6 +279,9 @@ export class EnvironmentObjects {
 
   // Saved original matrices for hidden instances, keyed by type then index
   private savedMatrices = new Map<string, Map<number, THREE.Matrix4>>();
+
+  // Active falling tree animations, keyed by "tree:<globalIndex>"
+  private fallingAnimations = new Map<string, FallingTreeAnimation>();
 
   constructor(scene: THREE.Scene, terrainData: TerrainData, seed: number) {
     const rng = mulberry32(seed + 12345);
@@ -671,9 +690,15 @@ export class EnvironmentObjects {
   }
 
   /**
-   * Hide a resource instance by saving its original matrix and setting a zero-scale matrix.
+   * Hide a resource instance. Trees play a falling animation; other types hide instantly.
    */
   hideResourceInstance(type: string, globalIndex: number): void {
+    // Trees get a falling animation instead of instant hide
+    if (type === 'tree') {
+      this.startFallingAnimation(type, globalIndex);
+      return;
+    }
+
     const resolved = this.resolveInstance(type, globalIndex);
     if (!resolved) return;
 
@@ -699,8 +724,13 @@ export class EnvironmentObjects {
 
   /**
    * Show a previously hidden resource instance by restoring its original matrix.
+   * Cancels any in-progress falling animation for trees.
    */
   showResourceInstance(type: string, globalIndex: number): void {
+    // Cancel any in-progress falling animation
+    const animKey = `${type}:${globalIndex}`;
+    this.fallingAnimations.delete(animKey);
+
     const resolved = this.resolveInstance(type, globalIndex);
     if (!resolved) return;
 
@@ -718,6 +748,121 @@ export class EnvironmentObjects {
     typeMap!.delete(globalIndex);
     if (typeMap!.size === 0) {
       this.savedMatrices.delete(type);
+    }
+  }
+
+  /**
+   * Start a falling animation for a tree instance.
+   */
+  private startFallingAnimation(type: string, globalIndex: number): void {
+    const animKey = `${type}:${globalIndex}`;
+    // Don't start if already animating
+    if (this.fallingAnimations.has(animKey)) return;
+
+    const resolved = this.resolveInstance(type, globalIndex);
+    if (!resolved) return;
+
+    const { mesh, localIndex } = resolved;
+
+    // Save original matrix if not already saved
+    let typeMap = this.savedMatrices.get(type);
+    if (!typeMap) {
+      typeMap = new Map<number, THREE.Matrix4>();
+      this.savedMatrices.set(type, typeMap);
+    }
+    if (!typeMap.has(globalIndex)) {
+      const original = new THREE.Matrix4();
+      mesh.getMatrixAt(localIndex, original);
+      typeMap.set(globalIndex, original);
+    }
+
+    const originalMatrix = typeMap.get(globalIndex)!;
+
+    // Decompose the original matrix to extract position, quaternion, and scale
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    originalMatrix.decompose(position, quaternion, scale);
+
+    // Extract Y rotation from the quaternion
+    const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
+    const rotationY = euler.y;
+
+    // Use the existing Y rotation as the fall direction (tree falls "forward" relative to its facing)
+    const fallDirectionAngle = rotationY;
+
+    this.fallingAnimations.set(animKey, {
+      mesh,
+      localIndex,
+      originalMatrix: originalMatrix.clone(),
+      elapsed: 0,
+      duration: 1.5,
+      type,
+      globalIndex,
+      position,
+      scale,
+      rotationY,
+      fallDirectionAngle,
+    });
+  }
+
+  /**
+   * Update all active falling tree animations. Call each frame with delta time.
+   */
+  update(dt: number): void {
+    if (this.fallingAnimations.size === 0) return;
+
+    const toRemove: string[] = [];
+    const tempMatrix = new THREE.Matrix4();
+    const rotYMatrix = new THREE.Matrix4();
+    const tiltMatrix = new THREE.Matrix4();
+    const fallDirMatrix = new THREE.Matrix4();
+    const fallDirInvMatrix = new THREE.Matrix4();
+    const scaleMatrix = new THREE.Matrix4();
+    const translationMatrix = new THREE.Matrix4();
+
+    for (const [key, anim] of this.fallingAnimations) {
+      anim.elapsed += dt;
+      const t = Math.min(anim.elapsed / anim.duration, 1);
+
+      // Ease-in (quadratic) to simulate gravity acceleration
+      const easedT = t * t;
+
+      // Tilt angle: 0 → 90° (PI/2)
+      const tiltAngle = easedT * Math.PI / 2;
+
+      // Build matrix: T(pos) * R_fallDir * R_tilt(X) * R_fallDir^-1 * R_y * S
+      // This makes the tree fall in the direction of fallDirectionAngle,
+      // pivoting at its base (the position point)
+      translationMatrix.makeTranslation(anim.position.x, anim.position.y, anim.position.z);
+      fallDirMatrix.makeRotationY(anim.fallDirectionAngle);
+      tiltMatrix.makeRotationX(tiltAngle);
+      fallDirInvMatrix.makeRotationY(-anim.fallDirectionAngle);
+      rotYMatrix.makeRotationY(anim.rotationY);
+      scaleMatrix.makeScale(anim.scale.x, anim.scale.y, anim.scale.z);
+
+      // M = T * R_fallDir * R_tiltX * R_fallDir^-1 * R_y * S
+      tempMatrix.copy(translationMatrix);
+      tempMatrix.multiply(fallDirMatrix);
+      tempMatrix.multiply(tiltMatrix);
+      tempMatrix.multiply(fallDirInvMatrix);
+      tempMatrix.multiply(rotYMatrix);
+      tempMatrix.multiply(scaleMatrix);
+
+      anim.mesh.setMatrixAt(anim.localIndex, tempMatrix);
+      anim.mesh.instanceMatrix.needsUpdate = true;
+
+      // When animation completes, hide fully with zero-scale matrix
+      if (anim.elapsed >= anim.duration) {
+        const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+        anim.mesh.setMatrixAt(anim.localIndex, zeroMatrix);
+        anim.mesh.instanceMatrix.needsUpdate = true;
+        toRemove.push(key);
+      }
+    }
+
+    for (const key of toRemove) {
+      this.fallingAnimations.delete(key);
     }
   }
 

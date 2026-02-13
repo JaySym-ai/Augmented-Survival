@@ -198,7 +198,7 @@ export class GameWorld {
     for (const pos of this.environment.getTreePositions()) {
       const entity = this.world.createEntity();
       this.world.addComponent(entity, TRANSFORM, createTransform(pos));
-      this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Wood, 5, 5));
+      this.world.addComponent(entity, RESOURCE_NODE, createResourceNode(ResourceType.Wood, 2, 2));
       this.world.addComponent(entity, SELECTABLE, createSelectable());
       this.resourceInstanceMap.set(entity, { type: 'tree', index: treeIndex++ });
     }
@@ -475,6 +475,9 @@ export class GameWorld {
   update(dt: number): void {
     // Step ECS world
     this.world.step(dt);
+
+    // Update environment animations (e.g. falling trees)
+    this.environment.update(dt);
 
     // Sync ECS transforms → Three.js meshes
     this.syncMeshPositions(dt);
