@@ -10,7 +10,8 @@ import { SelectionManager } from './game/SelectionManager.js';
 import { BuildingGhostPreview } from './game/BuildingGhostPreview.js';
 import { GameUI } from './ui/GameUI.js';
 import { VILLAGER_SIDEBAR_SELECT_EVENT } from './ui/VillagerSidebar.js';
-import type { EntityId } from '@augmented-survival/game-core';
+import { CITIZEN, TRANSFORM } from '@augmented-survival/game-core';
+import type { EntityId, TransformComponent } from '@augmented-survival/game-core';
 
 class GameApp {
   private gameRenderer: GameRenderer;
@@ -85,6 +86,7 @@ class GameApp {
     // Wire selection events to UI
     this.gameWorld.eventBus.on('EntitySelected', ({ entityId }) => {
       this.gameUI.showSelection(entityId);
+      this.focusCameraOnVillagerSelection(entityId);
     });
     this.gameWorld.eventBus.on('EntityDeselected', () => {
       this.gameUI.hideSelection();
@@ -175,6 +177,18 @@ class GameApp {
     if (entityId == null) return;
     this.selectionManager.select(entityId);
   };
+
+  private focusCameraOnVillagerSelection(entityId: EntityId): void {
+    const citizen = this.gameWorld.world.getComponent(entityId, CITIZEN);
+    if (!citizen) return;
+
+    const transform = this.gameWorld.world.getComponent<TransformComponent>(entityId, TRANSFORM);
+    if (!transform) return;
+
+    const target = this.cameraController.getLookAtPosition();
+    target.set(transform.position.x, 0, transform.position.z);
+    this.cameraController.setTarget(target);
+  }
 }
 
 // ---- Bootstrap ----
