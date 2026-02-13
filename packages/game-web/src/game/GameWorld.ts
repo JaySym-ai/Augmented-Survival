@@ -22,6 +22,7 @@ import {
   JOB_ASSIGNMENT,
   GATHERING,
   DEPLETED_RESOURCE,
+  EQUIPMENT,
   type GatheringComponent,
   createTransform,
   createVelocity,
@@ -33,6 +34,7 @@ import {
   createCarry,
   createJobAssignment,
   createInventory,
+  createEquipment,
   ResourceType,
   BuildingType,
   JobType,
@@ -252,6 +254,7 @@ export class GameWorld {
     this.world.addComponent(entity, CARRY, createCarry());
     this.world.addComponent(entity, SELECTABLE, createSelectable());
     this.world.addComponent(entity, JOB_ASSIGNMENT, createJobAssignment(assignedJob));
+    this.world.addComponent(entity, EQUIPMENT, createEquipment());
 
     // Create citizen mesh
     const mesh = this.meshFactory.createCitizenMesh();

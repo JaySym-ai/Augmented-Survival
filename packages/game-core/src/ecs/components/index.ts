@@ -46,3 +46,6 @@ export { CONSTRUCTION_WORK, createConstructionWork } from './ConstructionWorkCom
 export type { DepletedResourceComponent } from './DepletedResourceComponent';
 export { DEPLETED_RESOURCE, createDepletedResource } from './DepletedResourceComponent';
 
+export type { EquipmentComponent } from './EquipmentComponent';
+export { EQUIPMENT, createEquipment } from './EquipmentComponent';
+

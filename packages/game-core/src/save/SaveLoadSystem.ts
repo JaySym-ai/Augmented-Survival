@@ -18,6 +18,7 @@ import { INVENTORY } from '../ecs/components/InventoryComponent';
 import { CONSTRUCTION_SITE } from '../ecs/components/ConstructionSiteComponent';
 import { CARRY } from '../ecs/components/CarryComponent';
 import { JOB_ASSIGNMENT } from '../ecs/components/JobAssignmentComponent';
+import { EQUIPMENT } from '../ecs/components/EquipmentComponent';
 
 /** Current save format version */
 const SAVE_VERSION = 1;
@@ -36,6 +37,7 @@ const MAP_FIELDS: Record<string, string[]> = {
 const SERIALIZABLE_COMPONENTS = [
   TRANSFORM, VELOCITY, CITIZEN, BUILDING, RESOURCE_NODE,
   STORAGE, INVENTORY, CONSTRUCTION_SITE, CARRY, JOB_ASSIGNMENT,
+  EQUIPMENT,
 ];
 
 /**

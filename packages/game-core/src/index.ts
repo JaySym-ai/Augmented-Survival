@@ -67,6 +67,9 @@ export { CONSTRUCTION_WORK, createConstructionWork } from './ecs/components/Cons
 export type { DepletedResourceComponent } from './ecs/components/DepletedResourceComponent';
 export { DEPLETED_RESOURCE, createDepletedResource } from './ecs/components/DepletedResourceComponent';
 
+export type { EquipmentComponent } from './ecs/components/EquipmentComponent';
+export { EQUIPMENT, createEquipment } from './ecs/components/EquipmentComponent';
+
 // Events
 export { EventBus } from './events/EventBus';
 export type { EventHandler, EventMap } from './events/EventBus';
@@ -112,6 +115,7 @@ export { ResourceType } from './types/resources';
 export { BuildingType } from './types/buildings';
 export { JobType } from './types/jobs';
 export { CitizenState } from './types/citizens';
+export { EquipmentSlot, ItemType } from './types/items';
 export type { BuildingConfig, GameConfig } from './types/config';
 export type { SavedEntity, SaveData } from './types/save';
 
@@ -122,6 +126,8 @@ export { RESOURCE_DEFS } from './content/ResourceDefs';
 export type { ResourceDef } from './content/ResourceDefs';
 export { JOB_DEFS } from './content/JobDefs';
 export type { JobDef } from './content/JobDefs';
+export { ITEM_DEFS } from './content/ItemDefs';
+export type { ItemDef } from './content/ItemDefs';
 export { DEFAULT_GAME_CONFIG } from './content/DefaultGameConfig';
 
 // Save/Load
