@@ -79,6 +79,18 @@ export class DebugPanel {
     this.listEl.className = 'debug-resource-list';
     this.el.appendChild(this.listEl);
 
+    // Delegated click handler for spawn buttons (stable — survives renderRows rebuilds)
+    this.listEl.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const btn = target.closest<HTMLButtonElement>('.debug-spawn-btn');
+      if (!btn) return;
+      event.stopPropagation();
+      const idAttr = btn.dataset.entityId;
+      if (idAttr == null) return;
+      const entityId = Number(idAttr) as EntityId;
+      this.forceSpawn(entityId);
+    });
+
     parent.appendChild(this.el);
   }
 
@@ -149,10 +161,7 @@ export class DebugPanel {
       btn.className = 'debug-spawn-btn';
       btn.textContent = '⚡ Spawn';
       btn.setAttribute('aria-label', `Force spawn ${def.displayName}`);
-      btn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        this.forceSpawn(entityId, resource);
-      });
+      btn.dataset.entityId = String(entityId);
       row.appendChild(btn);
 
       fragment.appendChild(row);
@@ -161,7 +170,10 @@ export class DebugPanel {
     this.listEl.appendChild(fragment);
   }
 
-  private forceSpawn(entityId: EntityId, resource: ResourceNodeComponent): void {
+  private forceSpawn(entityId: EntityId): void {
+    const resource = this.world.getComponent<ResourceNodeComponent>(entityId, RESOURCE_NODE);
+    if (!resource) return;
+
     // Restore resource amount
     resource.amount = resource.maxAmount;
 
