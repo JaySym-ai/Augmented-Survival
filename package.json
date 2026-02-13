@@ -7,6 +7,9 @@
     "apps/*"
   ],
   "scripts": {
+    "test": "npm run test --workspace=packages/game-core && npm run test --workspace=packages/game-web",
+    "test:core": "npm run test --workspace=packages/game-core",
+    "test:web": "npm run test --workspace=packages/game-web",
     "dev:web": "npm run dev --workspace=packages/game-web",
     "build:web": "npm run build --workspace=packages/game-web",
     "preview:web": "npm run preview --workspace=packages/game-web",
