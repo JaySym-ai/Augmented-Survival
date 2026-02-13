@@ -173,17 +173,17 @@ export class CitizenAnimator {
     // Map phase to arm rotation for mining motion (vertical swing)
     let armRotation: number;
     if (this.gatherPhase < 0.4) {
-      // Phase 0–0.4: arm raises up (rotation.x from 0 to -1.5 radians — back/up)
+      // Phase 0–0.4: arm raises up (rotation.x from -0.3 to -1.5 radians — back/up)
       const t = this.gatherPhase / 0.4;
-      armRotation = -1.5 * t;
+      armRotation = -0.3 - 1.2 * t;
     } else if (this.gatherPhase < 0.6) {
-      // Phase 0.4–0.6: arm swings down fast (rotation.x from -1.5 to 0.5 — forward/down)
+      // Phase 0.4–0.6: arm swings down fast (rotation.x from -1.5 to -0.2 — stops above rock)
       const t = (this.gatherPhase - 0.4) / 0.2;
-      armRotation = -1.5 + 2.0 * t;
+      armRotation = -1.5 + 1.3 * t;
     } else {
-      // Phase 0.6–1.0: arm holds/recovers (rotation.x lerps back toward 0)
+      // Phase 0.6–1.0: arm holds/recovers (rotation.x lerps from -0.2 back to -0.3)
       const t = (this.gatherPhase - 0.6) / 0.4;
-      armRotation = 0.5 * (1 - t);
+      armRotation = -0.2 - 0.1 * t;
     }
 
     if (this.rightArm) {
