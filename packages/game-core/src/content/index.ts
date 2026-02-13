@@ -10,5 +10,8 @@ export type { ResourceDef } from './ResourceDefs.js';
 export { JOB_DEFS } from './JobDefs.js';
 export type { JobDef } from './JobDefs.js';
 
+export { ITEM_DEFS } from './ItemDefs.js';
+export type { ItemDef } from './ItemDefs.js';
+
 export { DEFAULT_GAME_CONFIG } from './DefaultGameConfig.js';
 
