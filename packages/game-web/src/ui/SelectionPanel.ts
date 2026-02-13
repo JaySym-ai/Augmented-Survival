@@ -8,6 +8,7 @@ import {
   CITIZEN,
   BUILDING,
   RESOURCE_NODE,
+  ANIMAL,
   BUILDING_DEFS,
   RESOURCE_DEFS,
   JOB_ASSIGNMENT,
@@ -30,6 +31,7 @@ import type {
   CitizenComponent,
   BuildingComponent,
   ResourceNodeComponent,
+  AnimalComponent,
   CarryComponent,
   EquipmentComponent,
   ConstructionSiteComponent,
@@ -168,6 +170,14 @@ export class SelectionPanel {
       const def = RESOURCE_DEFS[resNode.type];
       titleEl.textContent = `${def.icon} ${def.displayName} Node`;
       this.contentEl.innerHTML = this.renderResourceNode(resNode);
+      return;
+    }
+
+    const animal = this.world.getComponent<AnimalComponent>(eid, ANIMAL);
+    if (animal) {
+      const name = animal.type === 'sheep' ? 'Sheep' : 'Chicken';
+      titleEl.textContent = name;
+      this.contentEl.innerHTML = this.renderAnimal(animal);
       return;
     }
 
@@ -503,6 +513,11 @@ export class SelectionPanel {
   private renderResourceNode(r: ResourceNodeComponent): string {
     return `<div class="sel-row"><span class="label">Amount</span><span>${r.amount}/${r.maxAmount}</span></div>`
       + `<div class="sel-row"><span class="label">Regenerates</span><span>${r.regenerates ? 'Yes' : 'No'}</span></div>`;
+  }
+
+  private renderAnimal(a: AnimalComponent): string {
+    return `<div class="sel-row"><span class="label">Type</span><span>${a.type === 'sheep' ? 'Sheep' : 'Chicken'}</span></div>`
+      + `<div class="sel-row"><span class="label">State</span><span>${a.state}</span></div>`;
   }
 
   dispose(): void {
