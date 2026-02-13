@@ -61,6 +61,7 @@ import { MeshFactory } from '../assets/MeshFactory.js';
 import { TerrainMesh } from '../world/TerrainMesh.js';
 import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
 import { CitizenAnimator } from '../animation/CitizenAnimator.js';
+import { AnimalAnimator } from '../animation/AnimalAnimator.js';
 
 const CITIZEN_NAMES = [
   'Aldric', 'Beatrice', 'Cedric', 'Dorothea', 'Edmund',
@@ -88,6 +89,9 @@ export class GameWorld {
 
   // Walk animation controllers for citizen entities
   private citizenAnimators = new Map<EntityId, CitizenAnimator>();
+
+  // Walk animation controllers for animal entities
+  private animalAnimators = new Map<EntityId, AnimalAnimator>();
 
   // Tool meshes attached to citizens during gathering
   private citizenTools = new Map<EntityId, THREE.Group>();
@@ -320,6 +324,9 @@ export class GameWorld {
     this.scene.add(mesh);
     this.entityMeshes.set(entity, mesh);
 
+    const animator = new AnimalAnimator(mesh, type);
+    this.animalAnimators.set(entity, animator);
+
     return entity;
   }
 
@@ -468,6 +475,15 @@ export class GameWorld {
         const vz = vel?.velocity.z ?? 0;
         animator.update(dt, vx, vz);
       }
+
+      // Animate animals
+      const animalAnimator = this.animalAnimators.get(entityId);
+      if (animalAnimator) {
+        const vel = this.world.getComponent<VelocityComponent>(entityId, VELOCITY);
+        const vx = vel?.velocity.x ?? 0;
+        const vz = vel?.velocity.z ?? 0;
+        animalAnimator.update(dt, vx, vz);
+      }
     }
   }
 
@@ -495,6 +511,7 @@ export class GameWorld {
     }
     this.entityMeshes.clear();
     this.citizenAnimators.clear();
+    this.animalAnimators.clear();
     // Clean up tool meshes
     for (const tool of this.citizenTools.values()) {
       tool.removeFromParent();
