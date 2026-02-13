@@ -106,7 +106,7 @@ function createBirchGeometry(): THREE.BufferGeometry {
   const canopy = new THREE.SphereGeometry(0.8, 7, 6);
   canopy.scale(1, 1.3, 1);
   canopy.translate(0, 2.8, 0);
-  applyVertexColor(trunk, new THREE.Color(0xc8b8a8));
+  applyVertexColor(trunk, new THREE.Color(0x8a7a68));
   applyVertexColor(canopy, new THREE.Color(0x3d7a2a));
   return mergeGeometries([trunk, canopy]);
 }
