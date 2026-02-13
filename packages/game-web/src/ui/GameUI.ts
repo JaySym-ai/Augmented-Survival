@@ -19,6 +19,7 @@ import { SelectionPanel } from './SelectionPanel.js';
 import { VillagerSidebar } from './VillagerSidebar.js';
 import { TimeControls } from './TimeControls.js';
 import { SettingsPanel } from './SettingsPanel.js';
+import { DebugPanel } from './DebugPanel.js';
 
 export interface GameUIConfig {
   container: HTMLElement;
@@ -40,6 +41,7 @@ export class GameUI {
   private selectionPanel: SelectionPanel;
   private timeControls: TimeControls;
   private settingsPanel: SettingsPanel;
+  private debugPanel: DebugPanel;
 
   constructor(private config: GameUIConfig) {
     // Inject CSS
@@ -90,6 +92,8 @@ export class GameUI {
       config.eventBus,
       () => this.settingsPanel.open(),
     );
+
+    this.debugPanel = new DebugPanel(this.root, config.world, config.eventBus);
   }
 
   /** Called every frame to update dynamic values */
@@ -100,6 +104,7 @@ export class GameUI {
     this.selectionPanel.update();
     this.timeControls.update();
     this.settingsPanel.update();
+    this.debugPanel.update();
   }
 
   /** Show selection panel for a specific entity */
@@ -130,6 +135,7 @@ export class GameUI {
     this.selectionPanel.dispose();
     this.timeControls.dispose();
     this.settingsPanel.dispose();
+    this.debugPanel.dispose();
     this.root.remove();
   }
 }

@@ -9,4 +9,5 @@ export { VillagerSidebar } from './VillagerSidebar.js';
 export { SelectionPanel } from './SelectionPanel.js';
 export { TimeControls } from './TimeControls.js';
 export { SettingsPanel } from './SettingsPanel.js';
+export { DebugPanel } from './DebugPanel.js';
 export { injectUIStyles } from './UIStyles.js';
