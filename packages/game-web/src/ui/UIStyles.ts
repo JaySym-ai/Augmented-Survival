@@ -395,7 +395,6 @@ const CSS = /* css */ `
   flex-direction: column;
   padding: 8px;
   gap: 8px;
-  overflow: hidden;
 }
 .ui-debug-panel.collapsed {
   width: 112px;
@@ -454,17 +453,12 @@ const CSS = /* css */ `
 .ui-debug-panel .debug-section-header:hover {
   color: var(--ui-text);
 }
-.ui-debug-panel .debug-section.collapsed .debug-resource-list {
-  display: none;
-}
 .ui-debug-panel .debug-resource-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
   padding-right: 2px;
-  flex: 1 1 0;
-  min-height: 0;
 }
 .ui-debug-panel .debug-resource-row {
   display: flex;
