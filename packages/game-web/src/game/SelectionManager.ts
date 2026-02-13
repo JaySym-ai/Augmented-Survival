@@ -40,6 +40,13 @@ const CLICK_THRESHOLD = 5;
 /** Radius for detecting resource nodes on right-click */
 const RESOURCE_PICK_RADIUS = 2.5;
 
+/** Data for an active command feedback marker */
+interface CommandMarker {
+  mesh: THREE.Mesh;
+  elapsed: number;
+  duration: number;
+}
+
 /** Map ResourceType → JobType for right-click resource assignment */
 const RESOURCE_JOB_MAP: Partial<Record<ResourceType, JobType>> = {
   [ResourceType.Wood]: JobType.Woodcutter,
@@ -54,6 +61,7 @@ const RESOURCE_JOB_MAP: Partial<Record<ResourceType, JobType>> = {
 export class SelectionManager {
   private selectedEntity: EntityId | null = null;
   private selectionRing: THREE.Mesh;
+  private commandMarkers: CommandMarker[] = [];
 
   /** Tracks right-click mousedown position to distinguish click from drag */
   private rightClickStart: { x: number; y: number } | null = null;
@@ -153,6 +161,18 @@ export class SelectionManager {
     this.moveToPosition(this.selectedEntity, citizen, targetPos);
   };
 
+  /** Spawn an animated command feedback marker (torus ring) at the given position. */
+  private spawnCommandMarker(position: { x: number; y: number; z: number }, color: number): void {
+    const geo = new THREE.TorusGeometry(0.6, 0.04, 8, 32);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, depthWrite: false });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(position.x, position.y + 0.1, position.z);
+    mesh.scale.setScalar(0.5); // starts small
+    this.gameWorld.scene.add(mesh);
+    this.commandMarkers.push({ mesh, elapsed: 0, duration: 0.6 });
+  }
+
   /**
    * Reassign a citizen's job and path them toward a resource node.
    * Mirrors SelectionPanel.assignJob cleanup logic.
@@ -207,6 +227,12 @@ export class SelectionManager {
         });
       }
     }
+
+    // 8. Spawn orange/amber command marker at the resource node position
+    const targetTransformForMarker = world.getComponent<TransformComponent>(targetEntity, TRANSFORM);
+    if (targetTransformForMarker) {
+      this.spawnCommandMarker(targetTransformForMarker.position, 0xffaa22);
+    }
   }
 
   /**
@@ -242,6 +268,9 @@ export class SelectionManager {
       currentIndex: 0,
       speed: CITIZEN_SPEED,
     });
+
+    // Spawn green command marker at the move target
+    this.spawnCommandMarker(targetPos, 0x44ff44);
   }
 
   select(entityId: EntityId | null): void {
@@ -268,7 +297,7 @@ export class SelectionManager {
     return this.selectedEntity;
   }
 
-  update(): void {
+  update(dt: number): void {
     // Move selection ring to follow selected entity
     if (this.selectedEntity != null) {
       const transform = this.gameWorld.world.getComponent<TransformComponent>(
@@ -283,6 +312,26 @@ export class SelectionManager {
         );
       }
     }
+
+    // Animate command markers
+    for (let i = this.commandMarkers.length - 1; i >= 0; i--) {
+      const marker = this.commandMarkers[i];
+      marker.elapsed += dt;
+      const t = marker.elapsed / marker.duration;
+      if (t >= 1) {
+        // Remove completed marker
+        this.gameWorld.scene.remove(marker.mesh);
+        marker.mesh.geometry.dispose();
+        (marker.mesh.material as THREE.MeshBasicMaterial).dispose();
+        this.commandMarkers.splice(i, 1);
+      } else {
+        // Scale: 0.5 → 1.2
+        const scale = 0.5 + 0.7 * t;
+        marker.mesh.scale.setScalar(scale);
+        // Fade: 0.7 → 0
+        (marker.mesh.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - t);
+      }
+    }
   }
 
   dispose(): void {
@@ -292,6 +341,14 @@ export class SelectionManager {
     this.container.removeEventListener('mouseup', this.onRightMouseUp);
     this.selectionRing.geometry.dispose();
     (this.selectionRing.material as THREE.MeshBasicMaterial).dispose();
+
+    // Clean up any remaining command markers
+    for (const marker of this.commandMarkers) {
+      this.gameWorld.scene.remove(marker.mesh);
+      marker.mesh.geometry.dispose();
+      (marker.mesh.material as THREE.MeshBasicMaterial).dispose();
+    }
+    this.commandMarkers.length = 0;
   }
 }
 
