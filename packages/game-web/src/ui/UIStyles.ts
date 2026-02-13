@@ -424,6 +424,21 @@ const CSS = /* css */ `
 .ui-debug-panel .debug-toggle:hover {
   background: var(--ui-bg-hover);
 }
+.ui-debug-panel .debug-section-toggle {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1;
+}
+.ui-debug-panel .debug-section-toggle:hover {
+  background: var(--ui-bg-hover);
+}
 .ui-debug-panel .debug-section-header {
   display: flex;
   align-items: center;
