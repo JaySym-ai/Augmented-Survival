@@ -64,6 +64,9 @@ export { JOB_ASSIGNMENT, createJobAssignment } from './ecs/components/JobAssignm
 export type { ConstructionWorkComponent } from './ecs/components/ConstructionWorkComponent';
 export { CONSTRUCTION_WORK, createConstructionWork } from './ecs/components/ConstructionWorkComponent';
 
+export type { DepletedResourceComponent } from './ecs/components/DepletedResourceComponent';
+export { DEPLETED_RESOURCE, createDepletedResource } from './ecs/components/DepletedResourceComponent';
+
 // Events
 export { EventBus } from './events/EventBus';
 export type { EventHandler, EventMap } from './events/EventBus';
@@ -72,6 +75,8 @@ export type {
   ResourceDeliveredEvent,
   InventoryChangedEvent,
   GatherHitEvent,
+  ResourceDepletedEvent,
+  ResourceRespawnedEvent,
   BuildingPlacedEvent,
   ConstructionProgressEvent,
   ConstructionCompleteEvent,
@@ -100,6 +105,7 @@ export { DeliverySystem } from './systems/DeliverySystem';
 export { ConstructionSystem } from './systems/ConstructionSystem';
 export { ResourceStoreSystem } from './systems/ResourceStoreSystem';
 export { BuildingPlacementSystem } from './systems/BuildingPlacementSystem';
+export { ResourceDepletionSystem } from './systems/ResourceDepletionSystem';
 
 // Types
 export { ResourceType } from './types/resources';

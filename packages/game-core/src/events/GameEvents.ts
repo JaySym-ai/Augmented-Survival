@@ -35,6 +35,16 @@ export interface GatherHitEvent {
   targetEntity: EntityId;
 }
 
+export interface ResourceDepletedEvent {
+  entityId: EntityId;
+  resourceType: ResourceType;
+}
+
+export interface ResourceRespawnedEvent {
+  entityId: EntityId;
+  resourceType: ResourceType;
+}
+
 // --- Building Events ---
 
 export interface BuildingPlacedEvent {
@@ -104,6 +114,8 @@ export interface GameEventMap extends EventMap {
   ResourceDelivered: ResourceDeliveredEvent;
   InventoryChanged: InventoryChangedEvent;
   GatherHit: GatherHitEvent;
+  ResourceDepleted: ResourceDepletedEvent;
+  ResourceRespawned: ResourceRespawnedEvent;
   BuildingPlaced: BuildingPlacedEvent;
   ConstructionProgress: ConstructionProgressEvent;
   ConstructionComplete: ConstructionCompleteEvent;

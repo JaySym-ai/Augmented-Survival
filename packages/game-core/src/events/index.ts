@@ -6,6 +6,8 @@ export type {
   ResourceDeliveredEvent,
   InventoryChangedEvent,
   GatherHitEvent,
+  ResourceDepletedEvent,
+  ResourceRespawnedEvent,
   BuildingPlacedEvent,
   ConstructionProgressEvent,
   ConstructionCompleteEvent,

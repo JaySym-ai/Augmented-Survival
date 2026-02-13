@@ -24,4 +24,5 @@ export { DeliverySystem } from './DeliverySystem';
 export { ConstructionSystem } from './ConstructionSystem';
 export { ResourceStoreSystem } from './ResourceStoreSystem';
 export { BuildingPlacementSystem } from './BuildingPlacementSystem';
+export { ResourceDepletionSystem } from './ResourceDepletionSystem';
 
