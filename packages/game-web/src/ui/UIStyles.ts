@@ -270,6 +270,45 @@ const CSS = /* css */ `
   font-weight: 700;
 }
 
+/* Equipment slots */
+.ui-selection-panel .sel-equip-label {
+  color: var(--ui-text-muted);
+  font-size: 13px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-border);
+}
+.ui-selection-panel .sel-equip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ui-selection-panel .sel-equip-slot {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #888;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.05);
+}
+.ui-selection-panel .sel-equip-slot.empty {
+  opacity: 0.4;
+  border: 2px dashed #555;
+}
+.ui-selection-panel .sel-equip-icon {
+  font-size: 20px;
+  line-height: 1.2;
+}
+.ui-selection-panel .sel-equip-name {
+  font-size: 9px;
+  color: var(--ui-text-muted);
+  line-height: 1;
+}
+
 /* Bag inventory slots */
 .ui-selection-panel .sel-bag-label {
   color: var(--ui-text-muted);

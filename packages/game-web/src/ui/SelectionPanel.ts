@@ -19,6 +19,9 @@ import {
   CARRY,
   CONSTRUCTION_WORK,
   CitizenState,
+  EQUIPMENT,
+  EquipmentSlot,
+  ITEM_DEFS,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -27,6 +30,7 @@ import type {
   BuildingComponent,
   ResourceNodeComponent,
   CarryComponent,
+  EquipmentComponent,
 } from '@augmented-survival/game-core';
 
 export class SelectionPanel {
@@ -43,6 +47,9 @@ export class SelectionPanel {
   private citizenHealthFill: HTMLDivElement | null = null;
   private citizenHungerFill: HTMLDivElement | null = null;
   private citizenJobButtons: Map<JobType, HTMLButtonElement> = new Map();
+  private citizenEquipSlots: HTMLDivElement[] = [];
+  private citizenEquipIcons: HTMLSpanElement[] = [];
+  private citizenEquipNames: HTMLSpanElement[] = [];
   private citizenBagSlots: HTMLDivElement[] = [];
   private citizenBagIcons: HTMLSpanElement[] = [];
   private citizenBagCounts: HTMLSpanElement[] = [];
@@ -153,6 +160,9 @@ export class SelectionPanel {
     this.citizenHealthFill = null;
     this.citizenHungerFill = null;
     this.citizenJobButtons.clear();
+    this.citizenEquipSlots = [];
+    this.citizenEquipIcons = [];
+    this.citizenEquipNames = [];
     this.citizenBagSlots = [];
     this.citizenBagIcons = [];
     this.citizenBagCounts = [];
@@ -219,6 +229,39 @@ export class SelectionPanel {
     this.contentEl.appendChild(healthBar);
     this.contentEl.appendChild(hungerLabelRow);
     this.contentEl.appendChild(hungerBar);
+
+    // Equipment slots
+    const equipLabel = document.createElement('div');
+    equipLabel.className = 'sel-equip-label';
+    equipLabel.textContent = 'Equipment';
+    this.contentEl.appendChild(equipLabel);
+
+    const equipGrid = document.createElement('div');
+    equipGrid.className = 'sel-equip-grid';
+    this.citizenEquipSlots = [];
+    this.citizenEquipIcons = [];
+    this.citizenEquipNames = [];
+    const slotNames = [
+      EquipmentSlot.Head, EquipmentSlot.Shoulder, EquipmentSlot.Chest,
+      EquipmentSlot.Legs, EquipmentSlot.Feet, EquipmentSlot.Weapon,
+      EquipmentSlot.Trinket,
+    ];
+    for (let i = 0; i < slotNames.length; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'sel-equip-slot empty';
+      const icon = document.createElement('span');
+      icon.className = 'sel-equip-icon';
+      const name = document.createElement('span');
+      name.className = 'sel-equip-name';
+      name.textContent = slotNames[i];
+      slot.appendChild(icon);
+      slot.appendChild(name);
+      equipGrid.appendChild(slot);
+      this.citizenEquipSlots.push(slot);
+      this.citizenEquipIcons.push(icon);
+      this.citizenEquipNames.push(name);
+    }
+    this.contentEl.appendChild(equipGrid);
 
     // Bag inventory slots
     const bagLabel = document.createElement('div');
@@ -294,6 +337,27 @@ export class SelectionPanel {
     // Update active class on job buttons
     for (const [jobType, btn] of this.citizenJobButtons) {
       btn.classList.toggle('active', jobType === currentJob);
+    }
+
+    // Update equipment slots
+    const equip = this.world.getComponent<EquipmentComponent>(this.selectedEntity, EQUIPMENT);
+    const slotOrder = [
+      EquipmentSlot.Head, EquipmentSlot.Shoulder, EquipmentSlot.Chest,
+      EquipmentSlot.Legs, EquipmentSlot.Feet, EquipmentSlot.Weapon,
+      EquipmentSlot.Trinket,
+    ];
+    for (let i = 0; i < slotOrder.length; i++) {
+      const itemType = equip?.slots[slotOrder[i]] ?? null;
+      if (itemType) {
+        const def = ITEM_DEFS[itemType];
+        this.citizenEquipIcons[i].textContent = def.icon;
+        this.citizenEquipNames[i].textContent = def.displayName;
+        this.citizenEquipSlots[i].classList.remove('empty');
+      } else {
+        this.citizenEquipIcons[i].textContent = '';
+        this.citizenEquipNames[i].textContent = slotOrder[i];
+        this.citizenEquipSlots[i].classList.add('empty');
+      }
     }
 
     // Update bag inventory slots
