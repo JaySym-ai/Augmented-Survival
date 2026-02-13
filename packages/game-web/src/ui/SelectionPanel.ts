@@ -61,9 +61,11 @@ export class SelectionPanel {
   private citizenBagCounts: HTMLSpanElement[] = [];
 
   // Cached building DOM elements — created once, updated per-frame
+  private headerEl: HTMLDivElement;
   private buildingBuiltForEntity: EntityId | null = null;
   private buildingConstructionFill: HTMLDivElement | null = null;
   private buildingColorSwatches: HTMLDivElement[] = [];
+  private destroyBtn: HTMLButtonElement | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -76,15 +78,15 @@ export class SelectionPanel {
     this.el.style.display = 'none';
 
     // Header with close button
-    const header = document.createElement('div');
-    header.className = 'sel-header';
-    header.innerHTML = `<span class="sel-title"></span>`;
+    this.headerEl = document.createElement('div');
+    this.headerEl.className = 'sel-header';
+    this.headerEl.innerHTML = `<span class="sel-title"></span>`;
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sel-close';
     closeBtn.textContent = '✕';
     closeBtn.addEventListener('click', () => this.hide());
-    header.appendChild(closeBtn);
-    this.el.appendChild(header);
+    this.headerEl.appendChild(closeBtn);
+    this.el.appendChild(this.headerEl);
 
     // Content area
     this.contentEl = document.createElement('div');
@@ -215,6 +217,10 @@ export class SelectionPanel {
     this.buildingBuiltForEntity = null;
     this.buildingConstructionFill = null;
     this.buildingColorSwatches = [];
+    if (this.destroyBtn) {
+      this.destroyBtn.remove();
+      this.destroyBtn = null;
+    }
   }
 
   private buildConstructionBarDOM(construction: ConstructionSiteComponent): void {
@@ -305,7 +311,7 @@ export class SelectionPanel {
   private buildDestroyButtonDOM(entityId: EntityId, building: BuildingComponent): void {
     const def = BUILDING_DEFS[building.type];
 
-    // Calculate 50% refund (floored)
+    // Calculate 50% refund (floored) for tooltip
     const refundParts: string[] = [];
     for (const [rType, amount] of Object.entries(def.cost)) {
       if (amount == null || amount <= 0) continue;
@@ -317,20 +323,27 @@ export class SelectionPanel {
       }
     }
 
+    // Icon-only button placed in the header, left of the close button
     const btn = document.createElement('button');
     btn.className = 'sel-destroy-btn';
-    btn.textContent = '🗑️ Destroy';
+    btn.textContent = '🗑️';
+    if (refundParts.length > 0) {
+      btn.title = `Destroy — Refund: ${refundParts.join(' ')}`;
+    } else {
+      btn.title = 'Destroy';
+    }
     btn.addEventListener('click', () => {
       this.eventBus.emit('BuildingDestroyRequested', { buildingId: entityId });
     });
-    this.contentEl.appendChild(btn);
 
-    if (refundParts.length > 0) {
-      const refundEl = document.createElement('div');
-      refundEl.className = 'sel-destroy-refund';
-      refundEl.textContent = `Refund: ${refundParts.join(' ')}`;
-      this.contentEl.appendChild(refundEl);
+    // Insert before the close button (last child of header)
+    const closeBtn = this.headerEl.querySelector('.sel-close');
+    if (closeBtn) {
+      this.headerEl.insertBefore(btn, closeBtn);
+    } else {
+      this.headerEl.appendChild(btn);
     }
+    this.destroyBtn = btn;
   }
 
   private updateBuildingValues(): void {
