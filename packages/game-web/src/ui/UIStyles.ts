@@ -388,13 +388,14 @@ const CSS = /* css */ `
 /* ===== Debug Panel ===== */
 .ui-debug-panel {
   position: absolute;
-  top: 60px; right: 12px;
+  top: 72px; right: 12px;
   width: 280px;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
   padding: 8px;
   gap: 8px;
+  overflow: hidden;
 }
 .ui-debug-panel.collapsed {
   width: 112px;
@@ -462,6 +463,8 @@ const CSS = /* css */ `
   gap: 4px;
   overflow-y: auto;
   padding-right: 2px;
+  flex: 1 1 0;
+  min-height: 0;
 }
 .ui-debug-panel .debug-resource-row {
   display: flex;
@@ -536,7 +539,7 @@ const CSS = /* css */ `
   .ui-villager-sidebar.collapsed { width: 106px; }
   .ui-selection-panel { min-width: 180px; max-width: 220px; }
   .ui-settings-modal { min-width: 280px; padding: 16px; }
-  .ui-debug-panel { width: 220px; max-height: 50vh; top: 52px; }
+  .ui-debug-panel { width: 220px; max-height: 50vh; top: 60px; }
   .ui-debug-panel.collapsed { width: 106px; }
 }
 `;
