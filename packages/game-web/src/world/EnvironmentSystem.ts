@@ -16,7 +16,10 @@ function mulberry32(seed: number): () => number {
 }
 
 const CENTER_EXCLUSION_RADIUS = 20;
-const TREE_COUNT = 600;
+const PINE_COUNT = 200;
+const OAK_COUNT = 180;
+const BIRCH_COUNT = 120;
+const DEAD_TREE_COUNT = 100;
 const ROCK_COUNT = 150;
 const IRON_COUNT = 30;
 const GOLD_COUNT = 10;
@@ -76,7 +79,7 @@ function mergeGeometries(geometries: THREE.BufferGeometry[]): THREE.BufferGeomet
   return merged;
 }
 
-function createTreeGeometry(): THREE.BufferGeometry {
+function createPineGeometry(): THREE.BufferGeometry {
   const trunk = new THREE.CylinderGeometry(0.12, 0.18, 1.5, 6);
   trunk.translate(0, 0.75, 0);
   const canopy = new THREE.ConeGeometry(1.2, 2.5, 7);
@@ -84,6 +87,48 @@ function createTreeGeometry(): THREE.BufferGeometry {
   applyVertexColor(trunk, new THREE.Color(0x5c3a1e));
   applyVertexColor(canopy, new THREE.Color(0x2d6b1e));
   return mergeGeometries([trunk, canopy]);
+}
+
+function createOakGeometry(): THREE.BufferGeometry {
+  const trunk = new THREE.CylinderGeometry(0.18, 0.25, 1.8, 7);
+  trunk.translate(0, 0.9, 0);
+  const canopy = new THREE.SphereGeometry(1.5, 8, 6);
+  canopy.scale(1, 0.8, 1);
+  canopy.translate(0, 2.8, 0);
+  applyVertexColor(trunk, new THREE.Color(0x4a3520));
+  applyVertexColor(canopy, new THREE.Color(0x3a7a2e));
+  return mergeGeometries([trunk, canopy]);
+}
+
+function createBirchGeometry(): THREE.BufferGeometry {
+  const trunk = new THREE.CylinderGeometry(0.08, 0.12, 2.0, 6);
+  trunk.translate(0, 1.0, 0);
+  const canopy = new THREE.SphereGeometry(0.8, 7, 6);
+  canopy.scale(1, 1.3, 1);
+  canopy.translate(0, 2.8, 0);
+  applyVertexColor(trunk, new THREE.Color(0xd4cfc4));
+  applyVertexColor(canopy, new THREE.Color(0x5a9e3e));
+  return mergeGeometries([trunk, canopy]);
+}
+
+function createDeadTreeGeometry(): THREE.BufferGeometry {
+  const trunk = new THREE.CylinderGeometry(0.15, 0.22, 2.2, 6);
+  trunk.translate(0, 1.1, 0);
+  const stub1 = new THREE.CylinderGeometry(0.04, 0.06, 0.6, 4);
+  stub1.rotateZ(Math.PI / 4);
+  stub1.translate(0.2, 1.6, 0);
+  const stub2 = new THREE.CylinderGeometry(0.03, 0.05, 0.5, 4);
+  stub2.rotateZ(-Math.PI / 3);
+  stub2.translate(-0.15, 1.9, 0.1);
+  const stub3 = new THREE.CylinderGeometry(0.03, 0.04, 0.4, 4);
+  stub3.rotateX(Math.PI / 4);
+  stub3.translate(0.05, 1.4, -0.15);
+  const color = new THREE.Color(0x5c4a3a);
+  applyVertexColor(trunk, color);
+  applyVertexColor(stub1, color);
+  applyVertexColor(stub2, color);
+  applyVertexColor(stub3, color);
+  return mergeGeometries([trunk, stub1, stub2, stub3]);
 }
 
 function createRockGeometry(rng: () => number): THREE.BufferGeometry {
@@ -195,6 +240,9 @@ function getTerrainSlope(data: TerrainData, worldX: number, worldZ: number): num
 
 export class EnvironmentObjects {
   private treeInstances: THREE.InstancedMesh;
+  private oakInstances: THREE.InstancedMesh;
+  private birchInstances: THREE.InstancedMesh;
+  private deadTreeInstances: THREE.InstancedMesh;
   private rockInstances: THREE.InstancedMesh;
   private ironInstances: THREE.InstancedMesh;
   private goldInstances: THREE.InstancedMesh;
@@ -212,17 +260,17 @@ export class EnvironmentObjects {
     const halfW = terrainData.width / 2;
     const halfD = terrainData.depth / 2;
 
-    // ---- Trees ----
-    const treeGeometry = createTreeGeometry();
-    const treeMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.0 });
-    this.treeInstances = new THREE.InstancedMesh(treeGeometry, treeMaterial, TREE_COUNT);
+    // ---- Pine Trees (prefer higher elevation) ----
+    const pineGeometry = createPineGeometry();
+    const pineMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.0 });
+    this.treeInstances = new THREE.InstancedMesh(pineGeometry, pineMaterial, PINE_COUNT);
     this.treeInstances.castShadow = true;
     this.treeInstances.receiveShadow = true;
-    this.treeInstances.name = 'trees';
+    this.treeInstances.name = 'pines';
 
-    const treeMatrix = new THREE.Matrix4();
-    let treesPlaced = 0;
-    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && treesPlaced < TREE_COUNT; attempt++) {
+    const pineMatrix = new THREE.Matrix4();
+    let pinesPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && pinesPlaced < PINE_COUNT; attempt++) {
       const x = (rng() - 0.5) * terrainData.width * 0.9;
       const z = (rng() - 0.5) * terrainData.depth * 0.9;
       const distFromCenter = Math.sqrt(x * x + z * z);
@@ -232,22 +280,135 @@ export class EnvironmentObjects {
       if (slope > 0.3) continue;
       const height = getTerrainHeight(terrainData, x, z);
       const heightNorm = height / 8;
+      // Prefer higher elevation
+      if (heightNorm < 0.3) continue;
+      if (heightNorm > 0.85) continue;
       const clusterNoise = Math.sin(x * 0.15) * Math.cos(z * 0.12) * 0.5 + 0.5;
       if (rng() > clusterNoise * 0.8 + 0.1) continue;
-      if (heightNorm > 0.85) continue;
       const scale = 0.7 + rng() * 0.6;
       const rotY = rng() * Math.PI * 2;
-      treeMatrix.identity();
-      treeMatrix.makeRotationY(rotY);
-      treeMatrix.scale(new THREE.Vector3(scale, scale, scale));
-      treeMatrix.setPosition(x, height, z);
-      this.treeInstances.setMatrixAt(treesPlaced, treeMatrix);
+      pineMatrix.identity();
+      pineMatrix.makeRotationY(rotY);
+      pineMatrix.scale(new THREE.Vector3(scale, scale, scale));
+      pineMatrix.setPosition(x, height, z);
+      this.treeInstances.setMatrixAt(pinesPlaced, pineMatrix);
       this.treePositions.push({ x, y: height, z });
-      treesPlaced++;
+      pinesPlaced++;
     }
-    this.treeInstances.count = treesPlaced;
+    this.treeInstances.count = pinesPlaced;
     this.treeInstances.instanceMatrix.needsUpdate = true;
     scene.add(this.treeInstances);
+
+    // ---- Oak Trees (prefer low-mid elevation, flat terrain) ----
+    const oakGeometry = createOakGeometry();
+    const oakMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.0 });
+    this.oakInstances = new THREE.InstancedMesh(oakGeometry, oakMaterial, OAK_COUNT);
+    this.oakInstances.castShadow = true;
+    this.oakInstances.receiveShadow = true;
+    this.oakInstances.name = 'oaks';
+
+    const oakMatrix = new THREE.Matrix4();
+    let oaksPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && oaksPlaced < OAK_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const slope = getTerrainSlope(terrainData, x, z);
+      if (slope > 0.25) continue;
+      const height = getTerrainHeight(terrainData, x, z);
+      const heightNorm = height / 8;
+      // Prefer low-mid elevation
+      if (heightNorm > 0.6) continue;
+      const clusterNoise = Math.sin(x * 0.1) * Math.cos(z * 0.08) * 0.5 + 0.5;
+      if (rng() > clusterNoise * 0.7 + 0.15) continue;
+      const scale = 0.8 + rng() * 0.5;
+      const rotY = rng() * Math.PI * 2;
+      oakMatrix.identity();
+      oakMatrix.makeRotationY(rotY);
+      oakMatrix.scale(new THREE.Vector3(scale, scale, scale));
+      oakMatrix.setPosition(x, height, z);
+      this.oakInstances.setMatrixAt(oaksPlaced, oakMatrix);
+      this.treePositions.push({ x, y: height, z });
+      oaksPlaced++;
+    }
+    this.oakInstances.count = oaksPlaced;
+    this.oakInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.oakInstances);
+
+    // ---- Birch Trees (prefer flat grasslands) ----
+    const birchGeom = createBirchGeometry();
+    const birchMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.0 });
+    this.birchInstances = new THREE.InstancedMesh(birchGeom, birchMaterial, BIRCH_COUNT);
+    this.birchInstances.castShadow = true;
+    this.birchInstances.receiveShadow = true;
+    this.birchInstances.name = 'birches';
+
+    const birchMatrix = new THREE.Matrix4();
+    let birchesPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && birchesPlaced < BIRCH_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const slope = getTerrainSlope(terrainData, x, z);
+      if (slope > 0.15) continue;
+      const height = getTerrainHeight(terrainData, x, z);
+      const heightNorm = height / 8;
+      // Prefer flat grasslands
+      if (heightNorm > 0.4) continue;
+      const clusterNoise = Math.cos(x * 0.12) * Math.sin(z * 0.1) * 0.5 + 0.5;
+      if (rng() > clusterNoise * 0.7 + 0.15) continue;
+      const scale = 0.7 + rng() * 0.5;
+      const rotY = rng() * Math.PI * 2;
+      birchMatrix.identity();
+      birchMatrix.makeRotationY(rotY);
+      birchMatrix.scale(new THREE.Vector3(scale, scale, scale));
+      birchMatrix.setPosition(x, height, z);
+      this.birchInstances.setMatrixAt(birchesPlaced, birchMatrix);
+      this.treePositions.push({ x, y: height, z });
+      birchesPlaced++;
+    }
+    this.birchInstances.count = birchesPlaced;
+    this.birchInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.birchInstances);
+
+    // ---- Dead Trees (anywhere, sparse) ----
+    const deadGeometry = createDeadTreeGeometry();
+    const deadMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.0 });
+    this.deadTreeInstances = new THREE.InstancedMesh(deadGeometry, deadMaterial, DEAD_TREE_COUNT);
+    this.deadTreeInstances.castShadow = true;
+    this.deadTreeInstances.receiveShadow = true;
+    this.deadTreeInstances.name = 'deadTrees';
+
+    const deadMatrix = new THREE.Matrix4();
+    let deadPlaced = 0;
+    for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS && deadPlaced < DEAD_TREE_COUNT; attempt++) {
+      const x = (rng() - 0.5) * terrainData.width * 0.9;
+      const z = (rng() - 0.5) * terrainData.depth * 0.9;
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      if (distFromCenter < CENTER_EXCLUSION_RADIUS) continue;
+      if (Math.abs(x) > halfW * 0.95 || Math.abs(z) > halfD * 0.95) continue;
+      const slope = getTerrainSlope(terrainData, x, z);
+      if (slope > 0.4) continue;
+      const height = getTerrainHeight(terrainData, x, z);
+      // Sparse — skip 80% of candidates
+      if (rng() > 0.2) continue;
+      const scale = 0.6 + rng() * 0.6;
+      const rotY = rng() * Math.PI * 2;
+      deadMatrix.identity();
+      deadMatrix.makeRotationY(rotY);
+      deadMatrix.scale(new THREE.Vector3(scale, scale, scale));
+      deadMatrix.setPosition(x, height, z);
+      this.deadTreeInstances.setMatrixAt(deadPlaced, deadMatrix);
+      this.treePositions.push({ x, y: height, z });
+      deadPlaced++;
+    }
+    this.deadTreeInstances.count = deadPlaced;
+    this.deadTreeInstances.instanceMatrix.needsUpdate = true;
+    scene.add(this.deadTreeInstances);
 
     // ---- Rocks ----
     const rockGeometry = createRockGeometry(rng);
@@ -461,6 +622,15 @@ export class EnvironmentObjects {
     this.treeInstances.geometry.dispose();
     (this.treeInstances.material as THREE.Material).dispose();
     this.treeInstances.dispose();
+    this.oakInstances.geometry.dispose();
+    (this.oakInstances.material as THREE.Material).dispose();
+    this.oakInstances.dispose();
+    this.birchInstances.geometry.dispose();
+    (this.birchInstances.material as THREE.Material).dispose();
+    this.birchInstances.dispose();
+    this.deadTreeInstances.geometry.dispose();
+    (this.deadTreeInstances.material as THREE.Material).dispose();
+    this.deadTreeInstances.dispose();
     this.rockInstances.geometry.dispose();
     (this.rockInstances.material as THREE.Material).dispose();
     this.rockInstances.dispose();
