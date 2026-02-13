@@ -191,6 +191,148 @@ export class MeshFactory {
     return rock;
   }
 
+  createSheepMesh(): THREE.Group {
+    const group = new THREE.Group();
+    const wool = this.mat('wool');
+    const skin = this.mat('skin');
+    const dark = this.mat('dark');
+
+    // Fluffy body (multiple overlapping spheres for wool effect)
+    const bodySpheres = [
+      { pos: [0, 0.6, 0], scale: 0.35 },
+      { pos: [0.15, 0.55, 0], scale: 0.25 },
+      { pos: [-0.15, 0.55, 0], scale: 0.25 },
+      { pos: [0, 0.7, 0], scale: 0.28 },
+      { pos: [0, 0.5, 0], scale: 0.28 },
+      { pos: [0.12, 0.65, 0.1], scale: 0.2 },
+      { pos: [-0.12, 0.65, 0.1], scale: 0.2 },
+    ];
+    for (const s of bodySpheres) {
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(s.scale, 8, 8), wool);
+      sphere.position.set(s.pos[0], s.pos[1], s.pos[2]);
+      sphere.castShadow = true;
+      group.add(sphere);
+    }
+
+    // Legs
+    const legPositions: [number, number, number][] = [
+      [0.15, 0.25, 0.12],
+      [-0.15, 0.25, 0.12],
+      [0.15, 0.25, -0.12],
+      [-0.15, 0.25, -0.12],
+    ];
+    for (const pos of legPositions) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 6), skin);
+      leg.position.set(pos[0], pos[1], pos[2]);
+      leg.castShadow = true;
+      group.add(leg);
+    }
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), skin);
+    head.position.set(0, 0.75, 0.35);
+    head.castShadow = true;
+    group.add(head);
+
+    // Ears
+    for (const side of [-1, 1]) {
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), skin);
+      ear.position.set(side * 0.12, 0.85, 0.35);
+      ear.scale.set(1, 1.5, 0.5);
+      group.add(ear);
+    }
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.025, 6, 6);
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(eyeGeo, dark);
+      eye.position.set(side * 0.08, 0.78, 0.48);
+      group.add(eye);
+    }
+
+    // Nose (black)
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), dark);
+    nose.position.set(0, 0.7, 0.52);
+    group.add(nose);
+
+    return group;
+  }
+
+  createChickenMesh(): THREE.Group {
+    const group = new THREE.Group();
+    const chicken = this.mat('chicken');
+    const comb = this.mat('comb');
+    const beak = this.mat('beak');
+    const dark = this.mat('dark');
+
+    // Body (oval shape)
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), chicken);
+    body.scale.set(1, 0.85, 1.2);
+    body.position.set(0, 0.25, 0);
+    body.castShadow = true;
+    group.add(body);
+
+    // Back feather tuft
+    const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.15, 6), chicken);
+    tuft.position.set(0, 0.35, -0.15);
+    tuft.rotation.x = -0.3;
+    group.add(tuft);
+
+    // Comb (red on top of head)
+    const combBase = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), comb);
+    combBase.position.set(0, 0.42, 0.05);
+    group.add(combBase);
+    const combTop = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), comb);
+    combTop.position.set(0, 0.48, 0.03);
+    group.add(combTop);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), chicken);
+    head.position.set(0, 0.32, 0.18);
+    head.castShadow = true;
+    group.add(head);
+
+    // Beak
+    const beakMesh = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.08, 4), beak);
+    beakMesh.position.set(0, 0.3, 0.28);
+    beakMesh.rotation.x = Math.PI / 2;
+    group.add(beakMesh);
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.02, 6, 6);
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(eyeGeo, dark);
+      eye.position.set(side * 0.05, 0.34, 0.25);
+      group.add(eye);
+    }
+
+    // Wings
+    for (const side of [-1, 1]) {
+      const wing = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), chicken);
+      wing.scale.set(0.3, 1, 1.5);
+      wing.position.set(side * 0.15, 0.25, 0);
+      wing.castShadow = true;
+      group.add(wing);
+    }
+
+    // Legs
+    for (const side of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.15, 4), beak);
+      leg.position.set(side * 0.06, 0.08, 0.05);
+      group.add(leg);
+    }
+
+    // Tail feathers
+    for (let i = 0; i < 3; i++) {
+      const feather = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.12, 4), chicken);
+      feather.position.set((i - 1) * 0.04, 0.28, -0.22);
+      feather.rotation.x = -0.5;
+      group.add(feather);
+    }
+
+    return group;
+  }
+
   dispose(): void {
     this.meshCache.forEach((geo) => geo.dispose());
     this.meshCache.clear();
@@ -441,6 +583,10 @@ export class MeshFactory {
     m.set('leaf', new THREE.MeshStandardMaterial({ color: 0x2D5A27, roughness: 0.85, metalness: 0.0 }));
     m.set('water', new THREE.MeshStandardMaterial({ color: 0x4A7A8C, roughness: 0.3, metalness: 0.1 }));
     m.set('dark', new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.0 }));
+    m.set('wool', new THREE.MeshStandardMaterial({ color: 0xF5F5F0, roughness: 0.95, metalness: 0.0 }));
+    m.set('chicken', new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8, metalness: 0.0 }));
+    m.set('comb', new THREE.MeshStandardMaterial({ color: 0xCC2222, roughness: 0.6, metalness: 0.0 }));
+    m.set('beak', new THREE.MeshStandardMaterial({ color: 0xFF8C00, roughness: 0.5, metalness: 0.1 }));
     return m;
   }
 }

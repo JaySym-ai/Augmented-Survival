@@ -70,6 +70,9 @@ export { DEPLETED_RESOURCE, createDepletedResource } from './ecs/components/Depl
 export type { EquipmentComponent } from './ecs/components/EquipmentComponent';
 export { EQUIPMENT, createEquipment } from './ecs/components/EquipmentComponent';
 
+export type { AnimalComponent, AnimalType, AnimalState, FlockingData } from './ecs/components/AnimalComponent';
+export { ANIMAL, createAnimal } from './ecs/components/AnimalComponent';
+
 // Events
 export { EventBus } from './events/EventBus';
 export type { EventHandler, EventMap } from './events/EventBus';
@@ -109,6 +112,7 @@ export { ConstructionSystem } from './systems/ConstructionSystem';
 export { ResourceStoreSystem } from './systems/ResourceStoreSystem';
 export { BuildingPlacementSystem } from './systems/BuildingPlacementSystem';
 export { ResourceDepletionSystem } from './systems/ResourceDepletionSystem';
+export { AnimalAISystem } from './systems/AnimalAISystem';
 
 // Types
 export { ResourceType } from './types/resources';

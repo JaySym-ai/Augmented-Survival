@@ -23,6 +23,9 @@ import {
   GATHERING,
   DEPLETED_RESOURCE,
   EQUIPMENT,
+  ANIMAL,
+  createAnimal,
+  type AnimalType,
   type GatheringComponent,
   createTransform,
   createVelocity,
@@ -52,6 +55,7 @@ import {
   TerrainGenerator,
   BUILDING_DEFS,
   DEFAULT_GAME_CONFIG,
+  AnimalAISystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
 import { TerrainMesh } from '../world/TerrainMesh.js';
@@ -123,6 +127,11 @@ export class GameWorld {
     this.resourceStore = new ResourceStoreSystem(this.eventBus);
     this.buildingPlacement = new BuildingPlacementSystem(this.eventBus);
 
+    const animalAI = new AnimalAISystem(this.timeSystem);
+    animalAI.setTerrainData(terrainData);
+    animalAI.setMapSize(128);
+    animalAI.setCenterPosition({ x: 0, y: 0, z: 0 });
+
     this.world.addSystem(this.timeSystem);
     this.world.addSystem(jobAssignment);
     this.world.addSystem(pathFollow);
@@ -134,6 +143,7 @@ export class GameWorld {
     this.world.addSystem(construction);
     this.world.addSystem(this.resourceStore);
     this.world.addSystem(this.buildingPlacement);
+    this.world.addSystem(animalAI);
 
     // 4. Set starting resources
     const config = DEFAULT_GAME_CONFIG;
@@ -154,7 +164,10 @@ export class GameWorld {
       this.spawnCitizen();
     }
 
-    // 8. Listen to events for visual updates
+    // 8. Spawn initial animals near town center
+    this.spawnInitialAnimals();
+
+    // 9. Listen to events for visual updates
     this.setupEventListeners();
   }
 
@@ -266,6 +279,46 @@ export class GameWorld {
     // Create walk animator
     const animator = new CitizenAnimator(mesh);
     this.citizenAnimators.set(entity, animator);
+
+    return entity;
+  }
+
+  private spawnInitialAnimals(): void {
+    const sheepCount = 2 + Math.floor(Math.random() * 2);
+    const chickenCount = 3 + Math.floor(Math.random() * 2);
+
+    for (let i = 0; i < sheepCount; i++) {
+      this.spawnAnimal('sheep');
+    }
+
+    for (let i = 0; i < chickenCount; i++) {
+      this.spawnAnimal('chicken');
+    }
+  }
+
+  private spawnAnimal(type: AnimalType): EntityId {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 5 + Math.random() * 8;
+    const pos = {
+      x: Math.cos(angle) * radius,
+      y: 0,
+      z: Math.sin(angle) * radius,
+    };
+    pos.y = this.terrainMesh.getHeightAt(pos.x, pos.z);
+
+    const entity = this.world.createEntity();
+    this.world.addComponent(entity, TRANSFORM, createTransform(pos));
+    this.world.addComponent(entity, VELOCITY, createVelocity());
+    this.world.addComponent(entity, ANIMAL, createAnimal(type));
+    this.world.addComponent(entity, SELECTABLE, createSelectable());
+
+    const mesh = type === 'sheep'
+      ? this.meshFactory.createSheepMesh()
+      : this.meshFactory.createChickenMesh();
+    mesh.position.set(pos.x, pos.y, pos.z);
+    mesh.castShadow = true;
+    this.scene.add(mesh);
+    this.entityMeshes.set(entity, mesh);
 
     return entity;
   }

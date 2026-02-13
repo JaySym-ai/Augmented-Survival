@@ -49,3 +49,6 @@ export { DEPLETED_RESOURCE, createDepletedResource } from './DepletedResourceCom
 export type { EquipmentComponent } from './EquipmentComponent';
 export { EQUIPMENT, createEquipment } from './EquipmentComponent';
 
+export type { AnimalComponent, AnimalType, AnimalState, FlockingData } from './AnimalComponent';
+export { ANIMAL, createAnimal } from './AnimalComponent';
+
