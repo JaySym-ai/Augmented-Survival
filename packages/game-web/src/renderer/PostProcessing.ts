@@ -103,11 +103,12 @@ export class PostProcessingPipeline {
     // 2. SAO (Screen-space Ambient Occlusion)
     try {
       this.saoPass = new SAOPass(scene, camera);
-      this.saoPass.params.saoBias = 0.5;
-      this.saoPass.params.saoIntensity = 0.015;
-      this.saoPass.params.saoScale = 5;
-      this.saoPass.params.saoKernelRadius = 50;
-      this.saoPass.params.saoBlurRadius = 4;
+      // Keep AO subtle to avoid dark edge halos on thin silhouettes (trees/fences).
+      this.saoPass.params.saoBias = 0.2;
+      this.saoPass.params.saoIntensity = 0.006;
+      this.saoPass.params.saoScale = 2;
+      this.saoPass.params.saoKernelRadius = 8;
+      this.saoPass.params.saoBlurRadius = 2;
       this.composer.addPass(this.saoPass);
     } catch {
       // SAOPass may not be available in all builds
@@ -171,4 +172,3 @@ export class PostProcessingPipeline {
     this.composer.dispose();
   }
 }
-

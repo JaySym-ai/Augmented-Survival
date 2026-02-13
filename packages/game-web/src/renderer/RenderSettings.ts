@@ -37,7 +37,7 @@ export const PRESET_LOW: RenderSettings = {
 
 export const PRESET_MEDIUM: RenderSettings = {
   shadowQuality: 'medium',
-  ssaoEnabled: true,
+  ssaoEnabled: false,
   bloomEnabled: true,
   fxaaEnabled: true,
   fogEnabled: true,
@@ -48,7 +48,7 @@ export const PRESET_MEDIUM: RenderSettings = {
 
 export const PRESET_HIGH: RenderSettings = {
   shadowQuality: 'high',
-  ssaoEnabled: true,
+  ssaoEnabled: false,
   bloomEnabled: true,
   fxaaEnabled: true,
   fogEnabled: true,
@@ -59,7 +59,7 @@ export const PRESET_HIGH: RenderSettings = {
 
 export const PRESET_ULTRA: RenderSettings = {
   shadowQuality: 'ultra',
-  ssaoEnabled: true,
+  ssaoEnabled: false,
   bloomEnabled: true,
   fxaaEnabled: true,
   fogEnabled: true,
@@ -113,4 +113,3 @@ export const RENDER_PRESETS = {
 } as const;
 
 export type RenderPresetName = keyof typeof RENDER_PRESETS;
-
