@@ -47,6 +47,10 @@ export class CitizenAnimator {
       // blade face perpendicular to the horizontal sweep direction.
       if (gatherType === 'chop') {
         toolMesh.rotation.set(-Math.PI / 2, Math.PI / 2, 0);
+      } else {
+        // For mining, flip the pickaxe 180° so the handle is near the hand
+        // and the pick head points away.
+        toolMesh.rotation.set(Math.PI, 0, 0);
       }
       this.rightArm.add(toolMesh);
     }
