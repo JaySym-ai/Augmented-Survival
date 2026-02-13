@@ -87,6 +87,7 @@ export type {
   ConstructionProgressEvent,
   ConstructionCompleteEvent,
   BuildingWallColorChangedEvent,
+  BuildingDestroyRequestedEvent,
   CitizenAssignedJobEvent,
   CitizenStateChangedEvent,
   EntitySelectedEvent,
