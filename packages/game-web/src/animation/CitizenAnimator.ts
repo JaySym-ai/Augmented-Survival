@@ -51,7 +51,7 @@ export class CitizenAnimator {
         // For mining, flip pickaxe 180° and shift down to compensate
         // for the handle length so the grip stays near the hand.
         toolMesh.position.set(0, -0.72, 0);
-        toolMesh.rotation.set(Math.PI, 0, 0);
+        toolMesh.rotation.set(Math.PI, 0, Math.PI / 2);
       }
       this.rightArm.add(toolMesh);
     }
