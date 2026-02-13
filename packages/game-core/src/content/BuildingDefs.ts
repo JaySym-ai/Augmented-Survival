@@ -38,7 +38,7 @@ export const BUILDING_DEFS: Record<BuildingType, ExtendedBuildingDef> = {
     size: { width: 2, depth: 2 },
     meshId: 'building_house',
     storageCapacity: 0,
-    providesPopulation: 4,
+    providesPopulation: 1,
     jobType: null,
   },
   [BuildingType.StorageBarn]: {
