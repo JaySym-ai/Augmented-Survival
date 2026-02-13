@@ -214,18 +214,23 @@ export class MeshFactory {
       group.add(sphere);
     }
 
-    // Legs
+    // Legs (pivot at hip so they can swing)
+    const legNames = ['legFL', 'legFR', 'legBL', 'legBR'];
     const legPositions: [number, number, number][] = [
-      [0.15, 0.25, 0.12],
-      [-0.15, 0.25, 0.12],
-      [0.15, 0.25, -0.12],
-      [-0.15, 0.25, -0.12],
+      [0.15, 0.4, 0.12],   // FL
+      [-0.15, 0.4, 0.12],  // FR
+      [0.15, 0.4, -0.12],  // BL
+      [-0.15, 0.4, -0.12], // BR
     ];
-    for (const pos of legPositions) {
+    for (let i = 0; i < legPositions.length; i++) {
+      const legPivot = new THREE.Group();
+      legPivot.name = legNames[i];
+      legPivot.position.set(legPositions[i][0], legPositions[i][1], legPositions[i][2]);
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 6), skin);
-      leg.position.set(pos[0], pos[1], pos[2]);
+      leg.position.set(0, -0.15, 0);
       leg.castShadow = true;
-      group.add(leg);
+      legPivot.add(leg);
+      group.add(legPivot);
     }
 
     // Head
@@ -315,11 +320,16 @@ export class MeshFactory {
       group.add(wing);
     }
 
-    // Legs
+    // Legs (pivot at hip so they can swing)
     for (const side of [-1, 1]) {
+      const legPivot = new THREE.Group();
+      legPivot.name = side === -1 ? 'legL' : 'legR';
+      legPivot.position.set(side * 0.06, 0.15, 0.05);
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.15, 4), beak);
-      leg.position.set(side * 0.06, 0.08, 0.05);
-      group.add(leg);
+      leg.position.set(0, -0.075, 0);
+      leg.castShadow = true;
+      legPivot.add(leg);
+      group.add(legPivot);
     }
 
     // Tail feathers
