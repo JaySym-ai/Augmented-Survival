@@ -16,6 +16,7 @@ import { injectUIStyles } from './UIStyles.js';
 import { ResourceBar } from './ResourceBar.js';
 import { BuildMenu } from './BuildMenu.js';
 import { SelectionPanel } from './SelectionPanel.js';
+import { VillagerSidebar } from './VillagerSidebar.js';
 import { TimeControls } from './TimeControls.js';
 import { SettingsPanel } from './SettingsPanel.js';
 
@@ -35,6 +36,7 @@ export class GameUI {
   private root: HTMLDivElement;
   private resourceBar: ResourceBar;
   private buildMenu: BuildMenu;
+  private villagerSidebar: VillagerSidebar;
   private selectionPanel: SelectionPanel;
   private timeControls: TimeControls;
   private settingsPanel: SettingsPanel;
@@ -66,6 +68,11 @@ export class GameUI {
       },
     );
 
+    this.villagerSidebar = new VillagerSidebar(
+      this.root,
+      config.world,
+    );
+
     this.selectionPanel = new SelectionPanel(
       this.root,
       config.world,
@@ -89,6 +96,7 @@ export class GameUI {
   update(): void {
     this.resourceBar.update();
     this.buildMenu.update();
+    this.villagerSidebar.update();
     this.selectionPanel.update();
     this.timeControls.update();
     this.settingsPanel.update();
@@ -118,10 +126,10 @@ export class GameUI {
   dispose(): void {
     this.resourceBar.dispose();
     this.buildMenu.dispose();
+    this.villagerSidebar.dispose();
     this.selectionPanel.dispose();
     this.timeControls.dispose();
     this.settingsPanel.dispose();
     this.root.remove();
   }
 }
-

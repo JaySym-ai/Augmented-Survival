@@ -129,6 +129,77 @@ const CSS = /* css */ `
 .ui-build-card .build-name { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.2; }
 .ui-build-card .build-cost { font-size: 10px; color: var(--ui-text-muted); text-align: center; margin-top: 2px; }
 
+/* ===== Villager Sidebar ===== */
+.ui-villager-sidebar {
+  position: absolute;
+  top: 56px; left: 12px;
+  width: 260px;
+  max-height: 48vh;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 8px;
+}
+.ui-villager-sidebar.collapsed {
+  width: 48px;
+}
+.ui-villager-sidebar .villager-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ui-villager-sidebar .villager-sidebar-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.ui-villager-sidebar .villager-sidebar-toggle {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--ui-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+}
+.ui-villager-sidebar .villager-sidebar-toggle:hover {
+  background: var(--ui-bg-hover);
+}
+.ui-villager-sidebar .villager-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.ui-villager-sidebar .villager-row {
+  border: 1px solid rgba(139, 115, 85, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 8px;
+}
+.ui-villager-sidebar .villager-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.ui-villager-sidebar .villager-activity {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+}
+.ui-villager-sidebar .villager-sidebar-empty {
+  font-size: 12px;
+  color: var(--ui-text-muted);
+  padding: 4px 2px;
+}
+.ui-villager-sidebar.collapsed .villager-sidebar-title,
+.ui-villager-sidebar.collapsed .villager-sidebar-list {
+  display: none;
+}
+
 /* ===== Selection Panel ===== */
 .ui-selection-panel {
   position: absolute;
@@ -322,6 +393,8 @@ const CSS = /* css */ `
   .ui-build-card { width: 64px; height: 80px; }
   .ui-build-card .build-icon { font-size: 18px; }
   .ui-build-card .build-name { font-size: 10px; }
+  .ui-villager-sidebar { top: 52px; width: 220px; max-height: 42vh; }
+  .ui-villager-sidebar.collapsed { width: 46px; }
   .ui-selection-panel { min-width: 180px; max-width: 220px; }
   .ui-settings-modal { min-width: 280px; padding: 16px; }
 }
@@ -338,4 +411,3 @@ export function injectUIStyles(): void {
   document.head.appendChild(style);
   injected = true;
 }
-
