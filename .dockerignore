@@ -1,0 +1,18 @@
+node_modules
+.git
+dist
+out
+
+# Platform-specific
+android
+ios
+.capacitor
+
+# IDE / OS
+.DS_Store
+.vscode
+.idea
+
+# Env / logs
+.env*
+*.log
