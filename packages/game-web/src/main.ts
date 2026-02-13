@@ -143,8 +143,8 @@ class GameApp {
     // Update game simulation and sync meshes
     this.gameWorld.update(dt);
 
-    // Update selection ring position
-    this.selectionManager.update();
+    // Update selection ring position and command markers
+    this.selectionManager.update(dt);
 
     // Update UI overlay (resource bar, build menu affordability, etc.)
     this.gameUI.update();
