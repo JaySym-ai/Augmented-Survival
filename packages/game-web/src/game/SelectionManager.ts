@@ -1,15 +1,62 @@
 /**
  * SelectionManager — Click-to-select entities with a yellow ring highlight.
+ * Also handles right-click commands: move-to-ground and gather-resource.
  */
 import * as THREE from 'three';
-import type { EntityId, EventBus, GameEventMap, TransformComponent } from '@augmented-survival/game-core';
-import { TRANSFORM, SELECTABLE } from '@augmented-survival/game-core';
+import type {
+  EntityId,
+  EventBus,
+  GameEventMap,
+  TransformComponent,
+  CitizenComponent,
+  ResourceNodeComponent,
+  PathFollowComponent,
+  CarryComponent,
+} from '@augmented-survival/game-core';
+import {
+  TRANSFORM,
+  SELECTABLE,
+  CITIZEN,
+  RESOURCE_NODE,
+  JOB_ASSIGNMENT,
+  createJobAssignment,
+  JobType,
+  PATH_FOLLOW,
+  GATHERING,
+  CARRY,
+  CONSTRUCTION_WORK,
+  CitizenState,
+  ResourceType,
+} from '@augmented-survival/game-core';
 import type { GameWorld } from './GameWorld.js';
 import type { RTSCameraController } from '../camera/RTSCameraController.js';
+
+/** Movement speed for right-click move commands (matches CITIZEN_SPEED in JobAssignmentSystem) */
+const CITIZEN_SPEED = 3;
+
+/** Max pixel distance between mousedown and mouseup to count as a click (not a drag) */
+const CLICK_THRESHOLD = 5;
+
+/** Radius for detecting resource nodes on right-click */
+const RESOURCE_PICK_RADIUS = 2.5;
+
+/** Map ResourceType → JobType for right-click resource assignment */
+const RESOURCE_JOB_MAP: Partial<Record<ResourceType, JobType>> = {
+  [ResourceType.Wood]: JobType.Woodcutter,
+  [ResourceType.Stone]: JobType.Quarrier,
+  [ResourceType.Iron]: JobType.Miner,
+  [ResourceType.Gold]: JobType.Miner,
+  [ResourceType.Food]: JobType.Farmer,
+  [ResourceType.Hemp]: JobType.Forager,
+  [ResourceType.Branch]: JobType.Forager,
+};
 
 export class SelectionManager {
   private selectedEntity: EntityId | null = null;
   private selectionRing: THREE.Mesh;
+
+  /** Tracks right-click mousedown position to distinguish click from drag */
+  private rightClickStart: { x: number; y: number } | null = null;
 
   constructor(
     private gameWorld: GameWorld,
@@ -26,6 +73,9 @@ export class SelectionManager {
     gameWorld.scene.add(this.selectionRing);
 
     container.addEventListener('click', this.onClick);
+    container.addEventListener('contextmenu', this.onContextMenu);
+    container.addEventListener('mousedown', this.onRightMouseDown);
+    container.addEventListener('mouseup', this.onRightMouseUp);
   }
 
   private onClick = (event: MouseEvent): void => {
@@ -46,6 +96,153 @@ export class SelectionManager {
       this.select(null);
     }
   };
+
+  /** Prevent browser context menu on right-click */
+  private onContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+  };
+
+  /** Record mouse position on right-click mousedown */
+  private onRightMouseDown = (event: MouseEvent): void => {
+    if (event.button !== 2) return;
+    this.rightClickStart = { x: event.clientX, y: event.clientY };
+  };
+
+  /** On right-click mouseup, issue a command if it was a click (not a drag) */
+  private onRightMouseUp = (event: MouseEvent): void => {
+    if (event.button !== 2 || !this.rightClickStart) return;
+
+    // Check if mouse moved beyond threshold (drag = camera rotation, not a command)
+    const dx = event.clientX - this.rightClickStart.x;
+    const dy = event.clientY - this.rightClickStart.y;
+    this.rightClickStart = null;
+    if (Math.sqrt(dx * dx + dy * dy) >= CLICK_THRESHOLD) return;
+
+    // Must have a selected citizen
+    if (this.selectedEntity == null) return;
+    const world = this.gameWorld.world;
+    const citizen = world.getComponent<CitizenComponent>(this.selectedEntity, CITIZEN);
+    if (!citizen) return;
+
+    // Raycast to terrain
+    const rect = this.container.getBoundingClientRect();
+    const nx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(nx, ny), this.camera.camera);
+    const hits = raycaster.intersectObject(this.gameWorld.terrainMesh.mesh);
+    if (hits.length === 0) return;
+
+    const point = hits[0].point;
+    const targetPos = { x: point.x, y: point.y, z: point.z };
+
+    // Check for a resource node near the click
+    const nearbyEntity = this.gameWorld.getEntityAtPosition(targetPos, RESOURCE_PICK_RADIUS);
+    if (nearbyEntity != null) {
+      const rn = world.getComponent<ResourceNodeComponent>(nearbyEntity, RESOURCE_NODE);
+      if (rn && rn.amount > 0) {
+        const jobType = RESOURCE_JOB_MAP[rn.type];
+        if (jobType) {
+          this.assignJobAndPath(this.selectedEntity, citizen, jobType, nearbyEntity);
+          return;
+        }
+      }
+    }
+
+    // No resource node — issue a move command to the ground position
+    this.moveToPosition(this.selectedEntity, citizen, targetPos);
+  };
+
+  /**
+   * Reassign a citizen's job and path them toward a resource node.
+   * Mirrors SelectionPanel.assignJob cleanup logic.
+   */
+  private assignJobAndPath(
+    entityId: EntityId,
+    citizen: CitizenComponent,
+    jobType: JobType,
+    targetEntity: EntityId,
+  ): void {
+    const world = this.gameWorld.world;
+
+    // 1. Update JOB_ASSIGNMENT component
+    world.addComponent(entityId, JOB_ASSIGNMENT, createJobAssignment(jobType));
+
+    // 2. Update citizen component
+    citizen.job = jobType;
+    citizen.state = CitizenState.Idle;
+
+    // 3. Remove PATH_FOLLOW if present
+    if (world.hasComponent(entityId, PATH_FOLLOW)) {
+      world.removeComponent(entityId, PATH_FOLLOW);
+    }
+
+    // 4. Remove GATHERING if present
+    if (world.hasComponent(entityId, GATHERING)) {
+      world.removeComponent(entityId, GATHERING);
+    }
+
+    // 5. Handle CARRY: if carrying resources, set state to Carrying; otherwise remove
+    const carry = world.getComponent<CarryComponent>(entityId, CARRY);
+    if (carry && carry.resourceType != null && carry.amount > 0) {
+      citizen.state = CitizenState.Carrying;
+    } else if (world.hasComponent(entityId, CARRY)) {
+      world.removeComponent(entityId, CARRY);
+    }
+
+    // 6. Remove CONSTRUCTION_WORK if present
+    if (world.hasComponent(entityId, CONSTRUCTION_WORK)) {
+      world.removeComponent(entityId, CONSTRUCTION_WORK);
+    }
+
+    // 7. Create path to the resource node (unless carrying — system will route to storage)
+    if (citizen.state !== CitizenState.Carrying) {
+      const transform = world.getComponent<TransformComponent>(entityId, TRANSFORM);
+      const targetTransform = world.getComponent<TransformComponent>(targetEntity, TRANSFORM);
+      if (transform && targetTransform) {
+        world.addComponent<PathFollowComponent>(entityId, PATH_FOLLOW, {
+          path: [{ ...transform.position }, { ...targetTransform.position }],
+          currentIndex: 0,
+          speed: CITIZEN_SPEED,
+        });
+      }
+    }
+  }
+
+  /**
+   * Issue a move command: clear work components and path to the target position.
+   */
+  private moveToPosition(
+    entityId: EntityId,
+    citizen: CitizenComponent,
+    targetPos: { x: number; y: number; z: number },
+  ): void {
+    const world = this.gameWorld.world;
+
+    // Remove existing work/path components
+    if (world.hasComponent(entityId, PATH_FOLLOW)) {
+      world.removeComponent(entityId, PATH_FOLLOW);
+    }
+    if (world.hasComponent(entityId, GATHERING)) {
+      world.removeComponent(entityId, GATHERING);
+    }
+    if (world.hasComponent(entityId, CONSTRUCTION_WORK)) {
+      world.removeComponent(entityId, CONSTRUCTION_WORK);
+    }
+
+    // Set citizen to Idle — PathFollowSystem will set it to Walking
+    citizen.state = CitizenState.Idle;
+
+    // Create path from current position to target
+    const transform = world.getComponent<TransformComponent>(entityId, TRANSFORM);
+    if (!transform) return;
+
+    world.addComponent<PathFollowComponent>(entityId, PATH_FOLLOW, {
+      path: [{ ...transform.position }, { ...targetPos }],
+      currentIndex: 0,
+      speed: CITIZEN_SPEED,
+    });
+  }
 
   select(entityId: EntityId | null): void {
     // Deselect previous
@@ -90,6 +287,9 @@ export class SelectionManager {
 
   dispose(): void {
     this.container.removeEventListener('click', this.onClick);
+    this.container.removeEventListener('contextmenu', this.onContextMenu);
+    this.container.removeEventListener('mousedown', this.onRightMouseDown);
+    this.container.removeEventListener('mouseup', this.onRightMouseUp);
     this.selectionRing.geometry.dispose();
     (this.selectionRing.material as THREE.MeshBasicMaterial).dispose();
   }
