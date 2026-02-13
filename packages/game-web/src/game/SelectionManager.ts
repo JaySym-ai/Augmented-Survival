@@ -163,12 +163,12 @@ export class SelectionManager {
 
   /** Spawn an animated command feedback marker (torus ring) at the given position. */
   private spawnCommandMarker(position: { x: number; y: number; z: number }, color: number): void {
-    const geo = new THREE.TorusGeometry(0.6, 0.04, 8, 32);
+    const geo = new THREE.TorusGeometry(0.9, 0.06, 8, 32);
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, depthWrite: false });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set(position.x, position.y + 0.1, position.z);
-    mesh.scale.setScalar(0.5); // starts small
+    mesh.scale.setScalar(0.6); // starts small
     this.gameWorld.scene.add(mesh);
     this.commandMarkers.push({ mesh, elapsed: 0, duration: 0.6 });
   }
@@ -325,8 +325,8 @@ export class SelectionManager {
         (marker.mesh.material as THREE.MeshBasicMaterial).dispose();
         this.commandMarkers.splice(i, 1);
       } else {
-        // Scale: 0.5 → 1.2
-        const scale = 0.5 + 0.7 * t;
+        // Scale: 0.6 → 1.4
+        const scale = 0.6 + 0.8 * t;
         marker.mesh.scale.setScalar(scale);
         // Fade: 0.7 → 0
         (marker.mesh.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - t);
