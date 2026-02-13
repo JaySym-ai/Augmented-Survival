@@ -12,6 +12,8 @@ import {
   type VelocityComponent,
   type Vector3,
   type BuildingComponent,
+  type CitizenComponent,
+  type ConstructionWorkComponent,
   TRANSFORM,
   VELOCITY,
   CITIZEN,
@@ -22,9 +24,11 @@ import {
   CARRY,
   JOB_ASSIGNMENT,
   GATHERING,
+  CONSTRUCTION_WORK,
   DEPLETED_RESOURCE,
   EQUIPMENT,
   ANIMAL,
+  CitizenState,
   createAnimal,
   type AnimalType,
   type GatheringComponent,
@@ -468,6 +472,65 @@ export class GameWorld {
           }
         });
       }
+    });
+
+    // When a building destroy is requested, refund resources, unassign workers, remove mesh, destroy entity
+    this.eventBus.on('BuildingDestroyRequested', (event) => {
+      const entityId = event.buildingId;
+      const building = this.world.getComponent<BuildingComponent>(entityId, BUILDING);
+      if (!building) return;
+
+      // 1. Calculate and credit 50% refund (floored)
+      const def = BUILDING_DEFS[building.type];
+      for (const [rType, amount] of Object.entries(def.cost)) {
+        if (amount == null || amount <= 0) continue;
+        const refund = Math.floor(amount / 2);
+        if (refund <= 0) continue;
+        const current = this.resourceStore.getResource(rType as ResourceType);
+        this.resourceStore.setResource(rType as ResourceType, current + refund);
+      }
+
+      // 2. Unassign construction workers targeting this building
+      const constructionWorkers = this.world.query(CONSTRUCTION_WORK);
+      for (const workerId of constructionWorkers) {
+        const work = this.world.getComponent<ConstructionWorkComponent>(workerId, CONSTRUCTION_WORK);
+        if (work && (work.targetBuilding as EntityId) === entityId) {
+          this.world.removeComponent(workerId, CONSTRUCTION_WORK);
+          const citizen = this.world.getComponent<CitizenComponent>(workerId, CITIZEN);
+          if (citizen) {
+            const oldState = citizen.state;
+            citizen.state = CitizenState.Idle;
+            this.eventBus.emit('CitizenStateChanged', { entityId: workerId, oldState, newState: CitizenState.Idle });
+          }
+        }
+      }
+
+      // 3. Unassign building workers (clear the workers array)
+      for (const workerId of building.workers) {
+        if (this.world.hasComponent(workerId, JOB_ASSIGNMENT)) {
+          this.world.removeComponent(workerId, JOB_ASSIGNMENT);
+        }
+        const citizen = this.world.getComponent<CitizenComponent>(workerId, CITIZEN);
+        if (citizen) {
+          const oldState = citizen.state;
+          citizen.state = CitizenState.Idle;
+          citizen.job = null;
+          this.eventBus.emit('CitizenStateChanged', { entityId: workerId, oldState, newState: CitizenState.Idle });
+        }
+      }
+
+      // 4. Remove 3D mesh
+      const mesh = this.entityMeshes.get(entityId);
+      if (mesh) {
+        this.scene.remove(mesh);
+        this.entityMeshes.delete(entityId);
+      }
+
+      // 5. Destroy the ECS entity
+      this.world.destroyEntity(entityId);
+
+      // 6. Close the selection panel
+      this.eventBus.emit('EntityDeselected', { entityId });
     });
   }
 

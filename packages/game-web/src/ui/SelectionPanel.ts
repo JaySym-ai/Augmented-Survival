@@ -25,6 +25,7 @@ import {
   ITEM_DEFS,
   CONSTRUCTION_SITE,
   BuildingType,
+  ResourceType,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -60,9 +61,11 @@ export class SelectionPanel {
   private citizenBagCounts: HTMLSpanElement[] = [];
 
   // Cached building DOM elements — created once, updated per-frame
+  private headerEl: HTMLDivElement;
   private buildingBuiltForEntity: EntityId | null = null;
   private buildingConstructionFill: HTMLDivElement | null = null;
   private buildingColorSwatches: HTMLDivElement[] = [];
+  private destroyBtn: HTMLButtonElement | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -75,15 +78,15 @@ export class SelectionPanel {
     this.el.style.display = 'none';
 
     // Header with close button
-    const header = document.createElement('div');
-    header.className = 'sel-header';
-    header.innerHTML = `<span class="sel-title"></span>`;
+    this.headerEl = document.createElement('div');
+    this.headerEl.className = 'sel-header';
+    this.headerEl.innerHTML = `<span class="sel-title"></span>`;
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sel-close';
     closeBtn.textContent = '✕';
     closeBtn.addEventListener('click', () => this.hide());
-    header.appendChild(closeBtn);
-    this.el.appendChild(header);
+    this.headerEl.appendChild(closeBtn);
+    this.el.appendChild(this.headerEl);
 
     // Content area
     this.contentEl = document.createElement('div');
@@ -168,6 +171,10 @@ export class SelectionPanel {
         }
         this.buildingBuiltForEntity = eid;
       }
+      // Add destroy button for all buildings except TownCenter
+      if (building.type !== BuildingType.TownCenter) {
+        this.buildDestroyButtonDOM(eid, building);
+      }
       return;
     }
 
@@ -210,6 +217,10 @@ export class SelectionPanel {
     this.buildingBuiltForEntity = null;
     this.buildingConstructionFill = null;
     this.buildingColorSwatches = [];
+    if (this.destroyBtn) {
+      this.destroyBtn.remove();
+      this.destroyBtn = null;
+    }
   }
 
   private buildConstructionBarDOM(construction: ConstructionSiteComponent): void {
@@ -295,6 +306,44 @@ export class SelectionPanel {
       const isActive = SelectionPanel.WALL_COLORS[i].value === color;
       this.buildingColorSwatches[i].classList.toggle('active', isActive);
     }
+  }
+
+  private buildDestroyButtonDOM(entityId: EntityId, building: BuildingComponent): void {
+    const def = BUILDING_DEFS[building.type];
+
+    // Calculate 50% refund (floored) for tooltip
+    const refundParts: string[] = [];
+    for (const [rType, amount] of Object.entries(def.cost)) {
+      if (amount == null || amount <= 0) continue;
+      const refund = Math.floor(amount / 2);
+      if (refund <= 0) continue;
+      const rDef = RESOURCE_DEFS[rType as ResourceType];
+      if (rDef) {
+        refundParts.push(`${rDef.icon}${refund}`);
+      }
+    }
+
+    // Icon-only button placed in the header, left of the close button
+    const btn = document.createElement('button');
+    btn.className = 'sel-destroy-btn';
+    btn.textContent = '🗑️';
+    if (refundParts.length > 0) {
+      btn.title = `Destroy — Refund: ${refundParts.join(' ')}`;
+    } else {
+      btn.title = 'Destroy';
+    }
+    btn.addEventListener('click', () => {
+      this.eventBus.emit('BuildingDestroyRequested', { buildingId: entityId });
+    });
+
+    // Insert before the close button (last child of header)
+    const closeBtn = this.headerEl.querySelector('.sel-close');
+    if (closeBtn) {
+      this.headerEl.insertBefore(btn, closeBtn);
+    } else {
+      this.headerEl.appendChild(btn);
+    }
+    this.destroyBtn = btn;
   }
 
   private updateBuildingValues(): void {

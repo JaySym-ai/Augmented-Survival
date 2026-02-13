@@ -207,10 +207,10 @@ const CSS = /* css */ `
   padding: var(--panel-padding);
 }
 .ui-selection-panel .sel-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
+  display: flex; align-items: center;
+  margin-bottom: 8px; gap: 4px;
 }
-.ui-selection-panel .sel-title { font-weight: 700; font-size: 15px; }
+.ui-selection-panel .sel-title { font-weight: 700; font-size: 15px; flex: 1; }
 .ui-selection-panel .sel-close {
   background: none; border: none; color: var(--ui-text-muted);
   cursor: pointer; font-size: 16px; pointer-events: auto;
@@ -590,6 +590,22 @@ const CSS = /* css */ `
 .ui-selection-panel .wall-color-picker .color-swatch.active {
   border-color: var(--ui-accent);
   box-shadow: 0 0 0 2px var(--ui-accent);
+}
+
+/* Destroy building button (icon in header) */
+.ui-selection-panel .sel-destroy-btn {
+  background: none;
+  border: none;
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 0 4px;
+  pointer-events: auto;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.ui-selection-panel .sel-destroy-btn:hover {
+  color: var(--ui-danger);
 }
 
 /* ===== Responsive ===== */
