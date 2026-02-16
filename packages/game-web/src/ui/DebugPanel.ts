@@ -24,7 +24,7 @@ export class DebugPanel {
   private sectionToggleBtn: HTMLButtonElement;
   private listEl: HTMLDivElement;
   private collapsed = false;
-  private sectionCollapsed = false;
+  private sectionCollapsed = true;
 
   constructor(
     parent: HTMLElement,
@@ -92,6 +92,8 @@ export class DebugPanel {
     });
 
     parent.appendChild(this.el);
+
+    this.setSectionCollapsed(true);
   }
 
   update(): void {
