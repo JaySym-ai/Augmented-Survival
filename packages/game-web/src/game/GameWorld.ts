@@ -465,9 +465,17 @@ export class GameWorld {
       const mesh = this.entityMeshes.get(event.buildingId);
       if (mesh) {
         mesh.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.name === 'walls') {
-            if (child.material instanceof THREE.MeshStandardMaterial) {
+          if (child.name === 'walls') {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+              child.material = child.material.clone();
               child.material.color.setHex(event.color);
+            } else if (child instanceof THREE.Group) {
+              child.traverse((wallChild) => {
+                if (wallChild instanceof THREE.Mesh && wallChild.material instanceof THREE.MeshStandardMaterial) {
+                  wallChild.material = wallChild.material.clone();
+                  wallChild.material.color.setHex(event.color);
+                }
+              });
             }
           }
         });

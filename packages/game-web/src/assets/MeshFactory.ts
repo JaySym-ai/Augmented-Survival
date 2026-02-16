@@ -1124,7 +1124,7 @@ export class MeshFactory {
     });
   }
 
-  createLogWoodMaterial(): THREE.MeshStandardMaterial {
+  private createLogWoodMaterial(): THREE.MeshStandardMaterial {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
@@ -1246,7 +1246,7 @@ export class MeshFactory {
     });
   }
 
-  createWoodShingleMaterial(): THREE.MeshStandardMaterial {
+  private createWoodShingleMaterial(): THREE.MeshStandardMaterial {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
@@ -1327,7 +1327,7 @@ export class MeshFactory {
     });
   }
 
-  createStoneFoundationMaterial(): THREE.MeshStandardMaterial {
+  private createStoneFoundationMaterial(): THREE.MeshStandardMaterial {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
