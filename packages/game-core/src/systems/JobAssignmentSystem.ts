@@ -34,7 +34,7 @@ import type { TimeSystem } from './TimeSystem';
 const GATHER_TIME = 3;
 
 /** Default citizen movement speed */
-const CITIZEN_SPEED = 3;
+const CITIZEN_SPEED = 2;
 
 /** Min wander radius for idle citizens */
 const WANDER_RADIUS_MIN = 5;
@@ -43,8 +43,8 @@ const WANDER_RADIUS_MIN = 5;
 const WANDER_RADIUS_MAX = 8;
 
 /** Cooldown range (seconds) between idle wander paths */
-const WANDER_COOLDOWN_MIN = 2;
-const WANDER_COOLDOWN_MAX = 4;
+const WANDER_COOLDOWN_MIN = 4;
+const WANDER_COOLDOWN_MAX = 8;
 
 function distanceSq(a: Vector3, b: Vector3): number {
   const dx = a.x - b.x;
