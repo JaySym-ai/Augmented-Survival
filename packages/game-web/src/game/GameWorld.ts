@@ -64,7 +64,7 @@ import {
   AutoBuilderSystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
-import { TerrainMesh } from '../world/TerrainMesh.js';
+import { TerrainMesh, getMaxHeightForFootprint } from '../world/TerrainMesh.js';
 import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
 import { CitizenAnimator } from '../animation/CitizenAnimator.js';
 import { AnimalAnimator } from '../animation/AnimalAnimator.js';
@@ -186,7 +186,7 @@ export class GameWorld {
   private spawnTownCenter(): void {
     const def = BUILDING_DEFS[BuildingType.TownCenter];
     const entityId = this.world.createEntity();
-    const y = this.terrainMesh.getHeightAt(0, 0);
+    const y = getMaxHeightForFootprint(this.terrainMesh, 0, 0, def.size.width, def.size.depth);
     this.world.addComponent(entityId, TRANSFORM, createTransform({ x: 0, y, z: 0 }));
     this.world.addComponent(entityId, BUILDING, createBuilding(BuildingType.TownCenter, def.workerSlots, true));
     this.world.addComponent(entityId, STORAGE, createStorage(def.storageCapacity));
@@ -349,7 +349,7 @@ export class GameWorld {
     if (!this.resourceStore.canAfford(def.cost)) return null;
     this.resourceStore.deduct(def.cost);
 
-    position.y = this.terrainMesh.getHeightAt(position.x, position.z);
+    position.y = getMaxHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
 
     const entityId = this.buildingPlacement.placeBuilding(this.world, type, position, {
       cost: def.cost,

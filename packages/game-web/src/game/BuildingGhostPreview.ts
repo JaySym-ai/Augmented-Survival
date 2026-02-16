@@ -3,7 +3,9 @@
  */
 import * as THREE from 'three';
 import type { BuildingType, Vector3 } from '@augmented-survival/game-core';
+import { BUILDING_DEFS } from '@augmented-survival/game-core';
 import type { MeshFactory } from '../assets/MeshFactory.js';
+import { type TerrainMesh, getMaxHeightForFootprint } from '../world/TerrainMesh.js';
 
 export class BuildingGhostPreview {
   private ghostMesh: THREE.Group | null = null;
@@ -17,7 +19,7 @@ export class BuildingGhostPreview {
     private meshFactory: MeshFactory,
     private container: HTMLElement,
     private camera: THREE.Camera,
-    private terrainMesh: THREE.Mesh,
+    private terrainMesh: TerrainMesh,
   ) {}
 
   startPlacement(type: BuildingType): void {
@@ -50,11 +52,13 @@ export class BuildingGhostPreview {
     raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
     // Try raycasting against the terrain mesh first
-    const terrainHits = raycaster.intersectObject(this.terrainMesh);
+    const terrainHits = raycaster.intersectObject(this.terrainMesh.mesh);
     if (terrainHits.length > 0) {
       const hit = terrainHits[0].point;
-      this.ghostMesh.position.set(hit.x, hit.y, hit.z);
-      this.currentPosition = { x: hit.x, y: hit.y, z: hit.z };
+      const def = BUILDING_DEFS[this.activeType!];
+      const maxY = getMaxHeightForFootprint(this.terrainMesh, hit.x, hit.z, def.size.width, def.size.depth);
+      this.ghostMesh.position.set(hit.x, maxY, hit.z);
+      this.currentPosition = { x: hit.x, y: maxY, z: hit.z };
     } else {
       // Fall back to flat plane if cursor is off the terrain
       const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
