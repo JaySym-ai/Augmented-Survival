@@ -1389,14 +1389,14 @@ export class MeshFactory {
     const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
 
     // Stone Foundation
-    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.15, foundH, D + 0.15), stoneMat));
+    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.30, foundH, D + 0.30), stoneMat));
     foundation.position.y = foundH / 2;
     group.add(foundation);
 
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
-        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.18, foundH + 0.03, 0.18), stoneMat));
-        cs.position.set(cx * (W / 2 + 0.01), foundH / 2, cz * (D / 2 + 0.01));
+        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.22, foundH + 0.03, 0.22), stoneMat));
+        cs.position.set(cx * (W / 2 + 0.04), foundH / 2, cz * (D / 2 + 0.04));
         group.add(cs);
       }
     }
