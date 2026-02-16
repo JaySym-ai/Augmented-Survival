@@ -774,13 +774,13 @@ export class MeshFactory {
       metalness: 0.0,
       side: THREE.DoubleSide
     });
-    const innerWallH = wallH + logR * 2; // cover full log wall height
+    const innerWallH = wallH;
     const innerWallY = foundH + innerWallH / 2;
 
     // Front & back inner walls
     for (const side of [-1, 1]) {
       const wall = shad(new THREE.Mesh(
-        new THREE.BoxGeometry(W + 0.1, innerWallH, 0.12),
+        new THREE.BoxGeometry(W + 0.1, innerWallH, 0.08),
         innerWallMat
       ));
       wall.position.set(0, innerWallY, side * D / 2);
@@ -799,7 +799,7 @@ export class MeshFactory {
     group.add(walls);
 
     // ── 3. Corner Posts ──
-    const postH = wallH + 0.05;
+    const postH = wallH;
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, postH, 6), darkWood));
@@ -828,14 +828,6 @@ export class MeshFactory {
     roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
     group.add(roofMesh);
 
-    // Ridge beam along the top
-    const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, roofDepth + 0.1, 6), darkWood,
-    ));
-    ridgeBeam.rotation.x = Math.PI / 2;
-    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
-    group.add(ridgeBeam);
-
     // Visible rafter ends (front and back, 3 per side)
     const rafterPositions = [-0.6, 0, 0.6];
     for (const rx of rafterPositions) {
@@ -844,7 +836,7 @@ export class MeshFactory {
           new THREE.CylinderGeometry(0.035, 0.035, 0.35, 6), darkWood,
         ));
         rafter.rotation.x = Math.PI / 2;
-        rafter.position.set(rx, roofBaseY + 0.05, side * (D / 2 + roofOverhang - 0.05));
+        rafter.position.set(rx, roofBaseY + 0.05, side * (D / 2 + roofOverhang - 0.225));
         group.add(rafter);
       }
     }
@@ -1124,12 +1116,12 @@ export class MeshFactory {
       metalness: 0.0,
       side: THREE.DoubleSide
     });
-    const innerWallH = wallH + logR * 2;
+    const innerWallH = wallH;
     const innerWallY = foundH + innerWallH / 2;
 
     for (const side of [-1, 1]) {
       const wall = shad(new THREE.Mesh(
-        new THREE.BoxGeometry(W + 0.12, innerWallH, 0.14),
+        new THREE.BoxGeometry(W + 0.12, innerWallH, 0.10),
         innerWallMat
       ));
       wall.position.set(0, innerWallY, side * D / 2);
@@ -1147,7 +1139,7 @@ export class MeshFactory {
     group.add(walls);
 
     // 3. Corner Posts
-    const postH = wallH + 0.08;
+    const postH = wallH;
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, postH, 6), darkWood));
@@ -1176,13 +1168,6 @@ export class MeshFactory {
     roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
     group.add(roofMesh);
 
-    const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, roofDepth + 0.12, 6), darkWood,
-    ));
-    ridgeBeam.rotation.x = Math.PI / 2;
-    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
-    group.add(ridgeBeam);
-
     const rafterPositions = [-0.8, 0, 0.8];
     for (const rx of rafterPositions) {
       for (const side of [-1, 1]) {
@@ -1190,7 +1175,7 @@ export class MeshFactory {
           new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6), darkWood,
         ));
         rafter.rotation.x = Math.PI / 2;
-        rafter.position.set(rx, roofBaseY + 0.08, side * (D / 2 + roofOverhang - 0.06));
+        rafter.position.set(rx, roofBaseY + 0.08, side * (D / 2 + roofOverhang - 0.25));
         group.add(rafter);
       }
     }
@@ -1389,14 +1374,14 @@ export class MeshFactory {
     const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
 
     // Stone Foundation
-    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.15, foundH, D + 0.15), stoneMat));
+    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.30, foundH, D + 0.30), stoneMat));
     foundation.position.y = foundH / 2;
     group.add(foundation);
 
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
-        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.18, foundH + 0.03, 0.18), stoneMat));
-        cs.position.set(cx * (W / 2 + 0.01), foundH / 2, cz * (D / 2 + 0.01));
+        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.22, foundH + 0.03, 0.22), stoneMat));
+        cs.position.set(cx * (W / 2 + 0.04), foundH / 2, cz * (D / 2 + 0.04));
         group.add(cs);
       }
     }
@@ -1437,11 +1422,11 @@ export class MeshFactory {
     const innerWallMat = new THREE.MeshStandardMaterial({
       color: 0x5C3A1E, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide
     });
-    const innerWallH = wallH + logR * 2;
+    const innerWallH = wallH;
     const innerWallY = foundH + innerWallH / 2;
 
     for (const side of [-1, 1]) {
-      const wall = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.08, innerWallH, 0.1), innerWallMat));
+      const wall = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.08, innerWallH, 0.06), innerWallMat));
       wall.position.set(0, innerWallY, side * D / 2);
       walls.add(wall);
     }
@@ -1454,7 +1439,7 @@ export class MeshFactory {
     group.add(walls);
 
     // Corner Posts
-    const postH = wallH + 0.04;
+    const postH = wallH;
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, postH, 6), darkWood));
@@ -1481,13 +1466,6 @@ export class MeshFactory {
     roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
     group.add(roofMesh);
 
-    const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, roofDepth + 0.08, 6), darkWood,
-    ));
-    ridgeBeam.rotation.x = Math.PI / 2;
-    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
-    group.add(ridgeBeam);
-
     // Rafter ends
     const rafterPositions = [-0.5, 0, 0.5];
     for (const rx of rafterPositions) {
@@ -1496,7 +1474,7 @@ export class MeshFactory {
           new THREE.CylinderGeometry(0.03, 0.03, 0.28, 6), darkWood,
         ));
         rafter.rotation.x = Math.PI / 2;
-        rafter.position.set(rx, roofBaseY + 0.04, side * (D / 2 + roofOverhang - 0.04));
+        rafter.position.set(rx, roofBaseY + 0.04, side * (D / 2 + roofOverhang - 0.19));
         group.add(rafter);
       }
     }
