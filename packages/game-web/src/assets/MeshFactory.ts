@@ -830,7 +830,7 @@ export class MeshFactory {
 
     // Ridge beam along the top
     const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, roofDepth, 6), darkWood,
+      new THREE.CylinderGeometry(0.05, 0.05, D - 0.2, 6), darkWood,
     ));
     ridgeBeam.rotation.x = Math.PI / 2;
     ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
@@ -1177,7 +1177,7 @@ export class MeshFactory {
     group.add(roofMesh);
 
     const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, roofDepth, 6), darkWood,
+      new THREE.CylinderGeometry(0.06, 0.06, D - 0.2, 6), darkWood,
     ));
     ridgeBeam.rotation.x = Math.PI / 2;
     ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
@@ -1482,7 +1482,7 @@ export class MeshFactory {
     group.add(roofMesh);
 
     const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, roofDepth, 6), darkWood,
+      new THREE.CylinderGeometry(0.04, 0.04, D - 0.2, 6), darkWood,
     ));
     ridgeBeam.rotation.x = Math.PI / 2;
     ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
