@@ -54,16 +54,18 @@ const CSS = /* css */ `
   padding: 8px 16px;
   align-items: center;
   transition: all 0.3s ease;
+  width: 320px;
 }
 .ui-resource-bar.expanded {
   flex-direction: column;
   gap: 12px;
   padding: 12px 20px;
-  min-width: 320px;
 }
 .ui-resource-bar .resource-bar-collapsed {
   display: flex; gap: 16px;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 .ui-resource-bar .resource-bar-toggle {
   position: absolute;
