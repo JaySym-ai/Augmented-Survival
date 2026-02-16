@@ -4,6 +4,8 @@
 export { GameUI } from './GameUI.js';
 export type { GameUIConfig } from './GameUI.js';
 export { ResourceBar } from './ResourceBar.js';
+export { ExpandableResourceBar } from './ExpandableResourceBar.js';
+export { InventoryGrid } from './InventoryGrid.js';
 export { BuildMenu } from './BuildMenu.js';
 export { VillagerSidebar } from './VillagerSidebar.js';
 export { SelectionPanel } from './SelectionPanel.js';

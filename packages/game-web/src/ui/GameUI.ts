@@ -13,7 +13,7 @@ import {
 import type { EntityId, GameEventMap } from '@augmented-survival/game-core';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { injectUIStyles } from './UIStyles.js';
-import { ResourceBar } from './ResourceBar.js';
+import { ExpandableResourceBar } from './ExpandableResourceBar.js';
 import { BuildMenu } from './BuildMenu.js';
 import { SelectionPanel } from './SelectionPanel.js';
 import { VillagerSidebar } from './VillagerSidebar.js';
@@ -35,7 +35,7 @@ export interface GameUIConfig {
 
 export class GameUI {
   private root: HTMLDivElement;
-  private resourceBar: ResourceBar;
+  private expandableResourceBar: ExpandableResourceBar;
   private buildMenu: BuildMenu;
   private villagerSidebar: VillagerSidebar;
   private selectionPanel: SelectionPanel;
@@ -53,7 +53,7 @@ export class GameUI {
     config.container.appendChild(this.root);
 
     // Create sub-panels
-    this.resourceBar = new ResourceBar(
+    this.expandableResourceBar = new ExpandableResourceBar(
       this.root,
       config.resourceStore,
       config.world,
@@ -98,7 +98,7 @@ export class GameUI {
 
   /** Called every frame to update dynamic values */
   update(): void {
-    this.resourceBar.update();
+    this.expandableResourceBar.update();
     this.buildMenu.update();
     this.villagerSidebar.update();
     this.selectionPanel.update();
@@ -129,7 +129,7 @@ export class GameUI {
 
   /** Clean up all UI elements and event listeners */
   dispose(): void {
-    this.resourceBar.dispose();
+    this.expandableResourceBar.dispose();
     this.buildMenu.dispose();
     this.villagerSidebar.dispose();
     this.selectionPanel.dispose();
