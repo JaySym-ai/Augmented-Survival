@@ -64,6 +64,7 @@ export class SelectionPanel {
   private headerEl: HTMLDivElement;
   private buildingBuiltForEntity: EntityId | null = null;
   private buildingConstructionFill: HTMLDivElement | null = null;
+  private buildingConstructionPct: HTMLSpanElement | null = null;
   private destroyBtn: HTMLButtonElement | null = null;
 
   constructor(
@@ -212,6 +213,7 @@ export class SelectionPanel {
   private clearBuildingCache(): void {
     this.buildingBuiltForEntity = null;
     this.buildingConstructionFill = null;
+    this.buildingConstructionPct = null;
     if (this.destroyBtn) {
       this.destroyBtn.remove();
       this.destroyBtn = null;
@@ -246,6 +248,7 @@ export class SelectionPanel {
 
     this.contentEl.appendChild(progressContainer);
     this.buildingConstructionFill = progressFill;
+    this.buildingConstructionPct = progressText;
   }
 
   private buildDestroyButtonDOM(entityId: EntityId, building: BuildingComponent): void {
@@ -298,7 +301,14 @@ export class SelectionPanel {
       );
       if (construction && this.buildingConstructionFill) {
         this.buildingConstructionFill.style.width = `${construction.progress * 100}%`;
+        if (this.buildingConstructionPct) {
+          this.buildingConstructionPct.textContent = `${Math.round(construction.progress * 100)}%`;
+        }
       }
+    } else if (this.buildingConstructionFill) {
+      // Construction just completed — force a full re-render to show built state
+      this.clearBuildingCache();
+      this.renderContent();
     }
   }
 
