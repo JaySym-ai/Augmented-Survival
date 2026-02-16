@@ -567,7 +567,7 @@ export class MeshFactory {
     const ironMetal = this.mat('ironMetal');
     const stoneMat = this.createStoneFoundationMaterial();
     const shingleMat = this.createWoodShingleMaterial();
-    const chinkMat = new THREE.MeshStandardMaterial({ color: 0xD2C4A0, roughness: 1.0, metalness: 0.0 });
+    const chinkMat = new THREE.MeshStandardMaterial({ color: 0x6B4E32, roughness: 1.0, metalness: 0.0 });
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x6699BB, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.4,
     });
@@ -638,28 +638,33 @@ export class MeshFactory {
       }
     }
 
-    // Backing panels to prevent light leaks between logs
-    const backingThickness = 0.02;
-    const backingH = wallH + logR; // full wall height
-    const backingY = foundH + backingH / 2;
+    // ── Solid inner wall panels (prevent all light leaks between logs) ──
+    const innerWallMat = new THREE.MeshStandardMaterial({
+      color: 0x5C3A1E, // dark brown matching log interior
+      roughness: 1.0,
+      metalness: 0.0,
+      side: THREE.DoubleSide
+    });
+    const innerWallH = wallH + logR * 2; // cover full log wall height
+    const innerWallY = foundH + innerWallH / 2;
 
-    // Front & back backing panels
+    // Front & back inner walls
     for (const side of [-1, 1]) {
-      const backing = shad(new THREE.Mesh(
-        new THREE.BoxGeometry(W - 0.05, backingH, backingThickness),
-        logMat
+      const wall = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(W + 0.1, innerWallH, 0.12),
+        innerWallMat
       ));
-      backing.position.set(0, backingY, side * (D / 2 - logR * 0.5));
-      walls.add(backing);
+      wall.position.set(0, innerWallY, side * D / 2);
+      walls.add(wall);
     }
-    // Left & right backing panels
+    // Left & right inner walls
     for (const side of [-1, 1]) {
-      const backing = shad(new THREE.Mesh(
-        new THREE.BoxGeometry(backingThickness, backingH, D - 0.05),
-        logMat
+      const wall = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, innerWallH, D + 0.1),
+        innerWallMat
       ));
-      backing.position.set(side * (W / 2 - logR * 0.5), backingY, 0);
-      walls.add(backing);
+      wall.position.set(side * W / 2, innerWallY, 0);
+      walls.add(wall);
     }
 
     group.add(walls);
