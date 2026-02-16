@@ -1250,22 +1250,23 @@ export class MeshFactory {
     mountPlate.position.set(0.12, 0, 0.05);
     doorGroup.add(mountPlate);
 
-    // Cascading stone staircase in front of door (3 steps)
+    // Cascading stone staircase in front of door (5 steps: 3 covering foundation + 2 below)
     const stairStepH = foundH / 3;
     const stairDepth = 0.18;
-    const stairWidths = [0.7, 0.6, 0.5]; // bottom to top, progressively narrower
-    for (let i = 0; i < 3; i++) {
+    const totalSteps = 5;
+    const stairWidths = [0.8, 0.75, 0.7, 0.6, 0.5]; // bottom to top, progressively narrower
+    for (let i = 0; i < totalSteps; i++) {
       const step = shad(new THREE.Mesh(
         new THREE.BoxGeometry(stairWidths[i], stairStepH, stairDepth),
         stoneMat,
       ));
       // Position each step: bottom of door is at -doorH/2, steps go down from there
-      // Step 0 (top) is flush with door threshold, step 2 (bottom) is at ground level
-      const stepIndex = 2 - i; // reverse: i=0 is bottom, i=2 is top
+      // i=0 is bottom (widest, furthest from door), i=4 is top (narrowest, closest to door)
+      const stepIndex = (totalSteps - 1) - i; // i=0 → highest stepIndex (lowest Y)
       step.position.set(
         0,
         -doorH / 2 - stairStepH / 2 - stepIndex * stairStepH,
-        stairDepth / 2 + i * stairDepth,
+        stairDepth / 2 + (totalSteps - 1 - i) * stairDepth,
       );
       doorGroup.add(step);
     }
@@ -1645,15 +1646,17 @@ export class MeshFactory {
     handleBar.position.set(0, 0.1, 0.1);
     doorGroup.add(handleBar);
 
-    // 3 cascading stone steps in front of the double door
+    // 5 cascading stone steps in front of the double door (3 covering foundation + 2 below)
     const stepH = foundH / 3;
     const stepsData: [number, number, number][] = [
-      [2.6, stepH, 0.30],   // bottom step: widest
+      [3.0, stepH, 0.30],   // extra below-ground step 1: widest
+      [2.8, stepH, 0.30],   // extra below-ground step 2
+      [2.6, stepH, 0.30],   // bottom foundation step
       [2.2, stepH, 0.28],   // middle step
       [2.0, stepH, 0.26],   // top step (matches double door width)
     ];
-    let stepY = -doorH / 2 - foundH + stepH / 2;
-    let stepZ = 0.15 + 0.30 + 0.28; // start from the outermost position
+    let stepY = -doorH / 2 - foundH - stepH * 2 + stepH / 2; // start 2 steps below foundation
+    let stepZ = 0.15 + 0.30 + 0.28 + 0.30 + 0.30; // start from the outermost position (includes 2 extra steps)
     for (const [sw, sh, sd] of stepsData) {
       const step = shad(new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), stoneMat));
       step.position.set(0, stepY, stepZ);
@@ -1935,20 +1938,22 @@ export class MeshFactory {
     hinge.position.set(-0.02, 0.15, 0.04);
     doorGroup.add(hinge);
 
-    // Cascading stone staircase in front of door (2 steps)
+    // Cascading stone staircase in front of door (4 steps: 2 covering foundation + 2 below)
     const stairStepH = foundH / 2;
     const stairDepth = 0.15;
-    const stairWidths = [0.55, 0.45]; // bottom to top, progressively narrower
-    for (let i = 0; i < 2; i++) {
+    const totalSteps = 4;
+    const stairWidths = [0.65, 0.6, 0.55, 0.45]; // bottom to top, progressively narrower
+    for (let i = 0; i < totalSteps; i++) {
       const step = shad(new THREE.Mesh(
         new THREE.BoxGeometry(stairWidths[i], stairStepH, stairDepth),
         stoneMat,
       ));
-      const stepIndex = 1 - i; // reverse: i=0 is bottom, i=1 is top
+      // i=0 is bottom (widest, furthest from door), i=3 is top (narrowest, closest to door)
+      const stepIndex = (totalSteps - 1) - i; // i=0 → highest stepIndex (lowest Y)
       step.position.set(
         0,
         -doorH / 2 - stairStepH / 2 - stepIndex * stairStepH,
-        stairDepth / 2 + i * stairDepth,
+        stairDepth / 2 + (totalSteps - 1 - i) * stairDepth,
       );
       doorGroup.add(step);
     }
