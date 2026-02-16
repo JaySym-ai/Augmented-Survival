@@ -117,7 +117,11 @@ const CSS = /* css */ `
   gap: 12px;
 }
 .ui-resource-bar.expanded .resource-bar-collapsed {
-  display: none;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 .ui-resource-bar .resource-bar-section {
   display: flex;
