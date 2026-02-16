@@ -656,31 +656,42 @@ export class MeshFactory {
     if (type === 'stone') {
       const stoneMat = this.createStoneFoundationMaterial();
 
-      // Main foundation block with textured stone
-      const mainBlock = shad(new THREE.Mesh(
-        new THREE.BoxGeometry(width, height, depth),
-        stoneMat,
-      ));
-      mainBlock.position.y = -height / 2;
-      group.add(mainBlock);
+      // Stepped/terraced foundation layers descending on all 4 sides
+      const layerHeight = 0.1;
+      const numLayers = Math.ceil(height / layerHeight);
+      const expandPerSide = 0.07; // each layer expands by this amount per side
+      for (let i = 0; i < numLayers; i++) {
+        const layerW = width + i * expandPerSide * 2;
+        const layerD = depth + i * expandPerSide * 2;
+        const layer = shad(new THREE.Mesh(
+          new THREE.BoxGeometry(layerW, layerHeight, layerD),
+          stoneMat,
+        ));
+        layer.position.y = -layerHeight / 2 - i * layerHeight;
+        group.add(layer);
+      }
+
+      // Bottom layer dimensions for placing decorative elements
+      const bottomW = width + (numLayers - 1) * expandPerSide * 2;
+      const bottomD = depth + (numLayers - 1) * expandPerSide * 2;
 
       // Corner protruding stones (same style as existing building foundations)
       for (const cx of [-1, 1]) {
         for (const cz of [-1, 1]) {
           const cornerStone = shad(new THREE.Mesh(
-            new THREE.BoxGeometry(0.25, height + 0.05, 0.25),
+            new THREE.BoxGeometry(0.25, layerHeight + 0.05, 0.25),
             stoneMat,
           ));
           cornerStone.position.set(
             cx * (width / 2 - 0.05),
-            -height / 2,
+            -layerHeight / 2,
             cz * (depth / 2 - 0.05),
           );
           group.add(cornerStone);
         }
       }
 
-      // Scattered rough stones along the base edges for organic look
+      // Scattered rough stones along the bottom layer base edges for organic look
       const roughStoneMat = this.mat('stone');
       const stoneCount = 6 + Math.floor(Math.random() * 5);
       for (let i = 0; i < stoneCount; i++) {
@@ -691,10 +702,10 @@ export class MeshFactory {
         ));
         const side = Math.floor(Math.random() * 4);
         let sx: number, sz: number;
-        if (side === 0) { sx = (Math.random() - 0.5) * width; sz = -depth / 2; }
-        else if (side === 1) { sx = (Math.random() - 0.5) * width; sz = depth / 2; }
-        else if (side === 2) { sx = -width / 2; sz = (Math.random() - 0.5) * depth; }
-        else { sx = width / 2; sz = (Math.random() - 0.5) * depth; }
+        if (side === 0) { sx = (Math.random() - 0.5) * bottomW; sz = -bottomD / 2; }
+        else if (side === 1) { sx = (Math.random() - 0.5) * bottomW; sz = bottomD / 2; }
+        else if (side === 2) { sx = -bottomW / 2; sz = (Math.random() - 0.5) * bottomD; }
+        else { sx = bottomW / 2; sz = (Math.random() - 0.5) * bottomD; }
         stone.position.set(sx, -height + size * 0.5, sz);
         stone.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
         stone.scale.y = 0.6 + Math.random() * 0.4;
@@ -711,9 +722,9 @@ export class MeshFactory {
           mossMat,
         );
         patch.position.set(
-          (Math.random() - 0.5) * width * 0.8,
+          (Math.random() - 0.5) * bottomW * 0.8,
           -height + 0.02,
-          (Math.random() - 0.5) * depth * 0.8,
+          (Math.random() - 0.5) * bottomD * 0.8,
         );
         group.add(patch);
       }
@@ -1250,28 +1261,7 @@ export class MeshFactory {
     mountPlate.position.set(0.12, 0, 0.05);
     doorGroup.add(mountPlate);
 
-    // Deep cascading stone staircase (20 steps — most underground on flat terrain)
-    // i=0 is TOP step (closest to door), i=19 is BOTTOM step (furthest, widest)
-    {
-      const numSteps = 20;
-      const stepH = 0.08;
-      const stepDepth = 0.15;
-      const topWidth = 0.5;
-      const widthIncrement = 0.03;
-      for (let i = 0; i < numSteps; i++) {
-        const w = topWidth + i * widthIncrement;
-        const step = shad(new THREE.Mesh(
-          new THREE.BoxGeometry(w, stepH, stepDepth),
-          stoneMat,
-        ));
-        step.position.set(
-          0,
-          -doorH / 2 - stepH / 2 - i * stepH,
-          stepDepth / 2 + i * stepDepth,
-        );
-        doorGroup.add(step);
-      }
-    }
+
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.06);
     group.add(doorGroup);
@@ -1648,28 +1638,7 @@ export class MeshFactory {
     handleBar.position.set(0, 0.1, 0.1);
     doorGroup.add(handleBar);
 
-    // Deep cascading stone staircase (25 steps — most underground on flat terrain)
-    // i=0 is TOP step (closest to door), i=24 is BOTTOM step (furthest, widest)
-    {
-      const numSteps = 25;
-      const stepH = 0.10;
-      const stepDepth = 0.25;
-      const topWidth = 2.0;
-      const widthIncrement = 0.03;
-      for (let i = 0; i < numSteps; i++) {
-        const w = topWidth + i * widthIncrement;
-        const step = shad(new THREE.Mesh(
-          new THREE.BoxGeometry(w, stepH, stepDepth),
-          stoneMat,
-        ));
-        step.position.set(
-          0,
-          -doorH / 2 - stepH / 2 - i * stepH,
-          stepDepth / 2 + i * stepDepth,
-        );
-        doorGroup.add(step);
-      }
-    }
+
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.08);
     group.add(doorGroup);
@@ -1944,28 +1913,7 @@ export class MeshFactory {
     hinge.position.set(-0.02, 0.15, 0.04);
     doorGroup.add(hinge);
 
-    // Deep cascading stone staircase (20 steps — most underground on flat terrain)
-    // i=0 is TOP step (closest to door), i=19 is BOTTOM step (furthest, widest)
-    {
-      const numSteps = 20;
-      const stepH = 0.08;
-      const stepDepth = 0.12;
-      const topWidth = 0.45;
-      const widthIncrement = 0.03;
-      for (let i = 0; i < numSteps; i++) {
-        const w = topWidth + i * widthIncrement;
-        const step = shad(new THREE.Mesh(
-          new THREE.BoxGeometry(w, stepH, stepDepth),
-          stoneMat,
-        ));
-        step.position.set(
-          0,
-          -doorH / 2 - stepH / 2 - i * stepH,
-          stepDepth / 2 + i * stepDepth,
-        );
-        doorGroup.add(step);
-      }
-    }
+
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.015, D / 2 + 0.05);
     group.add(doorGroup);
