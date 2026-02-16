@@ -114,6 +114,7 @@ export { CarrySystem } from './systems/CarrySystem';
 export { DeliverySystem } from './systems/DeliverySystem';
 export { ConstructionSystem } from './systems/ConstructionSystem';
 export { AutoBuilderSystem } from './systems/AutoBuilderSystem';
+export { CitizenNeedsSystem } from './systems/CitizenNeedsSystem';
 export { ResourceStoreSystem } from './systems/ResourceStoreSystem';
 export { BuildingPlacementSystem } from './systems/BuildingPlacementSystem';
 export { ResourceDepletionSystem } from './systems/ResourceDepletionSystem';

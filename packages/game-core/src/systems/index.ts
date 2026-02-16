@@ -25,6 +25,7 @@ export { CarrySystem } from './CarrySystem';
 export { DeliverySystem } from './DeliverySystem';
 export { ConstructionSystem } from './ConstructionSystem';
 export { AutoBuilderSystem } from './AutoBuilderSystem';
+export { CitizenNeedsSystem } from './CitizenNeedsSystem';
 export { ResourceStoreSystem } from './ResourceStoreSystem';
 export { BuildingPlacementSystem } from './BuildingPlacementSystem';
 export { ResourceDepletionSystem } from './ResourceDepletionSystem';

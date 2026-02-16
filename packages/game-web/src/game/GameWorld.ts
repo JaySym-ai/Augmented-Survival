@@ -64,6 +64,7 @@ import {
   DEFAULT_GAME_CONFIG,
   AnimalAISystem,
   AutoBuilderSystem,
+  CitizenNeedsSystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
 import { TerrainMesh } from '../world/TerrainMesh.js';
@@ -137,6 +138,7 @@ export class GameWorld {
     const delivery = new DeliverySystem(this.timeSystem, this.eventBus);
     const construction = new ConstructionSystem(this.timeSystem, this.eventBus);
     const autoBuilder = new AutoBuilderSystem(this.eventBus);
+    const citizenNeeds = new CitizenNeedsSystem(this.timeSystem);
     this.resourceStore = new ResourceStoreSystem(this.eventBus);
     this.buildingPlacement = new BuildingPlacementSystem(this.eventBus);
 
@@ -155,6 +157,7 @@ export class GameWorld {
     this.world.addSystem(delivery);
     this.world.addSystem(construction);
     this.world.addSystem(autoBuilder);
+    this.world.addSystem(citizenNeeds);
     this.world.addSystem(this.resourceStore);
     this.world.addSystem(this.buildingPlacement);
     this.world.addSystem(animalAI);
