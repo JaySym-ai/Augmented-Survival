@@ -29,6 +29,8 @@ import {
   EQUIPMENT,
   ANIMAL,
   CitizenState,
+  Mood,
+  LifeGoal,
   createAnimal,
   type AnimalType,
   type GatheringComponent,
@@ -272,10 +274,19 @@ export class GameWorld {
 
     const name = CITIZEN_NAMES[Math.floor(Math.random() * CITIZEN_NAMES.length)];
 
+    // Random age between 18 and 65
+    const age = 18 + Math.floor(Math.random() * 48);
+
+    // Random life goal
+    const lifeGoals = Object.values(LifeGoal);
+    const lifeGoal = lifeGoals[Math.floor(Math.random() * lifeGoals.length)];
+
     const entity = this.world.createEntity();
     this.world.addComponent(entity, TRANSFORM, createTransform(pos));
     this.world.addComponent(entity, VELOCITY, createVelocity());
-    this.world.addComponent(entity, CITIZEN, createCitizen(name, assignedJob));
+    this.world.addComponent(entity, CITIZEN, createCitizen(
+      name, assignedJob, CitizenState.Idle, 100, 100, 0, 0, Mood.Neutral, age, lifeGoal,
+    ));
     this.world.addComponent(entity, CARRY, createCarry());
     this.world.addComponent(entity, SELECTABLE, createSelectable());
     this.world.addComponent(entity, JOB_ASSIGNMENT, createJobAssignment(assignedJob));

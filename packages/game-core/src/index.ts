@@ -123,7 +123,7 @@ export { AnimalAISystem } from './systems/AnimalAISystem';
 export { ResourceType } from './types/resources';
 export { BuildingType } from './types/buildings';
 export { JobType } from './types/jobs';
-export { CitizenState } from './types/citizens';
+export { CitizenState, Mood, LifeGoal } from './types/citizens';
 export { EquipmentSlot, ItemType } from './types/items';
 export type { BuildingConfig, GameConfig } from './types/config';
 export type { SavedEntity, SaveData } from './types/save';
