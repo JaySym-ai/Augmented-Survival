@@ -7,13 +7,31 @@ const IDLE_LERP_SPEED = 8.0;   // how fast limbs return to rest
 const ROTATION_LERP_SPEED = 8.0; // how fast facing direction changes
 const SPEED_THRESHOLD = 0.05;  // below this, consider idle
 
+// Enhanced animation constants
+const BREATHE_SPEED = Math.PI;       // ~2 second full cycle (PI rad/s → period = 2s)
+const BREATHE_MIN_SCALE = 0.98;      // body Y-scale at exhale
+const BREATHE_MAX_SCALE = 1.02;      // body Y-scale at inhale
+const WALK_BOUNCE_AMPLITUDE = 0.02;  // vertical bounce height during walk
+const HEAD_BOB_AMPLITUDE = 0.015;    // head vertical bob during walk
+const WALK_LEAN_ANGLE = 0.05;        // forward lean in radians during walk
+const BLEND_SPEED = 6.0;             // how fast new animations blend in/out
+
 export class CitizenAnimator {
   private leftArm: THREE.Object3D | null;
   private rightArm: THREE.Object3D | null;
   private leftLeg: THREE.Object3D | null;
   private rightLeg: THREE.Object3D | null;
+  private headGroup: THREE.Object3D | null;
+  private bodyGroup: THREE.Object3D | null;
   private phase = 0;           // walk cycle phase accumulator
+  private breathePhase = 0;    // idle breathing phase accumulator
   private targetYRotation = 0; // target facing direction
+
+  // Blend factor: 0 = fully idle, 1 = fully walking
+  private walkBlend = 0;
+
+  // Store base positions for additive offsets
+  private headBaseY = 0;
 
   // Gathering animation state
   private isGathering = false;
@@ -28,6 +46,15 @@ export class CitizenAnimator {
     this.rightArm = mesh.getObjectByName('rightArm') ?? null;
     this.leftLeg = mesh.getObjectByName('leftLeg') ?? null;
     this.rightLeg = mesh.getObjectByName('rightLeg') ?? null;
+
+    // Optional sub-groups for enhanced animations (gracefully handle if not found)
+    this.headGroup = mesh.getObjectByName('headGroup') ?? null;
+    this.bodyGroup = mesh.getObjectByName('bodyGroup') ?? null;
+
+    // Store base head Y position for additive bob
+    if (this.headGroup) {
+      this.headBaseY = this.headGroup.position.y;
+    }
   }
 
   /** Start gathering animation with tool attached to right hand. */
@@ -74,6 +101,16 @@ export class CitizenAnimator {
       this.rightArm.rotation.z = 0;
     }
     if (this.leftArm) this.leftArm.rotation.x = 0;
+
+    // Reset enhanced animation state for clean transition back to idle
+    if (this.bodyGroup) {
+      this.bodyGroup.scale.y = 1;
+      this.bodyGroup.rotation.x = 0;
+    }
+    if (this.headGroup) {
+      this.headGroup.position.y = this.headBaseY;
+    }
+    this.walkBlend = 0;
   }
 
   /** Reset the gather swing phase (called on each GatherHit to sync animation). */
@@ -116,11 +153,19 @@ export class CitizenAnimator {
     this.mesh.rotation.y += angleDiff * Math.min(1, ROTATION_LERP_SPEED * dt);
   }
 
-  /** Walk/idle animation (original behavior). */
+  /** Walk/idle animation with enhanced breathing, bounce, head bob, and body lean. */
   private updateWalkIdle(dt: number, vx: number, vz: number): void {
     const speed = Math.sqrt(vx * vx + vz * vz);
+    const isWalking = speed > SPEED_THRESHOLD;
 
-    if (speed > SPEED_THRESHOLD) {
+    // Smoothly blend walkBlend toward 0 (idle) or 1 (walking)
+    const targetBlend = isWalking ? 1 : 0;
+    this.walkBlend += (targetBlend - this.walkBlend) * Math.min(1, BLEND_SPEED * dt);
+
+    // Always advance breathing phase (it fades out via walkBlend)
+    this.breathePhase += BREATHE_SPEED * dt;
+
+    if (isWalking) {
       // Advance walk cycle phase
       this.phase += SWING_FREQUENCY * dt;
 
@@ -146,6 +191,41 @@ export class CitizenAnimator {
       if (this.rightLeg) this.rightLeg.rotation.x *= (1 - t);
       // Reset phase so walk starts fresh next time
       this.phase = 0;
+    }
+
+    // --- Enhanced animations (additive, blended) ---
+
+    // 1. Idle breathing: subtle Y-scale oscillation on bodyGroup
+    //    Fades out as walkBlend approaches 1 (walking)
+    if (this.bodyGroup) {
+      const breatheFactor = 1 - this.walkBlend; // full at idle, zero at walk
+      const breatheT = (Math.sin(this.breathePhase) + 1) * 0.5; // 0..1
+      const breatheScale = BREATHE_MIN_SCALE + (BREATHE_MAX_SCALE - BREATHE_MIN_SCALE) * breatheT;
+      // Lerp body scale.y toward target (blend between 1.0 and breatheScale)
+      const targetScaleY = 1.0 + (breatheScale - 1.0) * breatheFactor;
+      this.bodyGroup.scale.y += (targetScaleY - this.bodyGroup.scale.y) * Math.min(1, BLEND_SPEED * dt);
+    }
+
+    // 2. Walk bounce: slight vertical offset on the whole mesh synced to walk cycle
+    //    Uses abs(sin) for a double-frequency bounce (one per step)
+    //    Fades in as walkBlend approaches 1
+    {
+      const bounceOffset = Math.abs(Math.sin(this.phase)) * WALK_BOUNCE_AMPLITUDE * this.walkBlend;
+      this.mesh.position.y += bounceOffset;
+    }
+
+    // 3. Head bob: subtle vertical oscillation on headGroup during walking
+    //    Synced to walk cycle but at double frequency for per-step bob
+    if (this.headGroup) {
+      const headBob = Math.sin(this.phase * 2) * HEAD_BOB_AMPLITUDE * this.walkBlend;
+      this.headGroup.position.y = this.headBaseY + headBob;
+    }
+
+    // 4. Body lean forward during walking (small rotation.x on bodyGroup)
+    //    Smoothly blends in/out with walkBlend
+    if (this.bodyGroup) {
+      const targetLean = WALK_LEAN_ANGLE * this.walkBlend;
+      this.bodyGroup.rotation.x += (targetLean - this.bodyGroup.rotation.x) * Math.min(1, BLEND_SPEED * dt);
     }
   }
 
