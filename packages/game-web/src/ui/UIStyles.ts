@@ -561,37 +561,6 @@ const CSS = /* css */ `
   display: none;
 }
 
-/* Wall color picker */
-.ui-selection-panel .wall-color-picker {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ui-border);
-}
-.ui-selection-panel .wall-color-picker .label {
-  color: var(--ui-text-muted);
-  font-size: 13px;
-  white-space: nowrap;
-}
-.ui-selection-panel .wall-color-picker .color-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid var(--ui-border);
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  flex-shrink: 0;
-}
-.ui-selection-panel .wall-color-picker .color-swatch:hover {
-  border-color: var(--ui-accent-hover);
-}
-.ui-selection-panel .wall-color-picker .color-swatch.active {
-  border-color: var(--ui-accent);
-  box-shadow: 0 0 0 2px var(--ui-accent);
-}
-
 /* Destroy building button (icon in header) */
 .ui-selection-panel .sel-destroy-btn {
   background: none;
