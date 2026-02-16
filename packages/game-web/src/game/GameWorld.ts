@@ -29,6 +29,9 @@ import {
   EQUIPMENT,
   ANIMAL,
   CitizenState,
+  Gender,
+  Mood,
+  LifeGoal,
   createAnimal,
   type AnimalType,
   type GatheringComponent,
@@ -62,6 +65,7 @@ import {
   DEFAULT_GAME_CONFIG,
   AnimalAISystem,
   AutoBuilderSystem,
+  CitizenNeedsSystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
 import { TerrainMesh } from '../world/TerrainMesh.js';
@@ -69,10 +73,8 @@ import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
 import { CitizenAnimator } from '../animation/CitizenAnimator.js';
 import { AnimalAnimator } from '../animation/AnimalAnimator.js';
 
-const CITIZEN_NAMES = [
-  'Aldric', 'Beatrice', 'Cedric', 'Dorothea', 'Edmund',
-  'Fiona', 'Gilbert', 'Helena', 'Ivar', 'Juliana',
-];
+const MALE_NAMES = ['Aldric', 'Cedric', 'Edmund', 'Gilbert', 'Ivar'];
+const FEMALE_NAMES = ['Beatrice', 'Dorothea', 'Fiona', 'Helena', 'Juliana'];
 
 /** Jobs to cycle through when spawning starting citizens */
 const STARTING_JOBS: JobType[] = [JobType.Woodcutter, JobType.Quarrier];
@@ -135,6 +137,7 @@ export class GameWorld {
     const delivery = new DeliverySystem(this.timeSystem, this.eventBus);
     const construction = new ConstructionSystem(this.timeSystem, this.eventBus);
     const autoBuilder = new AutoBuilderSystem(this.eventBus);
+    const citizenNeeds = new CitizenNeedsSystem(this.timeSystem);
     this.resourceStore = new ResourceStoreSystem(this.eventBus);
     this.buildingPlacement = new BuildingPlacementSystem(this.eventBus);
 
@@ -153,6 +156,7 @@ export class GameWorld {
     this.world.addSystem(delivery);
     this.world.addSystem(construction);
     this.world.addSystem(autoBuilder);
+    this.world.addSystem(citizenNeeds);
     this.world.addSystem(this.resourceStore);
     this.world.addSystem(this.buildingPlacement);
     this.world.addSystem(animalAI);
@@ -276,12 +280,24 @@ export class GameWorld {
       this.nextJobIndex++;
     }
 
-    const name = CITIZEN_NAMES[Math.floor(Math.random() * CITIZEN_NAMES.length)];
+    // Random gender 50/50 and matching name
+    const gender = Math.random() < 0.5 ? Gender.Male : Gender.Female;
+    const names = gender === Gender.Male ? MALE_NAMES : FEMALE_NAMES;
+    const name = names[Math.floor(Math.random() * names.length)];
+
+    // Random age between 18 and 65
+    const age = 18 + Math.floor(Math.random() * 48);
+
+    // Random life goal
+    const lifeGoals = Object.values(LifeGoal);
+    const lifeGoal = lifeGoals[Math.floor(Math.random() * lifeGoals.length)];
 
     const entity = this.world.createEntity();
     this.world.addComponent(entity, TRANSFORM, createTransform(pos));
     this.world.addComponent(entity, VELOCITY, createVelocity());
-    this.world.addComponent(entity, CITIZEN, createCitizen(name, assignedJob));
+    this.world.addComponent(entity, CITIZEN, createCitizen(
+      name, gender, assignedJob, CitizenState.Idle, 100, 100, 0, 0, Mood.Neutral, age, lifeGoal,
+    ));
     this.world.addComponent(entity, CARRY, createCarry());
     this.world.addComponent(entity, SELECTABLE, createSelectable());
     this.world.addComponent(entity, JOB_ASSIGNMENT, createJobAssignment(assignedJob));

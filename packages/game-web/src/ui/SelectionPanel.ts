@@ -26,6 +26,9 @@ import {
   CONSTRUCTION_SITE,
   BuildingType,
   ResourceType,
+  Gender,
+  Mood,
+  LifeGoal,
 } from '@augmented-survival/game-core';
 import type {
   EntityId,
@@ -48,10 +51,17 @@ export class SelectionPanel {
 
   // Cached citizen DOM elements — created once, updated per-frame
   private citizenBuiltForEntity: EntityId | null = null;
+  private citizenGenderText: HTMLSpanElement | null = null;
+  private citizenAgeText: HTMLSpanElement | null = null;
+  private citizenMoodText: HTMLSpanElement | null = null;
+  private citizenLifeGoalText: HTMLSpanElement | null = null;
+  private citizenRelationText: HTMLSpanElement | null = null;
   private citizenJobText: HTMLSpanElement | null = null;
   private citizenStateText: HTMLSpanElement | null = null;
   private citizenHealthFill: HTMLDivElement | null = null;
   private citizenHungerFill: HTMLDivElement | null = null;
+  private citizenFatigueFill: HTMLDivElement | null = null;
+  private citizenStressFill: HTMLDivElement | null = null;
   private citizenJobButtons: Map<JobType, HTMLButtonElement> = new Map();
   private citizenEquipSlots: HTMLDivElement[] = [];
   private citizenEquipIcons: HTMLSpanElement[] = [];
@@ -197,10 +207,17 @@ export class SelectionPanel {
 
   private clearCitizenCache(): void {
     this.citizenBuiltForEntity = null;
+    this.citizenGenderText = null;
+    this.citizenAgeText = null;
+    this.citizenMoodText = null;
+    this.citizenLifeGoalText = null;
+    this.citizenRelationText = null;
     this.citizenJobText = null;
     this.citizenStateText = null;
     this.citizenHealthFill = null;
     this.citizenHungerFill = null;
+    this.citizenFatigueFill = null;
+    this.citizenStressFill = null;
     this.citizenJobButtons.clear();
     this.citizenEquipSlots = [];
     this.citizenEquipIcons = [];
@@ -314,6 +331,61 @@ export class SelectionPanel {
 
   /** Build the citizen DOM structure once and cache element references. */
   private buildCitizenDOM(entityId: EntityId, _c: CitizenComponent): void {
+    // Age row
+    const ageRow = document.createElement('div');
+    ageRow.className = 'sel-row';
+    const ageLabel = document.createElement('span');
+    ageLabel.className = 'label';
+    ageLabel.textContent = 'Age';
+    const ageValue = document.createElement('span');
+    ageRow.appendChild(ageLabel);
+    ageRow.appendChild(ageValue);
+    this.citizenAgeText = ageValue;
+
+    // Gender row (right after Age)
+    const genderRow = document.createElement('div');
+    genderRow.className = 'sel-row';
+    const genderLabel = document.createElement('span');
+    genderLabel.className = 'label';
+    genderLabel.textContent = 'Gender';
+    const genderValue = document.createElement('span');
+    genderRow.appendChild(genderLabel);
+    genderRow.appendChild(genderValue);
+    this.citizenGenderText = genderValue;
+
+    // Mood row
+    const moodRow = document.createElement('div');
+    moodRow.className = 'sel-row';
+    const moodLabel = document.createElement('span');
+    moodLabel.className = 'label';
+    moodLabel.textContent = 'Mood';
+    const moodValue = document.createElement('span');
+    moodRow.appendChild(moodLabel);
+    moodRow.appendChild(moodValue);
+    this.citizenMoodText = moodValue;
+
+    // Life goal row
+    const lifeGoalRow = document.createElement('div');
+    lifeGoalRow.className = 'sel-row';
+    const lifeGoalLabel = document.createElement('span');
+    lifeGoalLabel.className = 'label';
+    lifeGoalLabel.textContent = 'Life Goal';
+    const lifeGoalValue = document.createElement('span');
+    lifeGoalRow.appendChild(lifeGoalLabel);
+    lifeGoalRow.appendChild(lifeGoalValue);
+    this.citizenLifeGoalText = lifeGoalValue;
+
+    // Relation row
+    const relationRow = document.createElement('div');
+    relationRow.className = 'sel-row';
+    const relationLabel = document.createElement('span');
+    relationLabel.className = 'label';
+    relationLabel.textContent = 'Relation';
+    const relationValue = document.createElement('span');
+    relationRow.appendChild(relationLabel);
+    relationRow.appendChild(relationValue);
+    this.citizenRelationText = relationValue;
+
     // Job row
     const jobRow = document.createElement('div');
     jobRow.className = 'sel-row';
@@ -366,13 +438,52 @@ export class SelectionPanel {
     hungerBar.appendChild(hungerFill);
     this.citizenHungerFill = hungerFill;
 
-    // Append info rows
+    // Fatigue label + bar
+    const fatigueLabelRow = document.createElement('div');
+    fatigueLabelRow.className = 'sel-row';
+    const fatigueLabel = document.createElement('span');
+    fatigueLabel.className = 'label';
+    fatigueLabel.textContent = 'Fatigue';
+    fatigueLabelRow.appendChild(fatigueLabel);
+
+    const fatigueBar = document.createElement('div');
+    fatigueBar.className = 'bar-container bar-fatigue';
+    const fatigueFill = document.createElement('div');
+    fatigueFill.className = 'bar-fill';
+    fatigueBar.appendChild(fatigueFill);
+    this.citizenFatigueFill = fatigueFill;
+
+    // Stress label + bar
+    const stressLabelRow = document.createElement('div');
+    stressLabelRow.className = 'sel-row';
+    const stressLabel = document.createElement('span');
+    stressLabel.className = 'label';
+    stressLabel.textContent = 'Stress';
+    stressLabelRow.appendChild(stressLabel);
+
+    const stressBar = document.createElement('div');
+    stressBar.className = 'bar-container bar-stress';
+    const stressFill = document.createElement('div');
+    stressFill.className = 'bar-fill';
+    stressBar.appendChild(stressFill);
+    this.citizenStressFill = stressFill;
+
+    // Append info rows in order
+    this.contentEl.appendChild(ageRow);
+    this.contentEl.appendChild(genderRow);
+    this.contentEl.appendChild(moodRow);
+    this.contentEl.appendChild(lifeGoalRow);
+    this.contentEl.appendChild(relationRow);
     this.contentEl.appendChild(jobRow);
     this.contentEl.appendChild(stateRow);
     this.contentEl.appendChild(healthLabelRow);
     this.contentEl.appendChild(healthBar);
     this.contentEl.appendChild(hungerLabelRow);
     this.contentEl.appendChild(hungerBar);
+    this.contentEl.appendChild(fatigueLabelRow);
+    this.contentEl.appendChild(fatigueBar);
+    this.contentEl.appendChild(stressLabelRow);
+    this.contentEl.appendChild(stressBar);
 
     // Equipment slots
     const equipLabel = document.createElement('div');
@@ -457,6 +568,22 @@ export class SelectionPanel {
     this.citizenBuiltForEntity = entityId;
   }
 
+  private static readonly MOOD_DISPLAY: Record<Mood, string> = {
+    [Mood.Joyful]: '😄 Joyful',
+    [Mood.Content]: '😊 Content',
+    [Mood.Neutral]: '😐 Neutral',
+    [Mood.Sad]: '😢 Sad',
+    [Mood.Angry]: '😠 Angry',
+  };
+
+  private static readonly LIFE_GOAL_DISPLAY: Record<LifeGoal, string> = {
+    [LifeGoal.Prosper]: '🌟 Prosperity',
+    [LifeGoal.Socialize]: '👨‍👩‍👧 Socialize',
+    [LifeGoal.Explore]: '🧭 Exploration',
+    [LifeGoal.Build]: '🔨 Build',
+    [LifeGoal.Survive]: '🌿 Survive',
+  };
+
   /** Update only the dynamic values in the cached citizen DOM. */
   private updateCitizenValues(): void {
     if (this.selectedEntity === null) return;
@@ -465,6 +592,26 @@ export class SelectionPanel {
 
     const currentJob = citizen.job ?? JobType.Idle;
 
+    if (this.citizenAgeText) {
+      this.citizenAgeText.textContent = `${citizen.age} y/o`;
+    }
+    if (this.citizenGenderText) {
+      this.citizenGenderText.textContent = citizen.gender === Gender.Male ? '👨 Male' : '👩 Female';
+    }
+    if (this.citizenMoodText) {
+      this.citizenMoodText.textContent = SelectionPanel.MOOD_DISPLAY[citizen.mood] ?? citizen.mood;
+    }
+    if (this.citizenLifeGoalText) {
+      this.citizenLifeGoalText.textContent = SelectionPanel.LIFE_GOAL_DISPLAY[citizen.lifeGoal] ?? citizen.lifeGoal;
+    }
+    if (this.citizenRelationText) {
+      if (citizen.partnerId != null) {
+        const partner = this.world.getComponent<CitizenComponent>(citizen.partnerId, CITIZEN);
+        this.citizenRelationText.textContent = partner ? `💕 ${partner.name}` : 'Single';
+      } else {
+        this.citizenRelationText.textContent = 'Single';
+      }
+    }
     if (this.citizenJobText) {
       this.citizenJobText.textContent = citizen.job ?? 'None';
     }
@@ -476,6 +623,12 @@ export class SelectionPanel {
     }
     if (this.citizenHungerFill) {
       this.citizenHungerFill.style.width = `${citizen.hunger}%`;
+    }
+    if (this.citizenFatigueFill) {
+      this.citizenFatigueFill.style.width = `${citizen.fatigue}%`;
+    }
+    if (this.citizenStressFill) {
+      this.citizenStressFill.style.width = `${citizen.stress}%`;
     }
 
     // Update active class on job buttons
