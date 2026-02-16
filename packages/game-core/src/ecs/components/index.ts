@@ -52,3 +52,6 @@ export { EQUIPMENT, createEquipment } from './EquipmentComponent';
 export type { AnimalComponent, AnimalType, AnimalState, FlockingData } from './AnimalComponent';
 export { ANIMAL, createAnimal } from './AnimalComponent';
 
+export type { TemporaryBuilderComponent } from './TemporaryBuilderComponent';
+export { TEMPORARY_BUILDER, createTemporaryBuilder } from './TemporaryBuilderComponent';
+

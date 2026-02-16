@@ -73,6 +73,9 @@ export { EQUIPMENT, createEquipment } from './ecs/components/EquipmentComponent'
 export type { AnimalComponent, AnimalType, AnimalState, FlockingData } from './ecs/components/AnimalComponent';
 export { ANIMAL, createAnimal } from './ecs/components/AnimalComponent';
 
+export type { TemporaryBuilderComponent } from './ecs/components/TemporaryBuilderComponent';
+export { TEMPORARY_BUILDER, createTemporaryBuilder } from './ecs/components/TemporaryBuilderComponent';
+
 // Events
 export { EventBus } from './events/EventBus';
 export type { EventHandler, EventMap } from './events/EventBus';
