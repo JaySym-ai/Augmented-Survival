@@ -201,7 +201,7 @@ export class GameWorld {
     const tcSlopeDepth = y - tcMinY;
     if (tcSlopeDepth > 0.05) {
       const tcFoundationHeight = tcSlopeDepth + 0.3;
-      const tcFoundationExt = this.meshFactory.createFoundationExtension(4.3, 4.3, tcFoundationHeight, 'stone');
+      const tcFoundationExt = this.meshFactory.createSlopedDirtFoundation(4.3, 4.3, tcFoundationHeight);
       mesh.add(tcFoundationExt);
     }
 
@@ -389,9 +389,9 @@ export class GameWorld {
       const slopeDepth = position.y - minY;
       if (slopeDepth > 0.05) {
         const foundationHeight = slopeDepth + 0.3;
-        const foundationExt = type === BuildingType.FarmField
-          ? this.meshFactory.createSlopedDirtFoundation(def.size.width + 0.3, def.size.depth + 0.3, foundationHeight)
-          : this.meshFactory.createFoundationExtension(def.size.width + 0.3, def.size.depth + 0.3, foundationHeight, 'stone');
+        const foundationExt = this.meshFactory.createSlopedDirtFoundation(
+          def.size.width + 0.3, def.size.depth + 0.3, foundationHeight
+        );
         mesh.add(foundationExt);
       }
 
