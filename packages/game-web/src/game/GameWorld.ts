@@ -532,6 +532,30 @@ export class GameWorld {
       // 6. Close the selection panel
       this.eventBus.emit('EntityDeselected', { entityId });
     });
+
+    // When a citizen enters Building state, start hammer animation
+    this.eventBus.on('CitizenStateChanged', (event) => {
+      if (event.newState === CitizenState.Building) {
+        const animator = this.citizenAnimators.get(event.entityId);
+        if (!animator || animator.isInGatheringMode()) return;
+
+        const hammer = this.meshFactory.createHammerMesh();
+        this.citizenTools.set(event.entityId, hammer);
+        animator.startGathering(1.0, hammer, 'build');
+
+        // Face the villager toward the target building
+        const work = this.world.getComponent<ConstructionWorkComponent>(event.entityId, CONSTRUCTION_WORK);
+        if (work) {
+          const targetTransform = this.world.getComponent<TransformComponent>(work.targetBuilding as EntityId, TRANSFORM);
+          const workerTransform = this.world.getComponent<TransformComponent>(event.entityId, TRANSFORM);
+          if (targetTransform && workerTransform) {
+            const dx = targetTransform.position.x - workerTransform.position.x;
+            const dz = targetTransform.position.z - workerTransform.position.z;
+            animator.setFacingTarget(dx, dz);
+          }
+        }
+      }
+    });
   }
 
   /** Call every frame to step simulation and sync visuals */
@@ -556,8 +580,31 @@ export class GameWorld {
       // Animate citizens
       const animator = this.citizenAnimators.get(entityId);
       if (animator) {
+        // Check if citizen was building but no longer has CONSTRUCTION_WORK component
+        if (animator.isInGatheringMode() && animator.getGatherType() === 'build') {
+          if (!this.world.hasComponent(entityId, CONSTRUCTION_WORK)) {
+            animator.stopGathering();
+            const tool = this.citizenTools.get(entityId);
+            if (tool) {
+              tool.removeFromParent();
+              this.citizenTools.delete(entityId);
+            }
+          } else {
+            // Face the target building while building
+            const work = this.world.getComponent<ConstructionWorkComponent>(entityId, CONSTRUCTION_WORK);
+            if (work) {
+              const targetTransform = this.world.getComponent<TransformComponent>(work.targetBuilding as EntityId, TRANSFORM);
+              if (targetTransform && transform) {
+                const dx = targetTransform.position.x - transform.position.x;
+                const dz = targetTransform.position.z - transform.position.z;
+                animator.setFacingTarget(dx, dz);
+              }
+            }
+          }
+        }
+
         // Check if citizen was gathering but no longer has GATHERING component
-        if (animator.isInGatheringMode()) {
+        if (animator.isInGatheringMode() && animator.getGatherType() !== 'build') {
           if (!this.world.hasComponent(entityId, GATHERING)) {
             animator.stopGathering();
             const tool = this.citizenTools.get(entityId);
@@ -568,8 +615,8 @@ export class GameWorld {
           }
         }
 
-        // If gathering, make citizen face the target resource
-        if (animator.isInGatheringMode()) {
+        // If gathering (not building), make citizen face the target resource
+        if (animator.isInGatheringMode() && animator.getGatherType() !== 'build') {
           const gathering = this.world.getComponent<GatheringComponent>(entityId, GATHERING);
           if (gathering?.targetEntity != null) {
             const targetTransform = this.world.getComponent<TransformComponent>(gathering.targetEntity, TRANSFORM);
