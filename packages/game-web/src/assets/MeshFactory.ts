@@ -578,7 +578,7 @@ export class MeshFactory {
     const D = 2.0;   // cabin depth (Z)
     const logR = 0.12; // base log radius
     const logCount = 7; // logs per wall
-    const logSpacing = logR * 2 * 0.92; // slight overlap
+    const logSpacing = logR * 2 * 0.82; // tighter overlap to eliminate gaps
     const wallH = logCount * logSpacing;
     const foundH = 0.25;
     const overhang = 0.15; // log extension past corners
@@ -628,10 +628,10 @@ export class MeshFactory {
       if (i > 0) {
         const cy = foundH + i * logSpacing;
         for (const side of [-1, 1]) {
-          const chinkFB = shad(new THREE.Mesh(new THREE.BoxGeometry(W - 0.1, 0.02, 0.06), chinkMat));
+          const chinkFB = shad(new THREE.Mesh(new THREE.BoxGeometry(W - 0.1, 0.04, 0.14), chinkMat));
           chinkFB.position.set(0, cy, side * D / 2);
           walls.add(chinkFB);
-          const chinkLR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, D - 0.1), chinkMat));
+          const chinkLR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, D - 0.1), chinkMat));
           chinkLR.position.set(side * W / 2, cy, 0);
           walls.add(chinkLR);
         }
@@ -835,7 +835,7 @@ export class MeshFactory {
     chimneyOpening.position.set(0, cy - 0.02, 0);
     chimneyGroup.add(chimneyOpening);
 
-    chimneyGroup.position.set(-W / 2 + 0.05, foundH, -D / 2 + chimneyD / 2 + 0.05);
+    chimneyGroup.position.set(-W / 2 - chimneyW / 2 + 0.05, foundH, -D / 2 + chimneyD / 2 + 0.05);
     group.add(chimneyGroup);
 
     // ── 8. Porch / Awning ──
