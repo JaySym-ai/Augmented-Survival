@@ -210,15 +210,15 @@ export class GameWorld {
 
     // Campfire with benches in front of the barn
     const campfire = this.meshFactory.createCampfire();
-    const campfireY = getMaxHeightForFootprint(this.terrainMesh, 0, 4, 2.6, 2.6);
-    campfire.position.set(0, campfireY, 4);
+    const campfireY = getMaxHeightForFootprint(this.terrainMesh, 0, 7, 2.6, 2.6);
+    campfire.position.set(0, campfireY, 7);
 
     // Add dirt mound under campfire on slopes
-    const minCampfireY = getMinHeightForFootprint(this.terrainMesh, 0, 4, 2.6, 2.6);
+    const minCampfireY = getMinHeightForFootprint(this.terrainMesh, 0, 7, 2.6, 2.6);
     const campfireSlopeDepth = campfireY - minCampfireY;
     if (campfireSlopeDepth > 0.05) {
       const moundHeight = campfireSlopeDepth + 0.2;
-      const terrainMound = this.meshFactory.createTerrainMound(1.4, 1.6, moundHeight);
+      const terrainMound = this.meshFactory.createTerrainMound(1.4, 2.2, moundHeight);
       campfire.add(terrainMound);
     }
 
@@ -389,10 +389,9 @@ export class GameWorld {
       const slopeDepth = position.y - minY;
       if (slopeDepth > 0.05) {
         const foundationHeight = slopeDepth + 0.3;
-        const foundationType = type === BuildingType.FarmField ? 'dirt' : 'stone';
-        const foundationExt = this.meshFactory.createFoundationExtension(
-          def.size.width + 0.3, def.size.depth + 0.3, foundationHeight, foundationType,
-        );
+        const foundationExt = type === BuildingType.FarmField
+          ? this.meshFactory.createSlopedDirtFoundation(def.size.width + 0.3, def.size.depth + 0.3, foundationHeight)
+          : this.meshFactory.createFoundationExtension(def.size.width + 0.3, def.size.depth + 0.3, foundationHeight, 'stone');
         mesh.add(foundationExt);
       }
 
