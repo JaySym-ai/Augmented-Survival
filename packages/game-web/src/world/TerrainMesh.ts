@@ -172,3 +172,24 @@ export function getMaxHeightForFootprint(
   const hSE = terrainMesh.getHeightAt(centerX + hw, centerZ + hd);
   return Math.max(hCenter, hNW, hNE, hSW, hSE);
 }
+
+/**
+ * Sample terrain height at 5 points (center + 4 corners of the footprint)
+ * and return the minimum. Used to calculate foundation extension depth on slopes.
+ */
+export function getMinHeightForFootprint(
+  terrainMesh: TerrainMesh,
+  centerX: number,
+  centerZ: number,
+  width: number,
+  depth: number,
+): number {
+  const hw = width / 2;
+  const hd = depth / 2;
+  const hCenter = terrainMesh.getHeightAt(centerX, centerZ);
+  const hNW = terrainMesh.getHeightAt(centerX - hw, centerZ - hd);
+  const hNE = terrainMesh.getHeightAt(centerX + hw, centerZ - hd);
+  const hSW = terrainMesh.getHeightAt(centerX - hw, centerZ + hd);
+  const hSE = terrainMesh.getHeightAt(centerX + hw, centerZ + hd);
+  return Math.min(hCenter, hNW, hNE, hSW, hSE);
+}

@@ -64,7 +64,7 @@ import {
   AutoBuilderSystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
-import { TerrainMesh, getMaxHeightForFootprint } from '../world/TerrainMesh.js';
+import { TerrainMesh, getMaxHeightForFootprint, getMinHeightForFootprint } from '../world/TerrainMesh.js';
 import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
 import { CitizenAnimator } from '../animation/CitizenAnimator.js';
 import { AnimalAnimator } from '../animation/AnimalAnimator.js';
@@ -195,13 +195,43 @@ export class GameWorld {
     const mesh = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
     mesh.position.set(0, y, 0);
     mesh.castShadow = true;
+
+    // Add foundation extension for town center on slopes
+    const tcMinY = getMinHeightForFootprint(this.terrainMesh, 0, 0, def.size.width, def.size.depth);
+    const tcSlopeDepth = y - tcMinY;
+    if (tcSlopeDepth > 0.05) {
+      const tcFoundationHeight = tcSlopeDepth + 0.3;
+      const tcFoundationGeo = new THREE.BoxGeometry(4.3, tcFoundationHeight, 4.3);
+      const tcFoundationMat = new THREE.MeshStandardMaterial({ color: 0x8B8680, roughness: 0.9 });
+      const tcFoundationMesh = new THREE.Mesh(tcFoundationGeo, tcFoundationMat);
+      tcFoundationMesh.position.y = -tcFoundationHeight / 2;
+      tcFoundationMesh.castShadow = true;
+      tcFoundationMesh.receiveShadow = true;
+      mesh.add(tcFoundationMesh);
+    }
+
     this.scene.add(mesh);
     this.entityMeshes.set(entityId, mesh);
 
     // Campfire with benches in front of the barn
     const campfire = this.meshFactory.createCampfire();
-    const campfireY = this.terrainMesh.getHeightAt(0, 4);
+    const campfireY = getMaxHeightForFootprint(this.terrainMesh, 0, 4, 2.6, 2.6);
     campfire.position.set(0, campfireY, 4);
+
+    // Add dirt mound under campfire on slopes
+    const minCampfireY = getMinHeightForFootprint(this.terrainMesh, 0, 4, 2.6, 2.6);
+    const campfireSlopeDepth = campfireY - minCampfireY;
+    if (campfireSlopeDepth > 0.05) {
+      const moundHeight = campfireSlopeDepth + 0.2;
+      const moundGeo = new THREE.CylinderGeometry(1.4, 1.6, moundHeight, 16);
+      const moundMat = new THREE.MeshStandardMaterial({ color: 0x6B5B3A, roughness: 1.0 });
+      const moundMesh = new THREE.Mesh(moundGeo, moundMat);
+      moundMesh.position.y = -moundHeight / 2;
+      moundMesh.castShadow = true;
+      moundMesh.receiveShadow = true;
+      campfire.add(moundMesh);
+    }
+
     this.scene.add(campfire);
   }
 
@@ -363,6 +393,23 @@ export class GameWorld {
       const mesh = this.meshFactory.createBuildingMesh(type);
       mesh.position.set(position.x, position.y, position.z);
       mesh.castShadow = true;
+
+      // Add foundation extension on slopes (BEFORE transparent traverse so it also becomes semi-transparent)
+      const minY = getMinHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
+      const slopeDepth = position.y - minY;
+      if (slopeDepth > 0.05) {
+        const foundationHeight = slopeDepth + 0.3;
+        const foundationGeo = new THREE.BoxGeometry(def.size.width + 0.3, foundationHeight, def.size.depth + 0.3);
+        const foundationColor = type === BuildingType.FarmField ? 0x6B5B3A : 0x8B8680;
+        const foundationRoughness = type === BuildingType.FarmField ? 1.0 : 0.9;
+        const foundationMat = new THREE.MeshStandardMaterial({ color: foundationColor, roughness: foundationRoughness });
+        const foundationMesh = new THREE.Mesh(foundationGeo, foundationMat);
+        foundationMesh.position.y = -foundationHeight / 2;
+        foundationMesh.castShadow = true;
+        foundationMesh.receiveShadow = true;
+        mesh.add(foundationMesh);
+      }
+
       // Make semi-transparent for under-construction
       mesh.traverse((child) => {
         if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
