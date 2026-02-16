@@ -11,7 +11,8 @@
  * 7. CarrySystem              — carry state management
  * 8. DeliverySystem           — resource drop-off
  * 9. ConstructionSystem       — construction progress
- * 10. ResourceStoreSystem     — global resource tracking (event-driven)
+ * 10. AutoBuilderSystem      — auto-assign/restore temporary builders
+ * 11. ResourceStoreSystem     — global resource tracking (event-driven)
  * 11. BuildingPlacementSystem — user-triggered building placement
  */
 
@@ -23,6 +24,7 @@ export { GatherSystem } from './GatherSystem';
 export { CarrySystem } from './CarrySystem';
 export { DeliverySystem } from './DeliverySystem';
 export { ConstructionSystem } from './ConstructionSystem';
+export { AutoBuilderSystem } from './AutoBuilderSystem';
 export { ResourceStoreSystem } from './ResourceStoreSystem';
 export { BuildingPlacementSystem } from './BuildingPlacementSystem';
 export { ResourceDepletionSystem } from './ResourceDepletionSystem';

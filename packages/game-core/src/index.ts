@@ -73,6 +73,9 @@ export { EQUIPMENT, createEquipment } from './ecs/components/EquipmentComponent'
 export type { AnimalComponent, AnimalType, AnimalState, FlockingData } from './ecs/components/AnimalComponent';
 export { ANIMAL, createAnimal } from './ecs/components/AnimalComponent';
 
+export type { TemporaryBuilderComponent } from './ecs/components/TemporaryBuilderComponent';
+export { TEMPORARY_BUILDER, createTemporaryBuilder } from './ecs/components/TemporaryBuilderComponent';
+
 // Events
 export { EventBus } from './events/EventBus';
 export type { EventHandler, EventMap } from './events/EventBus';
@@ -111,6 +114,7 @@ export { GatherSystem } from './systems/GatherSystem';
 export { CarrySystem } from './systems/CarrySystem';
 export { DeliverySystem } from './systems/DeliverySystem';
 export { ConstructionSystem } from './systems/ConstructionSystem';
+export { AutoBuilderSystem } from './systems/AutoBuilderSystem';
 export { ResourceStoreSystem } from './systems/ResourceStoreSystem';
 export { BuildingPlacementSystem } from './systems/BuildingPlacementSystem';
 export { ResourceDepletionSystem } from './systems/ResourceDepletionSystem';
