@@ -54,7 +54,7 @@ const CSS = /* css */ `
   padding: 8px 16px;
   align-items: center;
   transition: all 0.3s ease;
-  width: 320px;
+  width: max-content;
 }
 .ui-resource-bar.expanded {
   flex-direction: column;
