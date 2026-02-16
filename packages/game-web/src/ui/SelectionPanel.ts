@@ -26,6 +26,7 @@ import {
   CONSTRUCTION_SITE,
   BuildingType,
   ResourceType,
+  Gender,
   Mood,
   LifeGoal,
 } from '@augmented-survival/game-core';
@@ -50,6 +51,7 @@ export class SelectionPanel {
 
   // Cached citizen DOM elements — created once, updated per-frame
   private citizenBuiltForEntity: EntityId | null = null;
+  private citizenGenderText: HTMLSpanElement | null = null;
   private citizenAgeText: HTMLSpanElement | null = null;
   private citizenMoodText: HTMLSpanElement | null = null;
   private citizenLifeGoalText: HTMLSpanElement | null = null;
@@ -204,6 +206,7 @@ export class SelectionPanel {
 
   private clearCitizenCache(): void {
     this.citizenBuiltForEntity = null;
+    this.citizenGenderText = null;
     this.citizenAgeText = null;
     this.citizenMoodText = null;
     this.citizenLifeGoalText = null;
@@ -329,6 +332,17 @@ export class SelectionPanel {
     ageRow.appendChild(ageValue);
     this.citizenAgeText = ageValue;
 
+    // Sexe row (right after Age)
+    const genderRow = document.createElement('div');
+    genderRow.className = 'sel-row';
+    const genderLabel = document.createElement('span');
+    genderLabel.className = 'label';
+    genderLabel.textContent = 'Sexe';
+    const genderValue = document.createElement('span');
+    genderRow.appendChild(genderLabel);
+    genderRow.appendChild(genderValue);
+    this.citizenGenderText = genderValue;
+
     // Mood row
     const moodRow = document.createElement('div');
     moodRow.className = 'sel-row';
@@ -446,6 +460,7 @@ export class SelectionPanel {
 
     // Append info rows in order
     this.contentEl.appendChild(ageRow);
+    this.contentEl.appendChild(genderRow);
     this.contentEl.appendChild(moodRow);
     this.contentEl.appendChild(lifeGoalRow);
     this.contentEl.appendChild(relationRow);
@@ -569,6 +584,9 @@ export class SelectionPanel {
 
     if (this.citizenAgeText) {
       this.citizenAgeText.textContent = `${citizen.age} ans`;
+    }
+    if (this.citizenGenderText) {
+      this.citizenGenderText.textContent = citizen.gender === Gender.Homme ? '👨 Homme' : '👩 Femme';
     }
     if (this.citizenMoodText) {
       this.citizenMoodText.textContent = SelectionPanel.MOOD_DISPLAY[citizen.mood] ?? citizen.mood;

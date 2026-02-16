@@ -1,11 +1,13 @@
 import { JobType } from '../../types/jobs';
-import { CitizenState, Mood, LifeGoal } from '../../types/citizens';
+import { CitizenState, Gender, Mood, LifeGoal } from '../../types/citizens';
 
 /**
  * Citizen component — data for a citizen NPC.
  */
 export interface CitizenComponent {
   name: string;
+  /** Gender of the citizen. */
+  gender: Gender;
   job: JobType | null;
   state: CitizenState;
   hunger: number;
@@ -30,6 +32,7 @@ export const CITIZEN = 'Citizen' as const;
 
 export function createCitizen(
   name: string,
+  gender: Gender = Gender.Homme,
   job: JobType | null = null,
   state: CitizenState = CitizenState.Idle,
   hunger = 100,
@@ -41,6 +44,6 @@ export function createCitizen(
   lifeGoal: LifeGoal = LifeGoal.Survive,
   partnerId: number | null = null,
 ): CitizenComponent {
-  return { name, job, state, hunger, health, fatigue, stress, mood, age, lifeGoal, partnerId, wanderCooldown: 0 };
+  return { name, gender, job, state, hunger, health, fatigue, stress, mood, age, lifeGoal, partnerId, wanderCooldown: 0 };
 }
 

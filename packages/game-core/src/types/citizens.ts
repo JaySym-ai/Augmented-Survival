@@ -22,6 +22,14 @@ export enum Mood {
 }
 
 /**
+ * Gender of a citizen.
+ */
+export enum Gender {
+  Homme = 'Homme',
+  Femme = 'Femme',
+}
+
+/**
  * Long-term life goals that drive citizen autonomous decisions.
  */
 export enum LifeGoal {

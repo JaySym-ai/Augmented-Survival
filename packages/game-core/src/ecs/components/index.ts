@@ -13,7 +13,7 @@ export { SELECTABLE, createSelectable } from './SelectableComponent';
 export type { CitizenComponent } from './CitizenComponent';
 export { CITIZEN, createCitizen } from './CitizenComponent';
 
-export { Mood, LifeGoal } from '../../types/citizens';
+export { Gender, Mood, LifeGoal } from '../../types/citizens';
 
 export type { InventoryComponent } from './InventoryComponent';
 export { INVENTORY, createInventory } from './InventoryComponent';

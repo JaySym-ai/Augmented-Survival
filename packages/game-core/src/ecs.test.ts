@@ -11,7 +11,7 @@ import { ResourceStoreSystem } from './systems/ResourceStoreSystem';
 import { MovementSystem } from './systems/MovementSystem';
 import { ResourceType } from './types/resources';
 import { JobType } from './types/jobs';
-import { CitizenState } from './types/citizens';
+import { CitizenState, Gender } from './types/citizens';
 import { TRANSFORM, createTransform, TransformComponent } from './ecs/components/TransformComponent';
 import { VELOCITY, createVelocity } from './ecs/components/VelocityComponent';
 import { CITIZEN, createCitizen, CitizenComponent } from './ecs/components/CitizenComponent';
@@ -462,11 +462,11 @@ describe('JobAssignmentSystem', () => {
   it('should create idle citizen with JobAssignment', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', JobType.Woodcutter, CitizenState.Idle));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Idle));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
-    
+
     world.step(0.016);
-    
+
     const citizenComp = world.getComponent<CitizenComponent>(citizen, CITIZEN);
     expect(citizenComp?.state).toBeDefined();
   });
@@ -474,7 +474,7 @@ describe('JobAssignmentSystem', () => {
   it('should not run when paused', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', JobType.Woodcutter, CitizenState.Idle));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Idle));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
     
     timeSystem.pause();
@@ -487,7 +487,7 @@ describe('JobAssignmentSystem', () => {
   it('should recover stuck Walking citizens', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', JobType.Woodcutter, CitizenState.Walking));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Walking));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
     
     const stateChangeHandler = vi.fn();
@@ -502,7 +502,7 @@ describe('JobAssignmentSystem', () => {
   it('should recover stuck Delivering citizens', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', JobType.Woodcutter, CitizenState.Delivering));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Delivering));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
     
     world.step(0.016);
