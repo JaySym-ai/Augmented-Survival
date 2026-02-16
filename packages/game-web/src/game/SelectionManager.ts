@@ -32,7 +32,7 @@ import type { GameWorld } from './GameWorld.js';
 import type { RTSCameraController } from '../camera/RTSCameraController.js';
 
 /** Movement speed for right-click move commands (matches CITIZEN_SPEED in JobAssignmentSystem) */
-const CITIZEN_SPEED = 3;
+const CITIZEN_SPEED = 2;
 
 /** Max pixel distance between mousedown and mouseup to count as a click (not a drag) */
 const CLICK_THRESHOLD = 5;

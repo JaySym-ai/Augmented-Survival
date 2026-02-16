@@ -30,7 +30,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     [BuildingType.Quarry]: BUILDING_DEFS[BuildingType.Quarry],
   },
 
-  citizenBaseSpeed: 3.0,
+  citizenBaseSpeed: 2.0,
   gatherRate: 1.0,
   minTimeScale: 0,
   maxTimeScale: 3,
