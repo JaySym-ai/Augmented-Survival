@@ -200,7 +200,7 @@ export class GameWorld {
     const tcMinY = getMinHeightForFootprint(this.terrainMesh, 0, 0, def.size.width, def.size.depth);
     const tcSlopeDepth = y - tcMinY;
     if (tcSlopeDepth > 0.05) {
-      const tcFoundationHeight = tcSlopeDepth + 0.3;
+      const tcFoundationHeight = tcSlopeDepth + 0.6;
       const tcFoundationExt = this.meshFactory.createSlopedDirtFoundation(4.3, 4.3, tcFoundationHeight);
       mesh.add(tcFoundationExt);
     }
@@ -388,7 +388,7 @@ export class GameWorld {
       const minY = getMinHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
       const slopeDepth = position.y - minY;
       if (slopeDepth > 0.05) {
-        const foundationHeight = slopeDepth + 0.3;
+        const foundationHeight = slopeDepth + 0.6;
         const foundationExt = this.meshFactory.createSlopedDirtFoundation(
           def.size.width + 0.3, def.size.depth + 0.3, foundationHeight
         );

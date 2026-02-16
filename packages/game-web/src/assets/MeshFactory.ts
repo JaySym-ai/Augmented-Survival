@@ -653,11 +653,15 @@ export class MeshFactory {
   ): THREE.Group {
     const group = new THREE.Group();
     const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
-    const dirtMat = this.mat('dirt').clone();
-    dirtMat.side = THREE.DoubleSide;
+    const grassMat = new THREE.MeshStandardMaterial({
+      color: 0x4a7c3f,
+      roughness: 0.85,
+      metalness: 0.0,
+      side: THREE.DoubleSide,
+    });
 
     // Truncated rectangular pyramid: base is wider than top by height * 1.5 on each side
-    const slopeExtend = height * 1.5;
+    const slopeExtend = height * 3.0;
     const bottomWidth = topWidth + slopeExtend * 2;
     const bottomDepth = topDepth + slopeExtend * 2;
 
@@ -701,7 +705,7 @@ export class MeshFactory {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    const mound = shad(new THREE.Mesh(geometry, dirtMat));
+    const mound = shad(new THREE.Mesh(geometry, grassMat));
     group.add(mound);
 
     // Scattered small rocks partially embedded in slopes
@@ -779,7 +783,11 @@ export class MeshFactory {
   ): THREE.Group {
     const group = new THREE.Group();
     const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
-    const dirtMat = this.mat('dirt');
+    const grassMat = new THREE.MeshStandardMaterial({
+      color: 0x4a7c3f,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
 
     // Build smooth mound profile using LatheGeometry
     const points: THREE.Vector2[] = [];
@@ -792,7 +800,7 @@ export class MeshFactory {
       points.push(new THREE.Vector2(smoothR, y));
     }
     const moundGeo = new THREE.LatheGeometry(points, 16);
-    const moundMat = dirtMat.clone();
+    const moundMat = grassMat.clone();
     moundMat.side = THREE.DoubleSide;
     const mound = shad(new THREE.Mesh(moundGeo, moundMat));
     group.add(mound);
