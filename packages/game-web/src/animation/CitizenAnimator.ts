@@ -77,7 +77,7 @@ export class CitizenAnimator {
       } else if (gatherType === 'build') {
         // For building, position hammer similar to mining but adjusted for hammer head
         toolMesh.position.set(0, -0.72, 0);
-        toolMesh.rotation.set(Math.PI, Math.PI / 2, 0);
+        toolMesh.rotation.set(Math.PI, 0, 0);
       } else {
         // For mining, flip pickaxe 180° and shift down to compensate
         // for the handle length so the grip stays near the hand.
@@ -303,20 +303,20 @@ export class CitizenAnimator {
       }
     }
 
-    // Map phase to arm rotation for hammering motion (down at slight forward angle)
+    // Map phase to arm rotation for hammering motion (dramatic overhead swing)
     let armRotation: number;
     if (this.gatherPhase < 0.4) {
-      // Phase 0–0.4: arm raises up (rotation.x from -0.3 to -1.2)
+      // Phase 0–0.4: arm raises HIGH above head
       const t = this.gatherPhase / 0.4;
-      armRotation = -0.3 - 0.9 * t;
+      armRotation = -0.3 - 1.7 * t;  // goes from -0.3 to -2.0
     } else if (this.gatherPhase < 0.6) {
-      // Phase 0.4–0.6: arm swings down fast (rotation.x from -1.2 to 0.1 — slightly past horizontal)
+      // Phase 0.4–0.6: arm swings down fast to strike
       const t = (this.gatherPhase - 0.4) / 0.2;
-      armRotation = -1.2 + 1.3 * t;
+      armRotation = -2.0 + 2.3 * t;  // goes from -2.0 to 0.3
     } else {
-      // Phase 0.6–1.0: arm recovers (rotation.x from 0.1 back to -0.3)
+      // Phase 0.6–1.0: arm recovers back to start
       const t = (this.gatherPhase - 0.6) / 0.4;
-      armRotation = 0.1 - 0.4 * t;
+      armRotation = 0.3 - 0.6 * t;   // goes from 0.3 back to -0.3
     }
 
     if (this.rightArm) {
