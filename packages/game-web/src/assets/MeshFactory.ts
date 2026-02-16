@@ -748,6 +748,133 @@ export class MeshFactory {
   }
 
   /**
+   * Creates a sloped dirt foundation (truncated rectangular pyramid) for buildings like FarmField.
+   * Flat top matching building footprint, 4 sloped sides going outward/downward.
+   * Includes scattered rocks and grass tufts for a natural look.
+   */
+  createSlopedDirtFoundation(
+    topWidth: number,
+    topDepth: number,
+    height: number,
+  ): THREE.Group {
+    const group = new THREE.Group();
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
+    const dirtMat = this.mat('dirt').clone();
+    dirtMat.side = THREE.DoubleSide;
+
+    // Truncated rectangular pyramid: base is wider than top by height * 1.5 on each side
+    const slopeExtend = height * 1.5;
+    const bottomWidth = topWidth + slopeExtend * 2;
+    const bottomDepth = topDepth + slopeExtend * 2;
+
+    const hw = topWidth / 2;
+    const hd = topDepth / 2;
+    const bw = bottomWidth / 2;
+    const bd = bottomDepth / 2;
+
+    // Vertices: top rectangle (y=0) then bottom rectangle (y=-height)
+    const vertices = new Float32Array([
+      // Top face (4 corners) - indices 0-3
+      -hw, 0,  hd,   //  0: top-left-front
+       hw, 0,  hd,   //  1: top-right-front
+       hw, 0, -hd,   //  2: top-right-back
+      -hw, 0, -hd,   //  3: top-left-back
+      // Bottom face (4 corners) - indices 4-7
+      -bw, -height,  bd,   //  4: bottom-left-front
+       bw, -height,  bd,   //  5: bottom-right-front
+       bw, -height, -bd,   //  6: bottom-right-back
+      -bw, -height, -bd,   //  7: bottom-left-back
+    ]);
+
+    // Indices for all 6 faces (2 triangles each)
+    const indices = [
+      // Top cap
+      0, 1, 2,  0, 2, 3,
+      // Bottom cap
+      4, 6, 5,  4, 7, 6,
+      // Front face (positive Z)
+      0, 5, 1,  0, 4, 5,
+      // Back face (negative Z)
+      2, 7, 3,  2, 6, 7,
+      // Right face (positive X)
+      1, 6, 2,  1, 5, 6,
+      // Left face (negative X)
+      3, 4, 0,  3, 7, 4,
+    ];
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    const mound = shad(new THREE.Mesh(geometry, dirtMat));
+    group.add(mound);
+
+    // Scattered small rocks partially embedded in slopes
+    const stoneMat = this.mat('stone');
+    const rockCount = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < rockCount; i++) {
+      const size = 0.06 + Math.random() * 0.1;
+      const rock = shad(new THREE.Mesh(
+        new THREE.DodecahedronGeometry(size, 0),
+        stoneMat,
+      ));
+      // Place on a random slope face
+      const side = Math.floor(Math.random() * 4);
+      const t = 0.3 + Math.random() * 0.5; // position along the slope height
+      const yPos = -height * t;
+      const lateralT = (Math.random() - 0.5) * 0.8;
+      let rx: number, rz: number;
+      const slopeT = t; // how far down the slope (0=top, 1=bottom)
+      if (side === 0) { // front
+        rx = lateralT * (hw + (bw - hw) * slopeT);
+        rz = hd + (bd - hd) * slopeT;
+      } else if (side === 1) { // back
+        rx = lateralT * (hw + (bw - hw) * slopeT);
+        rz = -(hd + (bd - hd) * slopeT);
+      } else if (side === 2) { // right
+        rx = hw + (bw - hw) * slopeT;
+        rz = lateralT * (hd + (bd - hd) * slopeT);
+      } else { // left
+        rx = -(hw + (bw - hw) * slopeT);
+        rz = lateralT * (hd + (bd - hd) * slopeT);
+      }
+      rock.position.set(rx, yPos, rz);
+      rock.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      rock.scale.y = 0.5 + Math.random() * 0.5;
+      group.add(rock);
+    }
+
+    // Grass tufts around the base
+    const leafMat = this.mat('leaf');
+    const grassCount = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < grassCount; i++) {
+      const tuft = new THREE.Mesh(
+        new THREE.ConeGeometry(0.04 + Math.random() * 0.03, 0.12 + Math.random() * 0.08, 4),
+        leafMat,
+      );
+      // Place around the bottom perimeter
+      const side = Math.floor(Math.random() * 4);
+      const lateralT = (Math.random() - 0.5) * 0.9;
+      let tx: number, tz: number;
+      if (side === 0) { tx = lateralT * bw; tz = bd; }
+      else if (side === 1) { tx = lateralT * bw; tz = -bd; }
+      else if (side === 2) { tx = bw; tz = lateralT * bd; }
+      else { tx = -bw; tz = lateralT * bd; }
+      tuft.position.set(tx, -height + 0.05, tz);
+      tuft.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * Math.PI * 2,
+        (Math.random() - 0.5) * 0.3,
+      );
+      group.add(tuft);
+    }
+
+    return group;
+  }
+
+
+  /**
    * Creates a natural-looking terrain mound for campfires and similar structures on slopes.
    * Uses LatheGeometry with a smooth profile curve for a natural hill shape.
    */
@@ -765,7 +892,7 @@ export class MeshFactory {
     const steps = 12;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps; // 0 = bottom, 1 = top
-      const smoothT = Math.pow(t, 0.6); // gentler slope at bottom, steeper near top
+      const smoothT = Math.pow(t, 0.35); // very gentle slope at bottom, steeper near top
       const smoothR = bottomRadius + (topRadius - bottomRadius) * smoothT;
       const y = -height * (1 - t); // from -height at bottom to 0 at top
       points.push(new THREE.Vector2(smoothR, y));
@@ -1123,10 +1250,25 @@ export class MeshFactory {
     mountPlate.position.set(0.12, 0, 0.05);
     doorGroup.add(mountPlate);
 
-    // Stone step in front of door
-    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.25), stoneMat));
-    doorStep.position.set(0, -doorH / 2 - 0.05, 0.15);
-    doorGroup.add(doorStep);
+    // Cascading stone staircase in front of door (3 steps)
+    const stairStepH = foundH / 3;
+    const stairDepth = 0.18;
+    const stairWidths = [0.7, 0.6, 0.5]; // bottom to top, progressively narrower
+    for (let i = 0; i < 3; i++) {
+      const step = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(stairWidths[i], stairStepH, stairDepth),
+        stoneMat,
+      ));
+      // Position each step: bottom of door is at -doorH/2, steps go down from there
+      // Step 0 (top) is flush with door threshold, step 2 (bottom) is at ground level
+      const stepIndex = 2 - i; // reverse: i=0 is bottom, i=2 is top
+      step.position.set(
+        0,
+        -doorH / 2 - stairStepH / 2 - stepIndex * stairStepH,
+        stairDepth / 2 + i * stairDepth,
+      );
+      doorGroup.add(step);
+    }
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.06);
     group.add(doorGroup);
@@ -1455,6 +1597,19 @@ export class MeshFactory {
       hinge.position.set(-0.05, hy, 0.06);
       leftDoorGroup.add(hinge);
     }
+
+    // X-brace diagonals on left door half
+    const braceW = doorW / 2 - 0.06;
+    const braceH = doorH - 0.1;
+    const braceLen = Math.sqrt(braceW * braceW + braceH * braceH);
+    const braceAngle = Math.atan2(braceH, braceW);
+    for (const dir of [1, -1]) {
+      const brace = shad(new THREE.Mesh(new THREE.BoxGeometry(braceLen, 0.04, 0.03), darkWood));
+      brace.rotation.z = dir * braceAngle;
+      brace.position.set(-doorW / 4, 0, 0.04);
+      leftDoorGroup.add(brace);
+    }
+
     doorGroup.add(leftDoorGroup);
 
     const rightDoorGroup = new THREE.Group();
@@ -1470,6 +1625,15 @@ export class MeshFactory {
       hinge.position.set(0.05, hy, 0.06);
       rightDoorGroup.add(hinge);
     }
+
+    // X-brace diagonals on right door half
+    for (const dir of [1, -1]) {
+      const brace = shad(new THREE.Mesh(new THREE.BoxGeometry(braceLen, 0.04, 0.03), darkWood));
+      brace.rotation.z = dir * braceAngle;
+      brace.position.set(doorW / 4, 0, 0.04);
+      rightDoorGroup.add(brace);
+    }
+
     doorGroup.add(rightDoorGroup);
 
     const handlePlate = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.02), ironMetal));
@@ -1481,9 +1645,22 @@ export class MeshFactory {
     handleBar.position.set(0, 0.1, 0.1);
     doorGroup.add(handleBar);
 
-    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 0.3), stoneMat));
-    doorStep.position.set(0, -doorH / 2 - 0.06, 0.2);
-    doorGroup.add(doorStep);
+    // 3 cascading stone steps in front of the double door
+    const stepH = foundH / 3;
+    const stepsData: [number, number, number][] = [
+      [2.6, stepH, 0.30],   // bottom step: widest
+      [2.2, stepH, 0.28],   // middle step
+      [2.0, stepH, 0.26],   // top step (matches double door width)
+    ];
+    let stepY = -doorH / 2 - foundH + stepH / 2;
+    let stepZ = 0.15 + 0.30 + 0.28; // start from the outermost position
+    for (const [sw, sh, sd] of stepsData) {
+      const step = shad(new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), stoneMat));
+      step.position.set(0, stepY, stepZ);
+      doorGroup.add(step);
+      stepY += stepH;
+      stepZ -= sd;
+    }
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.08);
     group.add(doorGroup);
@@ -1758,9 +1935,23 @@ export class MeshFactory {
     hinge.position.set(-0.02, 0.15, 0.04);
     doorGroup.add(hinge);
 
-    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.2), stoneMat));
-    doorStep.position.set(0, -doorH / 2 - 0.04, 0.12);
-    doorGroup.add(doorStep);
+    // Cascading stone staircase in front of door (2 steps)
+    const stairStepH = foundH / 2;
+    const stairDepth = 0.15;
+    const stairWidths = [0.55, 0.45]; // bottom to top, progressively narrower
+    for (let i = 0; i < 2; i++) {
+      const step = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(stairWidths[i], stairStepH, stairDepth),
+        stoneMat,
+      ));
+      const stepIndex = 1 - i; // reverse: i=0 is bottom, i=1 is top
+      step.position.set(
+        0,
+        -doorH / 2 - stairStepH / 2 - stepIndex * stairStepH,
+        stairDepth / 2 + i * stairDepth,
+      );
+      doorGroup.add(step);
+    }
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.015, D / 2 + 0.05);
     group.add(doorGroup);
