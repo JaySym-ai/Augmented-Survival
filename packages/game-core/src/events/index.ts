@@ -11,7 +11,6 @@ export type {
   BuildingPlacedEvent,
   ConstructionProgressEvent,
   ConstructionCompleteEvent,
-  BuildingWallColorChangedEvent,
   BuildingDestroyRequestedEvent,
   CitizenAssignedJobEvent,
   CitizenStateChangedEvent,
