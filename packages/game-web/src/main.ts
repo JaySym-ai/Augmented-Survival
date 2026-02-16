@@ -2,6 +2,7 @@
  * Augmented Survival — Medieval City Builder
  * Web entry point: creates GameApp, wires all systems, starts game loop
  */
+import * as THREE from 'three';
 import { GameRenderer } from './renderer/GameRenderer.js';
 import { PRESET_HIGH } from './renderer/RenderSettings.js';
 import { RTSCameraController } from './camera/RTSCameraController.js';
@@ -185,9 +186,8 @@ class GameApp {
     const transform = this.gameWorld.world.getComponent<TransformComponent>(entityId, TRANSFORM);
     if (!transform) return;
 
-    const target = this.cameraController.getLookAtPosition();
-    target.set(transform.position.x, 0, transform.position.z);
-    this.cameraController.setTarget(target);
+    const target = new THREE.Vector3(transform.position.x, 0, transform.position.z);
+    this.cameraController.panTo(target);
   }
 }
 
