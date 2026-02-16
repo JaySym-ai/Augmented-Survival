@@ -64,7 +64,7 @@ import {
   AutoBuilderSystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
-import { TerrainMesh, getMaxHeightForFootprint, getMinHeightForFootprint } from '../world/TerrainMesh.js';
+import { TerrainMesh, getMaxHeightForFootprint } from '../world/TerrainMesh.js';
 import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
 import { CitizenAnimator } from '../animation/CitizenAnimator.js';
 import { AnimalAnimator } from '../animation/AnimalAnimator.js';
@@ -107,6 +107,9 @@ export class GameWorld {
 
   // Round-robin counter for default job assignment
   private nextJobIndex = 0;
+
+  // Track building footprints for terrain modification exclude zones
+  private buildingFootprints: Array<{x: number, z: number, width: number, depth: number}> = [];
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -192,18 +195,13 @@ export class GameWorld {
     this.world.addComponent(entityId, STORAGE, createStorage(def.storageCapacity));
     this.world.addComponent(entityId, SELECTABLE, createSelectable());
 
+    // Raise terrain for town center
+    this.buildingFootprints.push({x: 0, z: 0, width: def.size.width, depth: def.size.depth});
+    this.terrainMesh.raiseTerrainForBuilding(0, 0, def.size.width, def.size.depth, y, []);
+
     const mesh = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
     mesh.position.set(0, y, 0);
     mesh.castShadow = true;
-
-    // Add foundation extension for town center on slopes
-    const tcMinY = getMinHeightForFootprint(this.terrainMesh, 0, 0, def.size.width, def.size.depth);
-    const tcSlopeDepth = y - tcMinY;
-    if (tcSlopeDepth > 0.05) {
-      const tcFoundationHeight = tcSlopeDepth + 0.6;
-      const tcFoundationExt = this.meshFactory.createSlopedDirtFoundation(4.3, 4.3, tcFoundationHeight);
-      mesh.add(tcFoundationExt);
-    }
 
     this.scene.add(mesh);
     this.entityMeshes.set(entityId, mesh);
@@ -213,16 +211,15 @@ export class GameWorld {
     const campfireY = getMaxHeightForFootprint(this.terrainMesh, 0, 7, 2.6, 2.6);
     campfire.position.set(0, campfireY, 7);
 
-    // Add dirt mound under campfire on slopes
-    const minCampfireY = getMinHeightForFootprint(this.terrainMesh, 0, 7, 2.6, 2.6);
-    const campfireSlopeDepth = campfireY - minCampfireY;
-    if (campfireSlopeDepth > 0.05) {
-      const moundHeight = campfireSlopeDepth + 0.2;
-      const terrainMound = this.meshFactory.createTerrainMound(1.4, 2.2, moundHeight);
-      campfire.add(terrainMound);
-    }
+    // Raise terrain for campfire, excluding TC footprint
+    this.buildingFootprints.push({x: 0, z: 7, width: 2.6, depth: 2.6});
+    this.terrainMesh.raiseTerrainForBuilding(0, 7, 2.6, 2.6, campfireY,
+      this.buildingFootprints.filter(fp => !(fp.x === 0 && fp.z === 7)));
 
     this.scene.add(campfire);
+
+    // Refresh terrain geometry once after all initial terrain modifications
+    this.terrainMesh.refreshGeometry();
   }
 
   private createResourceEntities(): void {
@@ -384,16 +381,14 @@ export class GameWorld {
       mesh.position.set(position.x, position.y, position.z);
       mesh.castShadow = true;
 
-      // Add foundation extension on slopes (BEFORE transparent traverse so it also becomes semi-transparent)
-      const minY = getMinHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
-      const slopeDepth = position.y - minY;
-      if (slopeDepth > 0.05) {
-        const foundationHeight = slopeDepth + 0.6;
-        const foundationExt = this.meshFactory.createSlopedDirtFoundation(
-          def.size.width + 0.3, def.size.depth + 0.3, foundationHeight
-        );
-        mesh.add(foundationExt);
-      }
+      // Raise terrain around building footprint
+      this.buildingFootprints.push({x: position.x, z: position.z, width: def.size.width, depth: def.size.depth});
+      const currentFp = this.buildingFootprints[this.buildingFootprints.length - 1];
+      this.terrainMesh.raiseTerrainForBuilding(
+        position.x, position.z, def.size.width, def.size.depth, position.y,
+        this.buildingFootprints.filter(fp => fp !== currentFp)
+      );
+      this.terrainMesh.refreshGeometry();
 
       // Make semi-transparent for under-construction
       mesh.traverse((child) => {
