@@ -192,7 +192,7 @@ export class GameWorld {
     this.world.addComponent(entityId, STORAGE, createStorage(def.storageCapacity));
     this.world.addComponent(entityId, SELECTABLE, createSelectable());
 
-    const mesh = this.meshFactory.createBuildingMesh(BuildingType.TownCenter);
+    const mesh = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
     mesh.position.set(0, y, 0);
     mesh.castShadow = true;
     this.scene.add(mesh);
