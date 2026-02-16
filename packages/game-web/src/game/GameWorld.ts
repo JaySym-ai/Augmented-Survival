@@ -197,6 +197,12 @@ export class GameWorld {
     mesh.castShadow = true;
     this.scene.add(mesh);
     this.entityMeshes.set(entityId, mesh);
+
+    // Campfire with benches in front of the barn
+    const campfire = this.meshFactory.createCampfire();
+    const campfireY = this.terrainMesh.getHeightAt(0, 4);
+    campfire.position.set(0, campfireY, 4);
+    this.scene.add(campfire);
   }
 
   private createResourceEntities(): void {

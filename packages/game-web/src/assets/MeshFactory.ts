@@ -529,6 +529,117 @@ export class MeshFactory {
     return group;
   }
 
+  createCampfire(): THREE.Group {
+    const group = new THREE.Group();
+    const stone = this.mat('stone');
+    const wood = this.mat('wood');
+    const dark = this.mat('dark');
+
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
+
+    // ── 1. Fire Pit — ring of stones ──
+    const stoneCount = 10;
+    const pitRadius = 0.45;
+    for (let i = 0; i < stoneCount; i++) {
+      const angle = (i / stoneCount) * Math.PI * 2;
+      const stoneSize = 0.12 + Math.random() * 0.06;
+      const stoneGeo = new THREE.DodecahedronGeometry(stoneSize, 0);
+      const stoneMesh = shad(new THREE.Mesh(stoneGeo, stone));
+      stoneMesh.position.set(
+        Math.cos(angle) * pitRadius,
+        stoneSize * 0.4,
+        Math.sin(angle) * pitRadius,
+      );
+      stoneMesh.rotation.set(Math.random() * 0.5, Math.random() * Math.PI, 0);
+      stoneMesh.scale.y = 0.6 + Math.random() * 0.3;
+      group.add(stoneMesh);
+    }
+
+    // Dirt/ash floor inside the pit
+    const ashMat = new THREE.MeshStandardMaterial({ color: 0x2A2A2A, roughness: 1.0, metalness: 0.0 });
+    const ashFloor = shad(new THREE.Mesh(new THREE.CylinderGeometry(pitRadius - 0.05, pitRadius - 0.05, 0.04, 12), ashMat));
+    ashFloor.position.y = 0.02;
+    group.add(ashFloor);
+
+    // ── 2. Charred logs in the center ──
+    const charredMat = new THREE.MeshStandardMaterial({ color: 0x1A1008, roughness: 0.95, metalness: 0.0 });
+    const logPositions: [number, number, number, number][] = [
+      [0.0, 0.1, -0.05, 0.3],    // x, y, z, rotation
+      [0.08, 0.1, 0.06, -0.8],
+      [-0.06, 0.1, 0.04, 1.5],
+    ];
+    for (const [lx, ly, lz, rot] of logPositions) {
+      const log = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.05, 0.35, 6), charredMat,
+      ));
+      log.position.set(lx, ly, lz);
+      log.rotation.z = Math.PI / 2;
+      log.rotation.y = rot;
+      group.add(log);
+    }
+
+    // ── 3. Glowing embers ──
+    const emberMat = new THREE.MeshStandardMaterial({
+      color: 0xFF4400,
+      roughness: 0.8,
+      metalness: 0.0,
+      emissive: 0xFF4400,
+      emissiveIntensity: 2.0,
+    });
+    const emberPositions: [number, number, number][] = [
+      [0.0, 0.06, 0.0],
+      [0.08, 0.05, -0.04],
+      [-0.06, 0.06, 0.05],
+      [0.04, 0.07, 0.06],
+      [-0.03, 0.05, -0.06],
+    ];
+    for (const [ex, ey, ez] of emberPositions) {
+      const ember = new THREE.Mesh(
+        new THREE.SphereGeometry(0.03 + Math.random() * 0.02, 6, 6), emberMat,
+      );
+      ember.position.set(ex, ey, ez);
+      group.add(ember);
+    }
+
+    // Warm point light for the fire glow
+    const fireLight = new THREE.PointLight(0xFF6622, 0.8, 6);
+    fireLight.position.set(0, 0.3, 0);
+    group.add(fireLight);
+
+    // ── 4. Log benches arranged in a semi-circle ──
+    const benchAngles = [-0.8, 0.0, 0.8]; // radians, semi-circle facing +Z
+    const benchRadius = 1.2;
+    for (const angle of benchAngles) {
+      const benchGroup = new THREE.Group();
+
+      // Main log (bench seat)
+      const seatLog = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.12, 0.9, 8), wood,
+      ));
+      seatLog.rotation.z = Math.PI / 2;
+      seatLog.position.y = 0.22;
+      benchGroup.add(seatLog);
+
+      // Two short log supports underneath
+      for (const side of [-0.3, 0.3]) {
+        const support = shad(new THREE.Mesh(
+          new THREE.CylinderGeometry(0.06, 0.07, 0.22, 6), dark,
+        ));
+        support.position.set(side, 0.11, 0);
+        benchGroup.add(support);
+      }
+
+      // Position bench around the fire pit
+      const bx = Math.sin(angle) * benchRadius;
+      const bz = Math.cos(angle) * benchRadius;
+      benchGroup.position.set(bx, 0, bz);
+      benchGroup.rotation.y = -angle; // face the fire
+      group.add(benchGroup);
+    }
+
+    return group;
+  }
+
   dispose(): void {
     this.meshCache.forEach((geo) => geo.dispose());
     this.meshCache.clear();
