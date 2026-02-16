@@ -309,6 +309,24 @@ export class MeshFactory {
     return group;
   }
 
+  createHammerMesh(): THREE.Group {
+    const group = new THREE.Group();
+    const wood = this.mat('wood');
+    const metal = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.4, metalness: 0.6 });
+
+    // Handle (thin cylinder)
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 6), wood);
+    handle.position.y = -0.175;
+    group.add(handle);
+
+    // Hammer head (rectangular block, perpendicular to handle)
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.16), metal);
+    head.position.set(0, 0, 0);
+    group.add(head);
+
+    return group;
+  }
+
   createTreeMesh(): THREE.Group {
     const group = new THREE.Group();
     const wood = this.mat('wood');

@@ -35,7 +35,7 @@ export class CitizenAnimator {
 
   // Gathering animation state
   private isGathering = false;
-  private gatherType: 'chop' | 'mine' = 'mine';
+  private gatherType: 'chop' | 'mine' | 'build' = 'mine';
   private gatherPhase = 0;     // phase within a single swing cycle (0 to 1)
   private hitInterval = 0;     // seconds per hit
   private toolMesh: THREE.Object3D | null = null;
@@ -58,7 +58,7 @@ export class CitizenAnimator {
   }
 
   /** Start gathering animation with tool attached to right hand. */
-  startGathering(hitInterval: number, toolMesh: THREE.Group, gatherType: 'chop' | 'mine' = 'mine'): void {
+  startGathering(hitInterval: number, toolMesh: THREE.Group, gatherType: 'chop' | 'mine' | 'build' = 'mine'): void {
     this.isGathering = true;
     this.gatherType = gatherType;
     this.hitInterval = hitInterval;
@@ -74,6 +74,10 @@ export class CitizenAnimator {
         // extending forward via rotation.x = -PI/2), rotation.y = PI/2 orients the
         // blade face perpendicular to the horizontal sweep direction.
         toolMesh.rotation.set(-Math.PI / 2, Math.PI / 2, 0);
+      } else if (gatherType === 'build') {
+        // For building, position hammer similar to mining but adjusted for hammer head
+        toolMesh.position.set(0, -0.72, 0);
+        toolMesh.rotation.set(Math.PI, 0, 0);
       } else {
         // For mining, flip pickaxe 180° and shift down to compensate
         // for the handle length so the grip stays near the hand.
@@ -128,6 +132,11 @@ export class CitizenAnimator {
     return this.isGathering;
   }
 
+  /** Get the current gather type. */
+  getGatherType(): 'chop' | 'mine' | 'build' {
+    return this.gatherType;
+  }
+
   /**
    * Call every frame.
    * @param dt - delta time in seconds
@@ -138,6 +147,8 @@ export class CitizenAnimator {
     if (this.isGathering) {
       if (this.gatherType === 'chop') {
         this.updateChopGathering(dt);
+      } else if (this.gatherType === 'build') {
+        this.updateBuildGathering(dt);
       } else {
         this.updateMineGathering(dt);
       }
@@ -264,6 +275,48 @@ export class CitizenAnimator {
       // Phase 0.6–1.0: arm holds/recovers (rotation.x lerps from -0.2 back to -0.3)
       const t = (this.gatherPhase - 0.6) / 0.4;
       armRotation = -0.2 - 0.1 * t;
+    }
+
+    if (this.rightArm) {
+      this.rightArm.rotation.x = armRotation;
+    }
+  }
+
+  /** Building animation — hammering motion, arm swings down at a slight forward angle. */
+  private updateBuildGathering(dt: number): void {
+    // Lerp legs to rest (standing still while building)
+    const legT = Math.min(1, IDLE_LERP_SPEED * dt);
+    if (this.leftLeg) this.leftLeg.rotation.x *= (1 - legT);
+    if (this.rightLeg) this.rightLeg.rotation.x *= (1 - legT);
+
+    // Left arm slightly raised (bracing posture)
+    if (this.leftArm) {
+      const targetLeftArm = -0.3;
+      this.leftArm.rotation.x += (targetLeftArm - this.leftArm.rotation.x) * Math.min(1, 6 * dt);
+    }
+
+    // Advance gather phase
+    if (this.hitInterval > 0) {
+      this.gatherPhase += dt / this.hitInterval;
+      if (this.gatherPhase >= 1) {
+        this.gatherPhase -= Math.floor(this.gatherPhase);
+      }
+    }
+
+    // Map phase to arm rotation for hammering motion (dramatic overhead swing)
+    let armRotation: number;
+    if (this.gatherPhase < 0.4) {
+      // Phase 0–0.4: arm raises HIGH above head
+      const t = this.gatherPhase / 0.4;
+      armRotation = -0.3 - 1.7 * t;  // goes from -0.3 to -2.0
+    } else if (this.gatherPhase < 0.6) {
+      // Phase 0.4–0.6: arm swings down fast to strike
+      const t = (this.gatherPhase - 0.4) / 0.2;
+      armRotation = -2.0 + 2.3 * t;  // goes from -2.0 to 0.3
+    } else {
+      // Phase 0.6–1.0: arm recovers back to start
+      const t = (this.gatherPhase - 0.6) / 0.4;
+      armRotation = 0.3 - 0.6 * t;   // goes from 0.3 back to -0.3
     }
 
     if (this.rightArm) {
