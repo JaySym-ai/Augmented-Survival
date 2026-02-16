@@ -192,11 +192,17 @@ export class GameWorld {
     this.world.addComponent(entityId, STORAGE, createStorage(def.storageCapacity));
     this.world.addComponent(entityId, SELECTABLE, createSelectable());
 
-    const mesh = this.meshFactory.createBuildingMesh(BuildingType.TownCenter);
+    const mesh = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
     mesh.position.set(0, y, 0);
     mesh.castShadow = true;
     this.scene.add(mesh);
     this.entityMeshes.set(entityId, mesh);
+
+    // Campfire with benches in front of the barn
+    const campfire = this.meshFactory.createCampfire();
+    const campfireY = this.terrainMesh.getHeightAt(0, 4);
+    campfire.position.set(0, campfireY, 4);
+    this.scene.add(campfire);
   }
 
   private createResourceEntities(): void {
