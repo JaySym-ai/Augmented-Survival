@@ -799,7 +799,7 @@ export class MeshFactory {
     group.add(walls);
 
     // ── 3. Corner Posts ──
-    const postH = wallH + 0.05;
+    const postH = wallH;
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, postH, 6), darkWood));
@@ -1147,7 +1147,7 @@ export class MeshFactory {
     group.add(walls);
 
     // 3. Corner Posts
-    const postH = wallH + 0.08;
+    const postH = wallH;
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, postH, 6), darkWood));
@@ -1454,7 +1454,7 @@ export class MeshFactory {
     group.add(walls);
 
     // Corner Posts
-    const postH = wallH + 0.04;
+    const postH = wallH;
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, postH, 6), darkWood));
