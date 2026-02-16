@@ -475,6 +475,8 @@ const CSS = /* css */ `
 }
 .ui-selection-panel .bar-health .bar-fill { background: var(--ui-success); }
 .ui-selection-panel .bar-hunger .bar-fill { background: var(--ui-accent); }
+.ui-selection-panel .bar-fatigue .bar-fill { background: #e8932f; }
+.ui-selection-panel .bar-stress .bar-fill { background: #9b59b6; }
 .ui-selection-panel .bar-construction .bar-fill { background: #f59e0b; }
 .ui-selection-panel .construction-pct {
   font-size: 12px; color: var(--ui-text-muted);

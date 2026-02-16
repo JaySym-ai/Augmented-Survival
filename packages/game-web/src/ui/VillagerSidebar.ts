@@ -1,5 +1,13 @@
-import { World, CITIZEN, SELECTABLE } from '@augmented-survival/game-core';
+import { World, CITIZEN, SELECTABLE, Mood } from '@augmented-survival/game-core';
 import type { CitizenComponent, EntityId } from '@augmented-survival/game-core';
+
+const MOOD_EMOJI: Record<Mood, string> = {
+  [Mood.Joyful]: '😄',
+  [Mood.Content]: '😊',
+  [Mood.Neutral]: '😐',
+  [Mood.Sad]: '😢',
+  [Mood.Angry]: '😠',
+};
 
 export const VILLAGER_SIDEBAR_SELECT_EVENT = 'villager-sidebar:select';
 
@@ -108,9 +116,10 @@ export class VillagerSidebar {
         row.style.background = 'rgba(218, 165, 32, 0.22)';
       }
 
+      const moodEmoji = MOOD_EMOJI[citizen.mood] ?? '😐';
       const name = document.createElement('div');
       name.className = 'villager-name';
-      name.textContent = citizen.name || `Villager ${entityId}`;
+      name.textContent = `${moodEmoji} ${citizen.name || `Villager ${entityId}`}`;
       row.appendChild(name);
 
       const activity = document.createElement('div');
