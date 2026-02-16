@@ -940,60 +940,634 @@ export class MeshFactory {
 
   private createStorageBarn(): THREE.Group {
     const group = new THREE.Group();
-    const wood = this.mat('wood');
-    const thatch = this.mat('thatch');
+    const logMat = this.createLogWoodMaterial();
+    const darkWood = this.mat('darkWood');
+    const ironMetal = this.mat('ironMetal');
+    const stoneMat = this.createStoneFoundationMaterial();
+    const shingleMat = this.createWoodShingleMaterial();
+    const chinkMat = new THREE.MeshStandardMaterial({ color: 0x6B4E32, roughness: 1.0, metalness: 0.0 });
 
-    // Wide low base
-    const base = new THREE.Mesh(new THREE.BoxGeometry(3, 1.4, 3), wood);
-    base.position.y = 0.7;
-    base.castShadow = true;
-    base.receiveShadow = true;
-    group.add(base);
+    // Dimensions (larger than house for barn)
+    const W = 3.0;
+    const D = 2.5;
+    const logR = 0.14;
+    const logCount = 5;
+    const logSpacing = logR * 2 * 0.82;
+    const wallH = logCount * logSpacing;
+    const foundH = 0.35;
+    const overhang = 0.18;
 
-    // Large sloped roof
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.5, 1.2, 4), thatch);
-    roof.position.y = 2.0;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    group.add(roof);
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
 
-    // Open front (dark inset)
-    const opening = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 1.2, 0.05),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1.0 }),
+    // 1. Stone Foundation
+    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.25, foundH, D + 0.25), stoneMat));
+    foundation.position.y = foundH / 2;
+    group.add(foundation);
+
+    for (const cx of [-1, 1]) {
+      for (const cz of [-1, 1]) {
+        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.28, foundH + 0.05, 0.28), stoneMat));
+        cs.position.set(cx * (W / 2 + 0.03), foundH / 2, cz * (D / 2 + 0.03));
+        group.add(cs);
+      }
+    }
+
+    // 2. Log Walls
+    const walls = new THREE.Group();
+    walls.name = 'walls';
+
+    for (let i = 0; i < logCount; i++) {
+      const y = foundH + logR + i * logSpacing;
+      const r = logR + (Math.random() - 0.5) * 0.02;
+
+      for (const side of [-1, 1]) {
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, W + overhang * 2, 12), logMat));
+        log.rotation.z = Math.PI / 2;
+        log.position.set(0, y, side * D / 2);
+        walls.add(log);
+      }
+
+      for (const side of [-1, 1]) {
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, D + overhang * 2, 12), logMat));
+        log.rotation.x = Math.PI / 2;
+        log.position.set(side * W / 2, y, 0);
+        walls.add(log);
+      }
+
+      if (i > 0) {
+        const cy = foundH + i * logSpacing;
+        for (const side of [-1, 1]) {
+          const chinkFB = shad(new THREE.Mesh(new THREE.BoxGeometry(W - 0.15, 0.05, 0.16), chinkMat));
+          chinkFB.position.set(0, cy, side * D / 2);
+          walls.add(chinkFB);
+          const chinkLR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, D - 0.15), chinkMat));
+          chinkLR.position.set(side * W / 2, cy, 0);
+          walls.add(chinkLR);
+        }
+      }
+    }
+
+    const innerWallMat = new THREE.MeshStandardMaterial({
+      color: 0x5C3A1E,
+      roughness: 1.0,
+      metalness: 0.0,
+      side: THREE.DoubleSide
+    });
+    const innerWallH = wallH + logR * 2;
+    const innerWallY = foundH + innerWallH / 2;
+
+    for (const side of [-1, 1]) {
+      const wall = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(W + 0.12, innerWallH, 0.14),
+        innerWallMat
+      ));
+      wall.position.set(0, innerWallY, side * D / 2);
+      walls.add(wall);
+    }
+    for (const side of [-1, 1]) {
+      const wall = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, innerWallH, D + 0.12),
+        innerWallMat
+      ));
+      wall.position.set(side * W / 2, innerWallY, 0);
+      walls.add(wall);
+    }
+
+    group.add(walls);
+
+    // 3. Corner Posts
+    const postH = wallH + 0.08;
+    for (const cx of [-1, 1]) {
+      for (const cz of [-1, 1]) {
+        const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, postH, 6), darkWood));
+        post.position.set(cx * W / 2, foundH + postH / 2, cz * D / 2);
+        group.add(post);
+      }
+    }
+
+    // 4. Gable Roof
+    const roofOverhang = 0.35;
+    const roofW = W / 2 + roofOverhang;
+    const roofPeak = 1.2;
+    const roofDepth = D + roofOverhang * 2;
+    const roofBaseY = foundH + wallH;
+
+    const roofShape = new THREE.Shape();
+    roofShape.moveTo(-roofW, 0);
+    roofShape.lineTo(0, roofPeak);
+    roofShape.lineTo(roofW, 0);
+    roofShape.lineTo(-roofW, 0);
+
+    const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
+      steps: 1, depth: roofDepth, bevelEnabled: false,
+    });
+    const roofMesh = shad(new THREE.Mesh(roofGeo, shingleMat));
+    roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
+    group.add(roofMesh);
+
+    const ridgeBeam = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, roofDepth + 0.12, 6), darkWood,
+    ));
+    ridgeBeam.rotation.x = Math.PI / 2;
+    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
+    group.add(ridgeBeam);
+
+    const rafterPositions = [-0.8, 0, 0.8];
+    for (const rx of rafterPositions) {
+      for (const side of [-1, 1]) {
+        const rafter = shad(new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6), darkWood,
+        ));
+        rafter.rotation.x = Math.PI / 2;
+        rafter.position.set(rx, roofBaseY + 0.08, side * (D / 2 + roofOverhang - 0.06));
+        group.add(rafter);
+      }
+    }
+
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(-W / 2, 0);
+    gableShape.lineTo(0, roofPeak - 0.06);
+    gableShape.lineTo(W / 2, 0);
+    gableShape.lineTo(-W / 2, 0);
+    const gableGeo = new THREE.ExtrudeGeometry(gableShape, {
+      steps: 1, depth: 0.1, bevelEnabled: false,
+    });
+    for (const side of [-1, 1]) {
+      const gable = shad(new THREE.Mesh(gableGeo, logMat));
+      gable.position.set(0, roofBaseY, side * (D / 2 - 0.05));
+      group.add(gable);
+    }
+
+    // 5. Large Barn Doors
+    const doorGroup = new THREE.Group();
+    const doorW = 1.2;
+    const doorH = 1.4;
+
+    const frameThick = 0.08;
+    const frameLeft = shad(new THREE.Mesh(new THREE.BoxGeometry(frameThick, doorH + frameThick, 0.16), darkWood));
+    frameLeft.position.set(-doorW - frameThick / 2, 0, 0);
+    doorGroup.add(frameLeft);
+    const frameRight = shad(new THREE.Mesh(new THREE.BoxGeometry(frameThick, doorH + frameThick, 0.16), darkWood));
+    frameRight.position.set(doorW + frameThick / 2, 0, 0);
+    doorGroup.add(frameRight);
+    const frameTop = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW + frameThick * 2 + 0.1, frameThick, 0.16), darkWood));
+    frameTop.position.set(-0.05, doorH / 2 + frameThick / 2, 0);
+    doorGroup.add(frameTop);
+
+    const leftDoorGroup = new THREE.Group();
+    const plankW = doorW / 2 / 3.5;
+    for (let p = 0; p < 4; p++) {
+      const px = -doorW / 2 + plankW / 2 + p * (doorW / 8);
+      const plank = shad(new THREE.Mesh(new THREE.BoxGeometry(plankW - 0.015, doorH, 0.06), logMat));
+      plank.position.set(px, 0, 0.02);
+      leftDoorGroup.add(plank);
+    }
+
+    for (const hy of [0.45, 0, -0.45]) {
+      const hinge = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.7, 0.05, 0.025), ironMetal));
+      hinge.position.set(-0.05, hy, 0.06);
+      leftDoorGroup.add(hinge);
+    }
+    doorGroup.add(leftDoorGroup);
+
+    const rightDoorGroup = new THREE.Group();
+    for (let p = 0; p < 4; p++) {
+      const px = -doorW / 2 + plankW / 2 + p * (doorW / 8);
+      const plank = shad(new THREE.Mesh(new THREE.BoxGeometry(plankW - 0.015, doorH, 0.06), logMat));
+      plank.position.set(px, 0, 0.02);
+      rightDoorGroup.add(plank);
+    }
+
+    for (const hy of [0.45, 0, -0.45]) {
+      const hinge = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.7, 0.05, 0.025), ironMetal));
+      hinge.position.set(0.05, hy, 0.06);
+      rightDoorGroup.add(hinge);
+    }
+    doorGroup.add(rightDoorGroup);
+
+    const handlePlate = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.02), ironMetal));
+    handlePlate.position.set(0, 0.1, 0.08);
+    doorGroup.add(handlePlate);
+
+    const handleBar = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.25, 6), ironMetal));
+    handleBar.rotation.x = Math.PI / 2;
+    handleBar.position.set(0, 0.1, 0.1);
+    doorGroup.add(handleBar);
+
+    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 0.3), stoneMat));
+    doorStep.position.set(0, -doorH / 2 - 0.06, 0.2);
+    doorGroup.add(doorStep);
+
+    doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.08);
+    group.add(doorGroup);
+
+    // 6. Hay Loft Window
+    const loftWindowGroup = new THREE.Group();
+    const loftWinSize = 0.45;
+
+    const lwfTop = shad(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, loftWinSize + 0.12), darkWood));
+    lwfTop.position.set(0, loftWinSize / 2 + 0.03, 0);
+    loftWindowGroup.add(lwfTop);
+    const lwfBot = shad(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, loftWinSize + 0.12), darkWood));
+    lwfBot.position.set(0, -loftWinSize / 2 - 0.03, 0);
+    loftWindowGroup.add(lwfBot);
+    const lwfL = shad(new THREE.Mesh(new THREE.BoxGeometry(0.12, loftWinSize, 0.06), darkWood));
+    lwfL.position.set(0, 0, -loftWinSize / 2 - 0.03);
+    loftWindowGroup.add(lwfL);
+    const lwfR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.12, loftWinSize, 0.06), darkWood));
+    lwfR.position.set(0, 0, loftWinSize / 2 + 0.03);
+    loftWindowGroup.add(lwfR);
+
+    const lcrossH = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.035, loftWinSize), darkWood));
+    lcrossH.position.set(0, 0, 0);
+    loftWindowGroup.add(lcrossH);
+    const lcrossV = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, loftWinSize, 0.035), darkWood));
+    lcrossV.position.set(0, 0, 0);
+    loftWindowGroup.add(lcrossV);
+
+    const loftWinInterior = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, loftWinSize - 0.08, loftWinSize - 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1.0 }),
     );
-    opening.position.set(0, 0.6, 1.51);
-    group.add(opening);
+    loftWinInterior.position.set(0, 0, 0);
+    loftWindowGroup.add(loftWinInterior);
+
+    const loftSill = shad(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, loftWinSize + 0.18), darkWood));
+    loftSill.position.set(0, -loftWinSize / 2 - 0.08, 0);
+    loftWindowGroup.add(loftSill);
+
+    loftWindowGroup.position.set(0, foundH + wallH + roofPeak * 0.4, -D / 2 - 0.08);
+    group.add(loftWindowGroup);
+
+    // 7. Exterior Props: Barrels
+    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x6B4423, roughness: 0.85, metalness: 0.0 });
+    const barrelPositions: [number, number, number][] = [
+      [-W / 2 - 0.15, 0.25, D / 2 - 0.3],
+      [-W / 2 - 0.15, 0.25, D / 2 - 0.7],
+    ];
+    for (const [bx, by, bz] of barrelPositions) {
+      const barrel = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.5, 12), barrelMat));
+      barrel.position.set(bx, by, bz);
+      group.add(barrel);
+      for (const bandY of [0.15, -0.15]) {
+        const band = shad(new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.015, 6, 12), ironMetal));
+        band.rotation.x = Math.PI / 2;
+        band.position.set(bx, by + bandY, bz);
+        group.add(band);
+      }
+    }
+
+    // 8. Exterior Props: Crates
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.9, metalness: 0.0 });
+    const cratePositions: [number, number, number][] = [
+      [W / 2 + 0.1, 0.2, D / 2 - 0.2],
+      [W / 2 + 0.35, 0.2, D / 2 - 0.2],
+      [W / 2 + 0.1, 0.2, D / 2 - 0.55],
+    ];
+    for (const [cx, cy, cz] of cratePositions) {
+      const crate = shad(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), crateMat));
+      crate.position.set(cx, cy, cz);
+      group.add(crate);
+      for (let pl = 0; pl < 3; pl++) {
+        const plankLine = shad(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.01, 0.01), darkWood));
+        plankLine.position.set(cx, cy - 0.15 + pl * 0.15, cz + 0.21);
+        group.add(plankLine);
+      }
+    }
+
+    // 9. Exterior Props: Timber Pile
+    const pileX = -W / 2 - 0.4;
+    const pileZ = -D / 2 + 0.3;
+    const timberPilePositions = [
+      [0, 0.07, 0], [0.14, 0.07, 0], [-0.12, 0.07, 0.1],
+      [0.07, 0.21, 0.05], [-0.05, 0.21, 0.12],
+    ];
+    for (const [lx, ly, lz] of timberPilePositions) {
+      const pileLog = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.065, 0.065, 0.4, 6), logMat,
+      ));
+      pileLog.rotation.x = Math.PI / 2;
+      pileLog.position.set(pileX + lx, ly, pileZ + lz);
+      group.add(pileLog);
+    }
 
     return group;
   }
 
   private createWoodcutterHut(): THREE.Group {
     const group = new THREE.Group();
-    const wood = this.mat('wood');
-    const thatch = this.mat('thatch');
+    const logMat = this.createLogWoodMaterial();
+    const darkWood = this.mat('darkWood');
+    const ironMetal = this.mat('ironMetal');
+    const stoneMat = this.createStoneFoundationMaterial();
+    const shingleMat = this.createWoodShingleMaterial();
+    const chinkMat = new THREE.MeshStandardMaterial({ color: 0x6B4E32, roughness: 1.0, metalness: 0.0 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x6699BB, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.4,
+    });
 
-    // Small timber frame hut
-    const hut = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 1.8), wood);
-    hut.position.y = 0.7;
-    hut.castShadow = true;
-    hut.receiveShadow = true;
-    group.add(hut);
+    const W = 1.6;
+    const D = 1.6;
+    const logR = 0.1;
+    const logCount = 5;
+    const logSpacing = logR * 2 * 0.82;
+    const wallH = logCount * logSpacing;
+    const foundH = 0.2;
+    const overhang = 0.12;
 
-    // Roof
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.8, 4), thatch);
-    roof.position.y = 1.8;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    group.add(roof);
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
 
-    // Stacked logs nearby (small cylinders)
-    for (let i = 0; i < 3; i++) {
-      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6), wood);
-      log.rotation.z = Math.PI / 2;
-      log.position.set(1.3, 0.1 + i * 0.18, 0.2 * (i % 2 === 0 ? 1 : -1));
-      log.castShadow = true;
-      group.add(log);
+    // Stone Foundation
+    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.15, foundH, D + 0.15), stoneMat));
+    foundation.position.y = foundH / 2;
+    group.add(foundation);
+
+    for (const cx of [-1, 1]) {
+      for (const cz of [-1, 1]) {
+        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.18, foundH + 0.03, 0.18), stoneMat));
+        cs.position.set(cx * (W / 2 + 0.01), foundH / 2, cz * (D / 2 + 0.01));
+        group.add(cs);
+      }
+    }
+
+    // Log Walls
+    const walls = new THREE.Group();
+    for (let i = 0; i < logCount; i++) {
+      const y = foundH + logR + i * logSpacing;
+      const r = logR + (Math.random() - 0.5) * 0.015;
+
+      for (const side of [-1, 1]) {
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, W + overhang * 2, 10), logMat));
+        log.rotation.z = Math.PI / 2;
+        log.position.set(0, y, side * D / 2);
+        walls.add(log);
+      }
+
+      for (const side of [-1, 1]) {
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, D + overhang * 2, 10), logMat));
+        log.rotation.x = Math.PI / 2;
+        log.position.set(side * W / 2, y, 0);
+        walls.add(log);
+      }
+
+      if (i > 0) {
+        const cy = foundH + i * logSpacing;
+        for (const side of [-1, 1]) {
+          const chinkFB = shad(new THREE.Mesh(new THREE.BoxGeometry(W - 0.08, 0.03, 0.1), chinkMat));
+          chinkFB.position.set(0, cy, side * D / 2);
+          walls.add(chinkFB);
+          const chinkLR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.03, D - 0.08), chinkMat));
+          chinkLR.position.set(side * W / 2, cy, 0);
+          walls.add(chinkLR);
+        }
+      }
+    }
+
+    const innerWallMat = new THREE.MeshStandardMaterial({
+      color: 0x5C3A1E, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide
+    });
+    const innerWallH = wallH + logR * 2;
+    const innerWallY = foundH + innerWallH / 2;
+
+    for (const side of [-1, 1]) {
+      const wall = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.08, innerWallH, 0.1), innerWallMat));
+      wall.position.set(0, innerWallY, side * D / 2);
+      walls.add(wall);
+    }
+    for (const side of [-1, 1]) {
+      const wall = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, innerWallH, D + 0.08), innerWallMat));
+      wall.position.set(side * W / 2, innerWallY, 0);
+      walls.add(wall);
+    }
+
+    group.add(walls);
+
+    // Corner Posts
+    const postH = wallH + 0.04;
+    for (const cx of [-1, 1]) {
+      for (const cz of [-1, 1]) {
+        const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, postH, 6), darkWood));
+        post.position.set(cx * W / 2, foundH + postH / 2, cz * D / 2);
+        group.add(post);
+      }
+    }
+
+    // Pitched Roof with shingles
+    const roofOverhang = 0.25;
+    const roofW = W / 2 + roofOverhang;
+    const roofPeak = 0.7;
+    const roofDepth = D + roofOverhang * 2;
+    const roofBaseY = foundH + wallH;
+
+    const roofShape = new THREE.Shape();
+    roofShape.moveTo(-roofW, 0);
+    roofShape.lineTo(0, roofPeak);
+    roofShape.lineTo(roofW, 0);
+    roofShape.lineTo(-roofW, 0);
+
+    const roofGeo = new THREE.ExtrudeGeometry(roofShape, { steps: 1, depth: roofDepth, bevelEnabled: false });
+    const roofMesh = shad(new THREE.Mesh(roofGeo, shingleMat));
+    roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
+    group.add(roofMesh);
+
+    const ridgeBeam = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, roofDepth + 0.08, 6), darkWood,
+    ));
+    ridgeBeam.rotation.x = Math.PI / 2;
+    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
+    group.add(ridgeBeam);
+
+    // Rafter ends
+    const rafterPositions = [-0.5, 0, 0.5];
+    for (const rx of rafterPositions) {
+      for (const side of [-1, 1]) {
+        const rafter = shad(new THREE.Mesh(
+          new THREE.CylinderGeometry(0.03, 0.03, 0.28, 6), darkWood,
+        ));
+        rafter.rotation.x = Math.PI / 2;
+        rafter.position.set(rx, roofBaseY + 0.04, side * (D / 2 + roofOverhang - 0.04));
+        group.add(rafter);
+      }
+    }
+
+    // Gable fill
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(-W / 2, 0);
+    gableShape.lineTo(0, roofPeak - 0.04);
+    gableShape.lineTo(W / 2, 0);
+    gableShape.lineTo(-W / 2, 0);
+    const gableGeo = new THREE.ExtrudeGeometry(gableShape, { steps: 1, depth: 0.06, bevelEnabled: false });
+    for (const side of [-1, 1]) {
+      const gable = shad(new THREE.Mesh(gableGeo, logMat));
+      gable.position.set(0, roofBaseY, side * (D / 2 - 0.03));
+      group.add(gable);
+    }
+
+    // Door
+    const doorGroup = new THREE.Group();
+    const doorW = 0.38;
+    const doorH = 0.7;
+
+    const frameThick = 0.05;
+    const frameLeft = shad(new THREE.Mesh(new THREE.BoxGeometry(frameThick, doorH + frameThick, 0.12), darkWood));
+    frameLeft.position.set(-doorW / 2 - frameThick / 2, 0, 0);
+    doorGroup.add(frameLeft);
+    const frameRight = shad(new THREE.Mesh(new THREE.BoxGeometry(frameThick, doorH + frameThick, 0.12), darkWood));
+    frameRight.position.set(doorW / 2 + frameThick / 2, 0, 0);
+    doorGroup.add(frameRight);
+    const frameTop = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW + frameThick * 2, frameThick, 0.12), darkWood));
+    frameTop.position.set(0, doorH / 2 + frameThick / 2, 0);
+    doorGroup.add(frameTop);
+
+    const plankW = doorW / 3.5;
+    for (let p = 0; p < 3; p++) {
+      const px = -doorW / 2 + plankW / 2 + p * (doorW / 3);
+      const plank = shad(new THREE.Mesh(new THREE.BoxGeometry(plankW - 0.01, doorH, 0.04), logMat));
+      plank.position.set(px, 0, 0.02);
+      doorGroup.add(plank);
+    }
+
+    const hinge = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.7, 0.035, 0.018), ironMetal));
+    hinge.position.set(-0.02, 0.15, 0.04);
+    doorGroup.add(hinge);
+
+    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.2), stoneMat));
+    doorStep.position.set(0, -doorH / 2 - 0.04, 0.12);
+    doorGroup.add(doorStep);
+
+    doorGroup.position.set(0, foundH + doorH / 2 + 0.015, D / 2 + 0.05);
+    group.add(doorGroup);
+
+    // Small Window with shutters
+    const winGroup = new THREE.Group();
+    const winSize = 0.28;
+
+    const wfTop = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, winSize + 0.08), darkWood));
+    wfTop.position.set(0, winSize / 2 + 0.02, 0);
+    winGroup.add(wfTop);
+    const wfBot = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, winSize + 0.08), darkWood));
+    wfBot.position.set(0, -winSize / 2 - 0.02, 0);
+    winGroup.add(wfBot);
+    const wfL = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, winSize, 0.04), darkWood));
+    wfL.position.set(0, 0, -winSize / 2 - 0.02);
+    winGroup.add(wfL);
+    const wfR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, winSize, 0.04), darkWood));
+    wfR.position.set(0, 0, winSize / 2 + 0.02);
+    winGroup.add(wfR);
+
+    const crossH = shad(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, winSize), darkWood));
+    crossH.position.set(0, 0, 0);
+    winGroup.add(crossH);
+    const crossV = shad(new THREE.Mesh(new THREE.BoxGeometry(0.05, winSize, 0.025), darkWood));
+    crossV.position.set(0, 0, 0);
+    winGroup.add(crossV);
+
+    for (const qx of [-1, 1]) {
+      for (const qz of [-1, 1]) {
+        const pane = new THREE.Mesh(
+          new THREE.BoxGeometry(0.015, winSize / 2 - 0.025, winSize / 2 - 0.025), glassMat,
+        );
+        pane.position.set(0, qx * winSize / 4, qz * winSize / 4);
+        winGroup.add(pane);
+      }
+    }
+
+    const sill = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.03, winSize + 0.12), darkWood));
+    sill.position.set(0, -winSize / 2 - 0.055, 0);
+    winGroup.add(sill);
+
+    for (const ss of [-1, 1]) {
+      const shutter = shad(new THREE.Mesh(new THREE.BoxGeometry(0.025, winSize + 0.04, winSize / 2 - 0.015), darkWood));
+      shutter.position.set(-0.9, 0, ss * (winSize / 2 + winSize / 4 + 0.008));
+      shutter.rotation.y = ss * 0.2;
+      winGroup.add(shutter);
+    }
+
+    winGroup.position.set(W / 2 + 0.05, foundH + wallH * 0.55, 0);
+    group.add(winGroup);
+
+    // Tool Storage - Axe visible on wall
+    const axeGroup = new THREE.Group();
+    const axeHandle = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.45, 6), darkWood));
+    axeHandle.position.set(0, 0, 0);
+    axeGroup.add(axeHandle);
+    const axeHead = shad(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.025), ironMetal));
+    axeHead.position.set(0.08, 0.12, 0);
+    axeGroup.add(axeHead);
+    axeGroup.position.set(-W / 2 - 0.08, foundH + wallH * 0.4, 0.3);
+    axeGroup.rotation.z = Math.PI / 8;
+    group.add(axeGroup);
+
+    // Second axe
+    const axe2Group = new THREE.Group();
+    const axeHandle2 = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.4, 6), darkWood));
+    axe2Group.add(axeHandle2);
+    const axeHead2 = shad(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.05, 0.022), ironMetal));
+    axeHead2.position.set(0.07, 0.1, 0);
+    axe2Group.add(axeHead2);
+    axe2Group.position.set(-W / 2 - 0.08, foundH + wallH * 0.4, -0.2);
+    axe2Group.rotation.z = -Math.PI / 10;
+    group.add(axe2Group);
+
+    // Small saw leaning against wall
+    const sawGroup = new THREE.Group();
+    const sawBlade = shad(new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.35, 0.12), ironMetal));
+    sawBlade.position.set(0, 0.15, 0);
+    sawGroup.add(sawBlade);
+    const sawHandle = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), darkWood));
+    sawHandle.rotation.x = Math.PI / 2;
+    sawHandle.position.set(0.02, -0.02, 0);
+    sawGroup.add(sawHandle);
+    sawGroup.position.set(-W / 2 - 0.05, foundH + 0.15, 0.5);
+    sawGroup.rotation.y = Math.PI / 6;
+    group.add(sawGroup);
+
+    // Stacked Log Pile outside
+    const pileX = W / 2 + 0.4;
+    const pileZ = D / 2 - 0.2;
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 2; col++) {
+        const log = shad(new THREE.Mesh(
+          new THREE.CylinderGeometry(0.055, 0.055, 0.5, 6), logMat,
+        ));
+        log.rotation.x = Math.PI / 2;
+        log.position.set(pileX + col * 0.12, 0.06 + row * 0.12, pileZ + row * 0.06);
+        group.add(log);
+      }
+    }
+
+    // Split Firewood Pile
+    const fireX = -W / 2 - 0.45;
+    const fireZ = D / 2 - 0.15;
+    for (let i = 0; i < 4; i++) {
+      const firewood = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.04, 0.35, 6), darkWood,
+      ));
+      firewood.rotation.x = Math.PI / 2;
+      firewood.rotation.z = (Math.random() - 0.5) * 0.2;
+      firewood.position.set(fireX + (Math.random() - 0.5) * 0.08, 0.05 + (i % 2) * 0.07, fireZ + i * 0.04);
+      group.add(firewood);
+    }
+
+    // Canopy roof over tool area
+    const canopyOverhang = 0.2;
+    const canopyW = 0.6;
+    const canopyShape = new THREE.Shape();
+    canopyShape.moveTo(-canopyW / 2 - canopyOverhang, 0);
+    canopyShape.lineTo(0, 0.18);
+    canopyShape.lineTo(canopyW / 2 + canopyOverhang, 0);
+    canopyShape.lineTo(-canopyW / 2 - canopyOverhang, 0);
+    const canopyGeo = new THREE.ExtrudeGeometry(canopyShape, { steps: 1, depth: 0.5, bevelEnabled: false });
+    const canopy = shad(new THREE.Mesh(canopyGeo, shingleMat));
+    canopy.position.set(-W / 2 - 0.1, foundH + wallH * 0.75, 0.1);
+    canopy.rotation.y = Math.PI / 2;
+    group.add(canopy);
+
+    // Canopy support posts
+    for (const pz of [-0.1, 0.35]) {
+      const cpost = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, wallH * 0.3, 6), darkWood));
+      cpost.position.set(-W / 2 - 0.1, foundH + wallH * 0.6, pz);
+      group.add(cpost);
     }
 
     return group;
@@ -1019,7 +1593,7 @@ export class MeshFactory {
 
       // Small crop sprouts
       for (let x = -1.5; x <= 1.5; x += 0.5) {
-        const sprout = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 4), leaf);
+        const sprout = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2), leaf);
         sprout.position.set(x, 0.3, z);
         group.add(sprout);
       }
@@ -1032,42 +1606,257 @@ export class MeshFactory {
     const group = new THREE.Group();
     const stone = this.mat('stone');
     const dirt = this.mat('dirt');
+    const wood = this.mat('wood');
+    const darkWood = this.mat('darkWood');
+    const ironMetal = this.mat('ironMetal');
 
-    // Sunken pit base
-    const pit = new THREE.Mesh(new THREE.BoxGeometry(3, 0.3, 3), dirt);
-    pit.position.y = -0.05;
-    pit.receiveShadow = true;
-    group.add(pit);
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
 
-    // Low stone walls around edges
-    const wallPositions: [number, number, number, number, number][] = [
-      [0, 0.4, -1.4, 3, 0.3],   // back
-      [0, 0.4, 1.4, 3, 0.3],    // front
-      [-1.4, 0.4, 0, 0.3, 3],   // left
-      [1.4, 0.4, 0, 0.3, 3],    // right
+    // === 1. Excavated pit with stepped stone walls ===
+    const pitFloor = shad(new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.15, 3.2), dirt));
+    pitFloor.position.y = -0.15;
+    group.add(pitFloor);
+
+    const wallTiers = [
+      { y: 0.15, h: 0.5, w: 0.35, indent: 0 },
+      { y: -0.15, h: 0.5, w: 0.35, indent: 0.15 },
+      { y: -0.45, h: 0.4, w: 0.35, indent: 0.3 },
     ];
-    for (const [x, y, z, w, d] of wallPositions) {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 0.8, d), stone);
-      wall.position.set(x, y, z);
-      wall.castShadow = true;
-      wall.receiveShadow = true;
-      group.add(wall);
+
+    const wallPositions: [number, number, number, number, number][] = [
+      [0, 0, -1.35, 3, 0.35],
+      [0, 0, 1.35, 3, 0.35],
+      [-1.35, 0, 0, 0.35, 2.7],
+      [1.35, 0, 0, 0.35, 2.7],
+    ];
+
+    for (const tier of wallTiers) {
+      for (const [x, y, z, w, d] of wallPositions) {
+        const wall = shad(new THREE.Mesh(
+          new THREE.BoxGeometry(w - (tier.indent * 2), tier.h, d - (tier.indent * 2)),
+          stone
+        ));
+        wall.position.set(x, tier.y, z);
+        group.add(wall);
+      }
     }
 
-    // Scattered stone chunks inside
-    for (let i = 0; i < 4; i++) {
-      const chunk = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(0.2 + Math.random() * 0.15, 0),
+    // === 2. Broken stone debris scattered inside ===
+    for (let i = 0; i < 12; i++) {
+      const size = 0.1 + Math.random() * 0.2;
+      const chunk = shad(new THREE.Mesh(
+        new THREE.DodecahedronGeometry(size, 0),
         stone,
-      );
+      ));
       chunk.position.set(
-        (Math.random() - 0.5) * 2,
-        0.2,
-        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 2.2,
+        -0.05 + size / 2,
+        (Math.random() - 0.5) * 2.2,
       );
-      chunk.castShadow = true;
+      chunk.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
       group.add(chunk);
     }
+
+    // === 3. Pickaxes and tools against walls ===
+    const pickGroup1 = new THREE.Group();
+    const pickHandle1 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.02, 0.8, 6),
+      wood
+    ));
+    pickHandle1.rotation.z = 0.2;
+    pickHandle1.position.y = 0.35;
+    pickGroup1.add(pickHandle1);
+    const pickHead1 = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.4, 0.08, 0.06),
+      ironMetal
+    ));
+    pickHead1.position.set(0.1, 0.72, 0);
+    pickHead1.rotation.z = 0.2;
+    pickGroup1.add(pickHead1);
+    pickGroup1.position.set(-0.8, -0.05, -1.15);
+    pickGroup1.rotation.z = -0.4;
+    group.add(pickGroup1);
+
+    const pickGroup2 = new THREE.Group();
+    const pickHandle2 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.02, 0.75, 6),
+      wood
+    ));
+    pickHandle2.rotation.x = 0.15;
+    pickHandle2.position.y = 0.32;
+    pickGroup2.add(pickHandle2);
+    const pickHead2 = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.35, 0.07, 0.05),
+      ironMetal
+    ));
+    pickHead2.position.set(0, 0.68, 0.08);
+    pickHead2.rotation.x = 0.15;
+    pickGroup2.add(pickHead2);
+    pickGroup2.position.set(-1.1, -0.05, 0.5);
+    pickGroup2.rotation.x = -0.3;
+    group.add(pickGroup2);
+
+    // === 4. Wooden support beams ===
+    const beam1 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.07, 1.2, 6),
+      darkWood
+    ));
+    beam1.position.set(-1.2, 0.5, -1.2);
+    group.add(beam1);
+
+    const crossBeam1 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 1.0, 6),
+      darkWood
+    ));
+    crossBeam1.rotation.z = Math.PI / 2;
+    crossBeam1.position.set(-0.75, 1.05, -1.2);
+    group.add(crossBeam1);
+
+    const beam2 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.07, 1.0, 6),
+      darkWood
+    ));
+    beam2.position.set(1.2, 0.4, -1.2);
+    group.add(beam2);
+
+    const supportPlank = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 0.08, 0.15),
+      darkWood
+    ));
+    supportPlank.position.set(0, 0.85, -1.15);
+    supportPlank.rotation.y = 0.1;
+    group.add(supportPlank);
+
+    // === 5. Stone cart / wheelbarrow ===
+    const cartGroup = new THREE.Group();
+    const cartBed = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.12, 0.45),
+      darkWood
+    ));
+    cartBed.position.y = 0.25;
+    cartGroup.add(cartBed);
+    const cartSide1 = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.2, 0.04),
+      darkWood
+    ));
+    cartSide1.position.set(0, 0.37, 0.2);
+    cartGroup.add(cartSide1);
+    const cartSide2 = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.2, 0.04),
+      darkWood
+    ));
+    cartSide2.position.set(0, 0.37, -0.2);
+    cartGroup.add(cartSide2);
+    const cartEnd1 = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.2, 0.45),
+      darkWood
+    ));
+    cartEnd1.position.set(-0.33, 0.37, 0);
+    cartGroup.add(cartEnd1);
+    const cartEnd2 = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.2, 0.45),
+      darkWood
+    ));
+    cartEnd2.position.set(0.33, 0.37, 0);
+    cartGroup.add(cartEnd2);
+    const wheel1 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15, 0.15, 0.04, 12),
+      darkWood
+    ));
+    wheel1.rotation.z = Math.PI / 2;
+    wheel1.position.set(-0.25, 0.1, 0.28);
+    cartGroup.add(wheel1);
+    const wheel2 = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15, 0.15, 0.04, 12),
+      darkWood
+    ));
+    wheel2.rotation.z = Math.PI / 2;
+    wheel2.position.set(0.25, 0.1, 0.28);
+    cartGroup.add(wheel2);
+    const cartHandle = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.025, 0.025, 0.5, 6),
+      darkWood
+    ));
+    cartHandle.rotation.z = Math.PI / 2 + 0.2;
+    cartHandle.position.set(0.5, 0.25, -0.18);
+    cartGroup.add(cartHandle);
+    for (let i = 0; i < 4; i++) {
+      const loadStone = shad(new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.08 + Math.random() * 0.04, 0),
+        stone
+      ));
+      loadStone.position.set(
+        (Math.random() - 0.5) * 0.4,
+        0.45 + i * 0.08,
+        (Math.random() - 0.5) * 0.25
+      );
+      cartGroup.add(loadStone);
+    }
+    cartGroup.position.set(0.7, -0.05, 0.9);
+    cartGroup.rotation.y = -0.3;
+    group.add(cartGroup);
+
+    // === 6. Pile of broken stone blocks ===
+    const stonePile: [number, number, number, number, number, number][] = [
+      [0.9, 0.08, -0.8, 0.2, 0.15, 0.15],
+      [1.0, 0.06, -0.7, 0.18, 0.12, 0.18],
+      [0.85, 0.1, -0.9, 0.22, 0.18, 0.12],
+      [0.95, 0.04, -0.85, 0.15, 0.08, 0.15],
+      [1.05, 0.12, -0.75, 0.2, 0.1, 0.2],
+      [0.88, 0.16, -0.82, 0.18, 0.14, 0.16],
+    ];
+    for (const [px, py, pz, sx, sy, sz] of stonePile) {
+      const block = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(sx, sy, sz),
+        stone
+      ));
+      block.position.set(px, py, pz);
+      block.rotation.y = Math.random() * 0.3;
+      group.add(block);
+    }
+
+    // === 7. Mining lantern on pole ===
+    const lanternGroup = new THREE.Group();
+    const lanternPole = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.03, 0.04, 1.4, 6),
+      darkWood
+    ));
+    lanternPole.position.y = 0.6;
+    lanternGroup.add(lanternPole);
+    const lanternCage = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.2, 0.15),
+      ironMetal
+    ));
+    lanternCage.position.y = 1.35;
+    lanternGroup.add(lanternCage);
+    const lanternTop = shad(new THREE.Mesh(
+      new THREE.ConeGeometry(0.1, 0.1, 4),
+      ironMetal
+    ));
+    lanternTop.position.y = 1.52;
+    lanternTop.rotation.y = Math.PI / 4;
+    lanternGroup.add(lanternTop);
+    const glowMat = new THREE.MeshStandardMaterial({
+      color: 0xFFAA44,
+      emissive: 0xFFAA44,
+      emissiveIntensity: 0.8,
+      roughness: 0.3,
+    });
+    const lanternGlow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.12, 0.1),
+      glowMat
+    );
+    lanternGlow.position.y = 1.35;
+    lanternGroup.add(lanternGlow);
+    const lanternLight = new THREE.PointLight(0xFFAA44, 0.5, 3);
+    lanternLight.position.y = 1.35;
+    lanternGroup.add(lanternLight);
+    lanternGroup.position.set(-1.0, -0.05, 1.0);
+    group.add(lanternGroup);
 
     return group;
   }
