@@ -830,7 +830,7 @@ export class MeshFactory {
 
     // Ridge beam along the top
     const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, roofDepth + 0.1, 6), darkWood,
+      new THREE.CylinderGeometry(0.05, 0.05, roofDepth, 6), darkWood,
     ));
     ridgeBeam.rotation.x = Math.PI / 2;
     ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
@@ -844,7 +844,7 @@ export class MeshFactory {
           new THREE.CylinderGeometry(0.035, 0.035, 0.35, 6), darkWood,
         ));
         rafter.rotation.x = Math.PI / 2;
-        rafter.position.set(rx, roofBaseY + 0.05, side * (D / 2 + roofOverhang - 0.175));
+        rafter.position.set(rx, roofBaseY + 0.05, side * (D / 2 + roofOverhang - 0.225));
         group.add(rafter);
       }
     }
@@ -1177,7 +1177,7 @@ export class MeshFactory {
     group.add(roofMesh);
 
     const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, roofDepth + 0.12, 6), darkWood,
+      new THREE.CylinderGeometry(0.06, 0.06, roofDepth, 6), darkWood,
     ));
     ridgeBeam.rotation.x = Math.PI / 2;
     ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
@@ -1190,7 +1190,7 @@ export class MeshFactory {
           new THREE.CylinderGeometry(0.04, 0.04, 0.4, 6), darkWood,
         ));
         rafter.rotation.x = Math.PI / 2;
-        rafter.position.set(rx, roofBaseY + 0.08, side * (D / 2 + roofOverhang - 0.20));
+        rafter.position.set(rx, roofBaseY + 0.08, side * (D / 2 + roofOverhang - 0.25));
         group.add(rafter);
       }
     }
@@ -1482,7 +1482,7 @@ export class MeshFactory {
     group.add(roofMesh);
 
     const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, roofDepth + 0.08, 6), darkWood,
+      new THREE.CylinderGeometry(0.04, 0.04, roofDepth, 6), darkWood,
     ));
     ridgeBeam.rotation.x = Math.PI / 2;
     ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
@@ -1496,7 +1496,7 @@ export class MeshFactory {
           new THREE.CylinderGeometry(0.03, 0.03, 0.28, 6), darkWood,
         ));
         rafter.rotation.x = Math.PI / 2;
-        rafter.position.set(rx, roofBaseY + 0.04, side * (D / 2 + roofOverhang - 0.14));
+        rafter.position.set(rx, roofBaseY + 0.04, side * (D / 2 + roofOverhang - 0.19));
         group.add(rafter);
       }
     }
