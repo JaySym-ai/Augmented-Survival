@@ -774,7 +774,7 @@ export class MeshFactory {
       metalness: 0.0,
       side: THREE.DoubleSide
     });
-    const innerWallH = wallH + logR * 2; // cover full log wall height
+    const innerWallH = wallH;
     const innerWallY = foundH + innerWallH / 2;
 
     // Front & back inner walls
@@ -1124,7 +1124,7 @@ export class MeshFactory {
       metalness: 0.0,
       side: THREE.DoubleSide
     });
-    const innerWallH = wallH + logR * 2;
+    const innerWallH = wallH;
     const innerWallY = foundH + innerWallH / 2;
 
     for (const side of [-1, 1]) {
@@ -1437,7 +1437,7 @@ export class MeshFactory {
     const innerWallMat = new THREE.MeshStandardMaterial({
       color: 0x5C3A1E, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide
     });
-    const innerWallH = wallH + logR * 2;
+    const innerWallH = wallH;
     const innerWallY = foundH + innerWallH / 2;
 
     for (const side of [-1, 1]) {
