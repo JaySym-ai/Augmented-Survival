@@ -148,12 +148,11 @@ const CSS = /* css */ `
 .ui-inventory-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: 2px;
   padding: 8px;
 }
 .ui-inventory-grid .inv-slot {
-  width: 48px;
-  height: 48px;
+  aspect-ratio: 1;
   border: 1px solid var(--ui-border);
   border-radius: 4px;
   display: flex;
@@ -181,11 +180,10 @@ const CSS = /* css */ `
 .ui-resource-bar .inventory-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: 2px;
 }
 .ui-resource-bar .inventory-slot {
-  width: 48px;
-  height: 48px;
+  aspect-ratio: 1;
   border: 1px solid var(--ui-border);
   border-radius: 4px;
   display: flex;
