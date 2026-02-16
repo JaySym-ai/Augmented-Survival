@@ -54,16 +54,18 @@ const CSS = /* css */ `
   padding: 8px 16px;
   align-items: center;
   transition: all 0.3s ease;
+  width: max-content;
 }
 .ui-resource-bar.expanded {
   flex-direction: column;
   gap: 12px;
   padding: 12px 20px;
-  min-width: 320px;
 }
 .ui-resource-bar .resource-bar-collapsed {
   display: flex; gap: 16px;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 .ui-resource-bar .resource-bar-toggle {
   position: absolute;
@@ -115,7 +117,11 @@ const CSS = /* css */ `
   gap: 12px;
 }
 .ui-resource-bar.expanded .resource-bar-collapsed {
-  display: none;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 .ui-resource-bar .resource-bar-section {
   display: flex;
@@ -148,12 +154,11 @@ const CSS = /* css */ `
 .ui-inventory-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  gap: 2px;
   padding: 8px;
 }
 .ui-inventory-grid .inv-slot {
-  width: 40px;
-  height: 40px;
+  aspect-ratio: 1;
   border: 1px solid var(--ui-border);
   border-radius: 4px;
   display: flex;
@@ -181,11 +186,10 @@ const CSS = /* css */ `
 .ui-resource-bar .inventory-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  gap: 2px;
 }
 .ui-resource-bar .inventory-slot {
-  width: 36px;
-  height: 36px;
+  aspect-ratio: 1;
   border: 1px solid var(--ui-border);
   border-radius: 4px;
   display: flex;
@@ -200,7 +204,7 @@ const CSS = /* css */ `
   border-style: dashed;
 }
 .ui-resource-bar .inventory-slot .inv-icon {
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1;
 }
 .ui-resource-bar .inventory-slot .inv-count {
