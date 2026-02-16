@@ -114,11 +114,11 @@ export class MeshFactory {
     headGroup.add(head);
 
     // ── Hair ──
-    // Main hair cap — top of head
+    // Main hair cap — top of head (reduced phi so it sits above eye line)
     const hairTop = new THREE.Mesh(
-      new THREE.SphereGeometry(0.125, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat,
+      new THREE.SphereGeometry(0.125, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.45), hairMat,
     );
-    hairTop.position.y = 0.02;
+    hairTop.position.y = 0.06;
     hairTop.castShadow = true;
     headGroup.add(hairTop);
 
@@ -127,7 +127,7 @@ export class MeshFactory {
       const hairSide = new THREE.Mesh(
         new THREE.SphereGeometry(0.06, 8, 6), hairMat,
       );
-      hairSide.position.set(side * 0.09, 0.02, -0.02);
+      hairSide.position.set(side * 0.09, 0.06, -0.02);
       hairSide.scale.set(0.7, 1.1, 0.9);
       hairSide.castShadow = true;
       headGroup.add(hairSide);
@@ -137,7 +137,7 @@ export class MeshFactory {
     const hairBack = new THREE.Mesh(
       new THREE.SphereGeometry(0.09, 8, 6), hairMat,
     );
-    hairBack.position.set(0, -0.01, -0.08);
+    hairBack.position.set(0, 0.03, -0.08);
     hairBack.scale.set(1, 1.0, 0.7);
     hairBack.castShadow = true;
     headGroup.add(hairBack);
@@ -192,6 +192,17 @@ export class MeshFactory {
     }
 
     group.add(headGroup);
+
+    // ── Shoulders (rounded caps bridging torso to arms) ──
+    for (const side of [-1, 1]) {
+      const shoulder = new THREE.Mesh(
+        new THREE.SphereGeometry(0.055, 10, 8), tunic,
+      );
+      shoulder.position.set(side * 0.16, 0.72, 0);
+      shoulder.scale.set(1, 0.7, 1);
+      shoulder.castShadow = true;
+      group.add(shoulder);
+    }
 
     // ── Arms (pivot at shoulder so they can swing) ──
     for (const side of [-1, 1]) {
