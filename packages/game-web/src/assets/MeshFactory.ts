@@ -580,165 +580,360 @@ export class MeshFactory {
 
   private createHouse(): THREE.Group {
     const group = new THREE.Group();
-    const brickMaterial = this.createBrickMaterial();
-    const wood = this.mat('wood');
-    const thatch = this.createThatchMaterial();
+    const logMat = this.createLogWoodMaterial();
+    const darkWood = this.mat('darkWood');
+    const ironMetal = this.mat('ironMetal');
+    const stoneMat = this.createStoneFoundationMaterial();
+    const shingleMat = this.createWoodShingleMaterial();
+    const chinkMat = new THREE.MeshStandardMaterial({ color: 0x6B4E32, roughness: 1.0, metalness: 0.0 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x6699BB, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.4,
+    });
+    const plantMat = new THREE.MeshStandardMaterial({ color: 0x3A7D2A, roughness: 0.9, metalness: 0.0 });
 
-    // Walls
-    const walls = new THREE.Mesh(new THREE.BoxGeometry(2, 1.6, 2), brickMaterial);
+    // Dimensions
+    const W = 2.0;   // cabin width (X)
+    const D = 2.0;   // cabin depth (Z)
+    const logR = 0.12; // base log radius
+    const logCount = 7; // logs per wall
+    const logSpacing = logR * 2 * 0.82; // tighter overlap to eliminate gaps
+    const wallH = logCount * logSpacing;
+    const foundH = 0.25;
+    const overhang = 0.15; // log extension past corners
+
+    // Helper: set shadow on mesh
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
+
+    // ── 1. Stone Foundation ──
+    const foundation = shad(new THREE.Mesh(new THREE.BoxGeometry(W + 0.2, foundH, D + 0.2), stoneMat));
+    foundation.position.y = foundH / 2;
+    group.add(foundation);
+
+    // Corner foundation stones (protruding detail)
+    for (const cx of [-1, 1]) {
+      for (const cz of [-1, 1]) {
+        const cs = shad(new THREE.Mesh(new THREE.BoxGeometry(0.22, foundH + 0.04, 0.22), stoneMat));
+        cs.position.set(cx * (W / 2 + 0.02), foundH / 2, cz * (D / 2 + 0.02));
+        group.add(cs);
+      }
+    }
+
+    // ── 2. Log Walls ──
+    const walls = new THREE.Group();
     walls.name = 'walls';
-    walls.position.y = 0.8;
-    walls.castShadow = true;
-    walls.receiveShadow = true;
+
+    for (let i = 0; i < logCount; i++) {
+      const y = foundH + logR + i * logSpacing;
+      const r = logR + (Math.random() - 0.5) * 0.02; // slight variation
+
+      // Front & back walls (along X axis)
+      for (const side of [-1, 1]) {
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, W + overhang * 2, 12), logMat));
+        log.rotation.z = Math.PI / 2;
+        log.position.set(0, y, side * D / 2);
+        walls.add(log);
+      }
+
+      // Left & right walls (along Z axis)
+      for (const side of [-1, 1]) {
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, D + overhang * 2, 12), logMat));
+        log.rotation.x = Math.PI / 2;
+        log.position.set(side * W / 2, y, 0);
+        walls.add(log);
+      }
+
+      // Chinking strips between logs (thin mortar lines)
+      if (i > 0) {
+        const cy = foundH + i * logSpacing;
+        for (const side of [-1, 1]) {
+          const chinkFB = shad(new THREE.Mesh(new THREE.BoxGeometry(W - 0.1, 0.04, 0.14), chinkMat));
+          chinkFB.position.set(0, cy, side * D / 2);
+          walls.add(chinkFB);
+          const chinkLR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, D - 0.1), chinkMat));
+          chinkLR.position.set(side * W / 2, cy, 0);
+          walls.add(chinkLR);
+        }
+      }
+    }
+
+    // ── Solid inner wall panels (prevent all light leaks between logs) ──
+    const innerWallMat = new THREE.MeshStandardMaterial({
+      color: 0x5C3A1E, // dark brown matching log interior
+      roughness: 1.0,
+      metalness: 0.0,
+      side: THREE.DoubleSide
+    });
+    const innerWallH = wallH + logR * 2; // cover full log wall height
+    const innerWallY = foundH + innerWallH / 2;
+
+    // Front & back inner walls
+    for (const side of [-1, 1]) {
+      const wall = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(W + 0.1, innerWallH, 0.12),
+        innerWallMat
+      ));
+      wall.position.set(0, innerWallY, side * D / 2);
+      walls.add(wall);
+    }
+    // Left & right inner walls
+    for (const side of [-1, 1]) {
+      const wall = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, innerWallH, D + 0.1),
+        innerWallMat
+      ));
+      wall.position.set(side * W / 2, innerWallY, 0);
+      walls.add(wall);
+    }
+
     group.add(walls);
 
-    // Triangular roof (cone with 4 sides)
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.7, 1.0, 4), thatch);
-    roof.position.y = 2.1;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    group.add(roof);
+    // ── 3. Corner Posts ──
+    const postH = wallH + 0.05;
+    for (const cx of [-1, 1]) {
+      for (const cz of [-1, 1]) {
+        const post = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, postH, 6), darkWood));
+        post.position.set(cx * W / 2, foundH + postH / 2, cz * D / 2);
+        group.add(post);
+      }
+    }
 
-    // Door (wooden door with panels and knob)
+    // ── 4. Gable Roof (ExtrudeGeometry) ──
+    const roofOverhang = 0.3;
+    const roofW = W / 2 + roofOverhang;
+    const roofPeak = 1.0;
+    const roofDepth = D + roofOverhang * 2;
+    const roofBaseY = foundH + wallH;
+
+    const roofShape = new THREE.Shape();
+    roofShape.moveTo(-roofW, 0);
+    roofShape.lineTo(0, roofPeak);
+    roofShape.lineTo(roofW, 0);
+    roofShape.lineTo(-roofW, 0);
+
+    const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
+      steps: 1, depth: roofDepth, bevelEnabled: false,
+    });
+    const roofMesh = shad(new THREE.Mesh(roofGeo, shingleMat));
+    roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
+    group.add(roofMesh);
+
+    // Ridge beam along the top
+    const ridgeBeam = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.05, roofDepth + 0.1, 6), darkWood,
+    ));
+    ridgeBeam.rotation.x = Math.PI / 2;
+    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
+    group.add(ridgeBeam);
+
+    // Visible rafter ends (front and back, 3 per side)
+    const rafterPositions = [-0.6, 0, 0.6];
+    for (const rx of rafterPositions) {
+      for (const side of [-1, 1]) {
+        const rafter = shad(new THREE.Mesh(
+          new THREE.CylinderGeometry(0.035, 0.035, 0.35, 6), darkWood,
+        ));
+        rafter.rotation.x = Math.PI / 2;
+        rafter.position.set(rx, roofBaseY + 0.05, side * (D / 2 + roofOverhang - 0.05));
+        group.add(rafter);
+      }
+    }
+
+    // Gable fill triangles (front and back)
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(-W / 2, 0);
+    gableShape.lineTo(0, roofPeak - 0.05);
+    gableShape.lineTo(W / 2, 0);
+    gableShape.lineTo(-W / 2, 0);
+    const gableGeo = new THREE.ExtrudeGeometry(gableShape, {
+      steps: 1, depth: 0.08, bevelEnabled: false,
+    });
+    for (const side of [-1, 1]) {
+      const gable = shad(new THREE.Mesh(gableGeo, logMat));
+      gable.position.set(0, roofBaseY, side * (D / 2 - 0.04));
+      group.add(gable);
+    }
+
+    // ── 5. Front Door ──
     const doorGroup = new THREE.Group();
-    
-    // Door panel background
-    const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.04), wood);
-    doorPanel.position.z = 0;
-    doorGroup.add(doorPanel);
-    
-    // Door frame
-    const doorFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.46, 0.86, 0.02),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 }),
-    );
-    doorFrame.position.z = -0.02;
-    doorGroup.add(doorFrame);
-    
-    // Top panel (inset)
-    const topPanel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.32, 0.28, 0.03),
-      new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 }),
-    );
-    topPanel.position.set(0, 0.22, 0.025);
-    doorGroup.add(topPanel);
-    
-    // Bottom panel (inset)
-    const bottomPanel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.32, 0.28, 0.03),
-      new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 }),
-    );
-    bottomPanel.position.set(0, -0.22, 0.025);
-    doorGroup.add(bottomPanel);
-    
-    // Side panels
-    const leftPanel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.28, 0.03),
-      new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 }),
-    );
-    leftPanel.position.set(-0.12, 0, 0.025);
-    doorGroup.add(leftPanel);
-    
-    const rightPanel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.28, 0.03),
-      new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 }),
-    );
-    rightPanel.position.set(0.12, 0, 0.025);
-    doorGroup.add(rightPanel);
-    
-    // Door knob
-    const knobMaterial = new THREE.MeshStandardMaterial({ color: 0xb8860b, roughness: 0.3, metalness: 0.7 });
-    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), knobMaterial);
-    knob.position.set(0.12, 0, 0.04);
-    doorGroup.add(knob);
-    
-    // Door knob plate
-    const knobPlate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.08, 0.01),
-      new THREE.MeshStandardMaterial({ color: 0xb8860b, roughness: 0.4, metalness: 0.6 }),
-    );
-    knobPlate.position.set(0.12, 0, 0.035);
-    doorGroup.add(knobPlate);
-    
-    doorGroup.position.set(0, 0.4, 1.02);
+    const doorW = 0.45;
+    const doorH = 0.85;
+
+    // Door frame (dark wood surround)
+    const frameThick = 0.06;
+    const frameLeft = shad(new THREE.Mesh(new THREE.BoxGeometry(frameThick, doorH + frameThick, 0.14), darkWood));
+    frameLeft.position.set(-doorW / 2 - frameThick / 2, 0, 0);
+    doorGroup.add(frameLeft);
+    const frameRight = shad(new THREE.Mesh(new THREE.BoxGeometry(frameThick, doorH + frameThick, 0.14), darkWood));
+    frameRight.position.set(doorW / 2 + frameThick / 2, 0, 0);
+    doorGroup.add(frameRight);
+    const frameTop = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW + frameThick * 2, frameThick, 0.14), darkWood));
+    frameTop.position.set(0, doorH / 2 + frameThick / 2, 0);
+    doorGroup.add(frameTop);
+
+    // Door planks (3-4 vertical boards)
+    const plankW = doorW / 3.5;
+    for (let p = 0; p < 4; p++) {
+      const px = -doorW / 2 + plankW / 2 + p * (doorW / 4);
+      const plank = shad(new THREE.Mesh(new THREE.BoxGeometry(plankW - 0.01, doorH, 0.05), logMat));
+      plank.position.set(px, 0, 0.02);
+      doorGroup.add(plank);
+    }
+
+    // Iron strap hinges (2 horizontal bands)
+    for (const hy of [0.25, -0.25]) {
+      const hinge = shad(new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.8, 0.04, 0.02), ironMetal));
+      hinge.position.set(-0.03, hy, 0.05);
+      doorGroup.add(hinge);
+    }
+
+    // Iron ring handle (TorusGeometry)
+    const ring = shad(new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 8, 16), ironMetal));
+    ring.position.set(0.12, 0, 0.06);
+    doorGroup.add(ring);
+
+    // Ring mount plate
+    const mountPlate = shad(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.015), ironMetal));
+    mountPlate.position.set(0.12, 0, 0.05);
+    doorGroup.add(mountPlate);
+
+    // Stone step in front of door
+    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.25), stoneMat));
+    doorStep.position.set(0, -doorH / 2 - 0.05, 0.15);
+    doorGroup.add(doorStep);
+
+    doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.06);
     group.add(doorGroup);
 
-    // Window on right wall (more realistic with frame details)
-    const windowGroup = new THREE.Group();
-    
-    // Outer frame
-    const windowOuterFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.6, 0.6),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 }),
+    // ── 6. Windows (one on each side wall) ──
+    for (const side of [-1, 1]) {
+      const winGroup = new THREE.Group();
+      const winSize = 0.38;
+
+      // Window frame (dark wood)
+      const wfTop = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, winSize + 0.1), darkWood));
+      wfTop.position.set(0, winSize / 2 + 0.025, 0);
+      winGroup.add(wfTop);
+      const wfBot = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, winSize + 0.1), darkWood));
+      wfBot.position.set(0, -winSize / 2 - 0.025, 0);
+      winGroup.add(wfBot);
+      const wfL = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, winSize, 0.05), darkWood));
+      wfL.position.set(0, 0, -winSize / 2 - 0.025);
+      winGroup.add(wfL);
+      const wfR = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, winSize, 0.05), darkWood));
+      wfR.position.set(0, 0, winSize / 2 + 0.025);
+      winGroup.add(wfR);
+
+      // Cross frame (+ shape)
+      const crossH = shad(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, winSize), darkWood));
+      crossH.position.set(0, 0, 0);
+      winGroup.add(crossH);
+      const crossV = shad(new THREE.Mesh(new THREE.BoxGeometry(0.06, winSize, 0.03), darkWood));
+      crossV.position.set(0, 0, 0);
+      winGroup.add(crossV);
+
+      // Glass panes (4 quadrants)
+      for (const qx of [-1, 1]) {
+        for (const qz of [-1, 1]) {
+          const pane = new THREE.Mesh(
+            new THREE.BoxGeometry(0.02, winSize / 2 - 0.03, winSize / 2 - 0.03), glassMat,
+          );
+          pane.position.set(0, qx * winSize / 4, qz * winSize / 4);
+          winGroup.add(pane);
+        }
+      }
+
+      // Window sill
+      const sill = shad(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, winSize + 0.16), darkWood));
+      sill.position.set(0, -winSize / 2 - 0.07, 0);
+      winGroup.add(sill);
+
+      // Shutters (slightly angled open)
+      for (const ss of [-1, 1]) {
+        const shutter = shad(new THREE.Mesh(new THREE.BoxGeometry(0.03, winSize + 0.06, winSize / 2 - 0.02), darkWood));
+        shutter.position.set(side * 0.04, 0, ss * (winSize / 2 + winSize / 4 + 0.01));
+        shutter.rotation.y = ss * 0.25;
+        winGroup.add(shutter);
+      }
+
+      winGroup.position.set(side * (W / 2 + 0.06), foundH + wallH * 0.55, 0);
+      group.add(winGroup);
+    }
+
+    // ── 7. Stone Chimney ──
+    const chimneyGroup = new THREE.Group();
+    const chimneyW = 0.35;
+    const chimneyD = 0.35;
+    const chimneyH = wallH + roofPeak + 0.3;
+    // Stacked irregular stone blocks
+    let cy = 0;
+    while (cy < chimneyH) {
+      const bh = 0.15 + Math.random() * 0.1;
+      const bw = chimneyW + (Math.random() - 0.5) * 0.06;
+      const bd = chimneyD + (Math.random() - 0.5) * 0.06;
+      const block = shad(new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), stoneMat));
+      block.position.set((Math.random() - 0.5) * 0.02, cy + bh / 2, (Math.random() - 0.5) * 0.02);
+      chimneyGroup.add(block);
+      cy += bh + 0.01;
+    }
+    // Dark opening at top
+    const chimneyOpening = new THREE.Mesh(
+      new THREE.BoxGeometry(chimneyW - 0.1, 0.08, chimneyD - 0.1),
+      new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1.0 }),
     );
-    windowOuterFrame.position.set(0, 0, 0);
-    windowGroup.add(windowOuterFrame);
-    
-    // Inner frame (recessed)
-    const windowInnerFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.04, 0.5, 0.5),
-      new THREE.MeshStandardMaterial({ color: 0x2a1a0f, roughness: 0.85 }),
-    );
-    windowInnerFrame.position.set(-0.02, 0, 0);
-    windowGroup.add(windowInnerFrame);
-    
-    // Window glass (left pane)
-    const windowGlassLeft = new THREE.Mesh(
-      new THREE.BoxGeometry(0.02, 0.42, 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x87CEEB, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.6 }),
-    );
-    windowGlassLeft.position.set(-0.03, 0, -0.1);
-    windowGroup.add(windowGlassLeft);
-    
-    // Window glass (right pane)
-    const windowGlassRight = new THREE.Mesh(
-      new THREE.BoxGeometry(0.02, 0.42, 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x87CEEB, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.6 }),
-    );
-    windowGlassRight.position.set(-0.03, 0, 0.1);
-    windowGroup.add(windowGlassRight);
-    
-    // Center mullion (vertical divider)
-    const mullion = new THREE.Mesh(
-      new THREE.BoxGeometry(0.025, 0.45, 0.03),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.85 }),
-    );
-    mullion.position.set(-0.03, 0, 0);
-    windowGroup.add(mullion);
-    
-    // Horizontal dividers (top and bottom)
-    const horizontalDividerTop = new THREE.Mesh(
-      new THREE.BoxGeometry(0.025, 0.025, 0.45),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.85 }),
-    );
-    horizontalDividerTop.position.set(-0.03, 0.18, 0);
-    windowGroup.add(horizontalDividerTop);
-    
-    const horizontalDividerBottom = new THREE.Mesh(
-      new THREE.BoxGeometry(0.025, 0.025, 0.45),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.85 }),
-    );
-    horizontalDividerBottom.position.set(-0.03, -0.18, 0);
-    windowGroup.add(horizontalDividerBottom);
-    
-    // Window sill
-    const windowSill = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.06, 0.7),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 }),
-    );
-    windowSill.position.set(-0.04, -0.33, 0);
-    windowGroup.add(windowSill);
-    
-    // Window header
-    const windowHeader = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.06, 0.7),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 }),
-    );
-    windowHeader.position.set(-0.04, 0.33, 0);
-    windowGroup.add(windowHeader);
-    
-    windowGroup.position.set(1.02, 0.9, 0);
-    group.add(windowGroup);
+    chimneyOpening.position.set(0, cy - 0.02, 0);
+    chimneyGroup.add(chimneyOpening);
+
+    chimneyGroup.position.set(-W / 2 - chimneyW / 2 + 0.05, foundH, -D / 2 + chimneyD / 2 + 0.05);
+    group.add(chimneyGroup);
+
+    // ── 8. Porch / Awning ──
+    // Two support posts in front
+    const porchPostH = wallH * 0.7;
+    for (const px of [-0.45, 0.45]) {
+      const ppost = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, porchPostH, 6), darkWood));
+      ppost.position.set(px, foundH + porchPostH / 2, D / 2 + 0.4);
+      group.add(ppost);
+    }
+    // Small awning roof over door
+    const awningShape = new THREE.Shape();
+    awningShape.moveTo(-0.55, 0);
+    awningShape.lineTo(0, 0.25);
+    awningShape.lineTo(0.55, 0);
+    awningShape.lineTo(-0.55, 0);
+    const awningGeo = new THREE.ExtrudeGeometry(awningShape, {
+      steps: 1, depth: 0.5, bevelEnabled: false,
+    });
+    const awning = shad(new THREE.Mesh(awningGeo, shingleMat));
+    awning.position.set(0, foundH + porchPostH, D / 2 + 0.15);
+    group.add(awning);
+
+    // ── 9. Flower Box ──
+    const flowerBox = shad(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.1), darkWood));
+    flowerBox.position.set(0, foundH + wallH * 0.55 - 0.28, W / 2 + 0.12);
+    flowerBox.rotation.y = Math.PI / 2;
+    group.add(flowerBox);
+    // Small green plants in the box
+    for (let fi = -0.12; fi <= 0.12; fi += 0.08) {
+      const plant = shad(new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), plantMat));
+      plant.position.set(fi, foundH + wallH * 0.55 - 0.2, W / 2 + 0.12);
+      group.add(plant);
+    }
+
+    // ── 10. Wood Pile ──
+    const pileX = W / 2 + 0.35;
+    const pileZ = -D / 2 + 0.3;
+    const logPilePositions = [
+      [0, 0.06, 0], [0.12, 0.06, 0], [-0.1, 0.06, 0.08],
+      [0.05, 0.18, 0.04],
+    ];
+    for (const [lx, ly, lz] of logPilePositions) {
+      const pileLog = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055, 0.055, 0.3, 6), logMat,
+      ));
+      pileLog.rotation.x = Math.PI / 2;
+      pileLog.position.set(pileX + lx, ly, pileZ + lz);
+      group.add(pileLog);
+    }
 
     return group;
   }
@@ -977,6 +1172,313 @@ export class MeshFactory {
     });
   }
 
+  private createLogWoodMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    // Base warm brown fill
+    ctx.fillStyle = '#8B6914';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Broad colour variation bands (simulate heartwood / sapwood)
+    for (let y = 0; y < 512; y += 1) {
+      const t = y / 512;
+      const r = Math.floor(139 + Math.sin(t * 12 + 1.3) * 18 + Math.sin(t * 37) * 8);
+      const g = Math.floor(105 + Math.sin(t * 12 + 1.3) * 14 + Math.sin(t * 37) * 6);
+      const b = Math.floor(20 + Math.sin(t * 12 + 1.3) * 8 + Math.sin(t * 37) * 4);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, y, 512, 1);
+    }
+
+    // Fine grain lines running horizontally (along the log length)
+    for (let i = 0; i < 220; i++) {
+      const y = Math.random() * 512;
+      const len = 80 + Math.random() * 400;
+      const x = Math.random() * (512 - len);
+      const thickness = 0.5 + Math.random() * 1.5;
+      const dark = Math.random() > 0.5;
+      const alpha = 0.08 + Math.random() * 0.18;
+      ctx.strokeStyle = dark
+        ? `rgba(50, 30, 5, ${alpha})`
+        : `rgba(170, 130, 50, ${alpha})`;
+      ctx.lineWidth = thickness;
+      ctx.beginPath();
+      // Slight waviness
+      const wave = Math.random() * 3;
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + len * 0.5, y + wave, x + len, y - wave * 0.5);
+      ctx.stroke();
+    }
+
+    // Medium grain streaks (darker)
+    for (let i = 0; i < 60; i++) {
+      const y = Math.random() * 512;
+      const len = 120 + Math.random() * 350;
+      const x = Math.random() * (512 - len);
+      ctx.strokeStyle = `rgba(60, 35, 10, ${0.12 + Math.random() * 0.15})`;
+      ctx.lineWidth = 1.5 + Math.random() * 2;
+      ctx.beginPath();
+      const wave = (Math.random() - 0.5) * 4;
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(
+        x + len * 0.33, y + wave,
+        x + len * 0.66, y - wave,
+        x + len, y + wave * 0.3,
+      );
+      ctx.stroke();
+    }
+
+    // Wood knots (small dark ovals with ring detail)
+    const knotCount = 4 + Math.floor(Math.random() * 4);
+    for (let k = 0; k < knotCount; k++) {
+      const kx = 40 + Math.random() * 432;
+      const ky = 40 + Math.random() * 432;
+      const rx = 6 + Math.random() * 12;
+      const ry = 4 + Math.random() * 8;
+
+      // Dark centre
+      ctx.fillStyle = 'rgba(40, 22, 5, 0.7)';
+      ctx.beginPath();
+      ctx.ellipse(kx, ky, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Concentric rings around knot
+      for (let ring = 1; ring <= 3; ring++) {
+        ctx.strokeStyle = `rgba(55, 32, 10, ${0.35 - ring * 0.08})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(kx, ky, rx + ring * 4, ry + ring * 3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Lighter highlight on knot edge
+      ctx.strokeStyle = 'rgba(160, 120, 50, 0.25)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.ellipse(kx - 1, ky - 1, rx * 0.6, ry * 0.6, 0, 0, Math.PI);
+      ctx.stroke();
+    }
+
+    // Subtle bark-edge hints along top and bottom
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * 512;
+      const edge = Math.random() > 0.5 ? Math.random() * 20 : 492 + Math.random() * 20;
+      ctx.fillStyle = `rgba(50, 30, 10, ${0.15 + Math.random() * 0.2})`;
+      ctx.fillRect(x, edge, 3 + Math.random() * 8, 2 + Math.random() * 4);
+    }
+
+    // Tiny speckle noise for organic feel
+    for (let i = 0; i < 600; i++) {
+      const x = Math.random() * 512;
+      const y = Math.random() * 512;
+      const bright = Math.random() > 0.5;
+      ctx.fillStyle = bright
+        ? `rgba(180, 140, 60, ${0.06 + Math.random() * 0.08})`
+        : `rgba(40, 25, 8, ${0.06 + Math.random() * 0.08})`;
+      ctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0x9B7530,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+  }
+
+  private createWoodShingleMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    // Dark brown base
+    ctx.fillStyle = '#5C4033';
+    ctx.fillRect(0, 0, 256, 256);
+
+    const shingleH = 32;
+    const shingleW = 28;
+    const rows = Math.ceil(256 / shingleH) + 1;
+
+    for (let row = 0; row < rows; row++) {
+      const yBase = row * shingleH;
+      const offset = row % 2 === 0 ? 0 : shingleW * 0.5;
+
+      for (let col = -1; col < Math.ceil(256 / shingleW) + 1; col++) {
+        const x = col * shingleW + offset;
+
+        // Per-shingle colour variation
+        const shade = Math.floor(Math.random() * 30 - 15);
+        const r = Math.min(255, Math.max(0, 92 + shade));
+        const g = Math.min(255, Math.max(0, 64 + shade));
+        const b = Math.min(255, Math.max(0, 51 + shade));
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+
+        // Rounded-bottom shingle shape
+        ctx.beginPath();
+        ctx.moveTo(x + 1, yBase + 2);
+        ctx.lineTo(x + shingleW - 1, yBase + 2);
+        ctx.lineTo(x + shingleW - 1, yBase + shingleH - 6);
+        ctx.quadraticCurveTo(
+          x + shingleW * 0.5, yBase + shingleH + 2,
+          x + 1, yBase + shingleH - 6,
+        );
+        ctx.closePath();
+        ctx.fill();
+
+        // Subtle wood grain lines on each shingle
+        ctx.strokeStyle = `rgba(40, 25, 15, ${0.15 + Math.random() * 0.1})`;
+        ctx.lineWidth = 0.5;
+        for (let g2 = 0; g2 < 3; g2++) {
+          const gy = yBase + 6 + g2 * 8 + Math.random() * 4;
+          ctx.beginPath();
+          ctx.moveTo(x + 3, gy);
+          ctx.lineTo(x + shingleW - 3, gy + (Math.random() - 0.5) * 2);
+          ctx.stroke();
+        }
+      }
+
+      // Shadow line between rows
+      ctx.fillStyle = 'rgba(20, 10, 5, 0.4)';
+      ctx.fillRect(0, yBase, 256, 2);
+    }
+
+    // Weathering speckles
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      ctx.fillStyle = Math.random() > 0.5
+        ? `rgba(100, 90, 70, ${0.1 + Math.random() * 0.1})`
+        : `rgba(30, 18, 8, ${0.08 + Math.random() * 0.1})`;
+      ctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0x6B5040,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+  }
+
+  private createStoneFoundationMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    // Mortar base
+    ctx.fillStyle = '#999999';
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Draw irregular stones in a rough grid
+    const stoneRows = [
+      { y: 0, h: 42 },
+      { y: 44, h: 38 },
+      { y: 84, h: 44 },
+      { y: 130, h: 36 },
+      { y: 168, h: 42 },
+      { y: 212, h: 44 },
+    ];
+
+    for (const row of stoneRows) {
+      let x = 2;
+      while (x < 254) {
+        const w = 28 + Math.floor(Math.random() * 36);
+        const inset = 2 + Math.floor(Math.random() * 2);
+
+        // Stone colour variation
+        const base = 110 + Math.floor(Math.random() * 50);
+        const r = base + Math.floor(Math.random() * 15 - 7);
+        const g = base + Math.floor(Math.random() * 10 - 5);
+        const b = base + Math.floor(Math.random() * 15 - 7);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+
+        // Rounded rectangle stone
+        const sx = x + inset;
+        const sy = row.y + inset;
+        const sw = Math.min(w - inset * 2, 254 - sx);
+        const sh = row.h - inset * 2;
+        if (sw > 4 && sh > 4) {
+          const radius = 3 + Math.random() * 3;
+          ctx.beginPath();
+          ctx.moveTo(sx + radius, sy);
+          ctx.lineTo(sx + sw - radius, sy);
+          ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + radius);
+          ctx.lineTo(sx + sw, sy + sh - radius);
+          ctx.quadraticCurveTo(sx + sw, sy + sh, sx + sw - radius, sy + sh);
+          ctx.lineTo(sx + radius, sy + sh);
+          ctx.quadraticCurveTo(sx, sy + sh, sx, sy + sh - radius);
+          ctx.lineTo(sx, sy + radius);
+          ctx.quadraticCurveTo(sx, sy, sx + radius, sy);
+          ctx.closePath();
+          ctx.fill();
+
+          // Subtle highlight on top edge
+          ctx.strokeStyle = `rgba(200, 200, 200, ${0.15 + Math.random() * 0.1})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(sx + radius, sy + 1);
+          ctx.lineTo(sx + sw - radius, sy + 1);
+          ctx.stroke();
+
+          // Shadow on bottom edge
+          ctx.strokeStyle = `rgba(40, 40, 40, ${0.2 + Math.random() * 0.1})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(sx + radius, sy + sh - 1);
+          ctx.lineTo(sx + sw - radius, sy + sh - 1);
+          ctx.stroke();
+
+          // Surface speckles on stone face
+          for (let s = 0; s < 5; s++) {
+            const spx = sx + 4 + Math.random() * (sw - 8);
+            const spy = sy + 4 + Math.random() * (sh - 8);
+            ctx.fillStyle = `rgba(${80 + Math.random() * 60}, ${80 + Math.random() * 60}, ${80 + Math.random() * 60}, 0.2)`;
+            ctx.fillRect(spx, spy, 1 + Math.random() * 2, 1 + Math.random() * 2);
+          }
+        }
+
+        x += w;
+      }
+    }
+
+    // Mortar line darkening
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      ctx.fillStyle = `rgba(60, 55, 50, ${0.08 + Math.random() * 0.08})`;
+      ctx.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 2);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0x999999,
+      roughness: 0.95,
+      metalness: 0.0,
+    });
+  }
+
   private createMaterials(): Map<string, THREE.MeshStandardMaterial> {
     const m = new Map<string, THREE.MeshStandardMaterial>();
     m.set('wood', new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.8, metalness: 0.0 }));
@@ -1000,6 +1502,9 @@ export class MeshFactory {
     m.set('tunic', new THREE.MeshStandardMaterial({ color: 0x4A6741, roughness: 0.75, metalness: 0.0 }));
     m.set('pants', new THREE.MeshStandardMaterial({ color: 0x6B5B4A, roughness: 0.8, metalness: 0.0 }));
     m.set('eyeWhite', new THREE.MeshStandardMaterial({ color: 0xF0F0F0, roughness: 0.3, metalness: 0.0 }));
+    m.set('logWood', new THREE.MeshStandardMaterial({ color: 0x9B7530, roughness: 0.8, metalness: 0.0 }));
+    m.set('darkWood', new THREE.MeshStandardMaterial({ color: 0x4A3520, roughness: 0.85, metalness: 0.0 }));
+    m.set('ironMetal', new THREE.MeshStandardMaterial({ color: 0x3A3A3A, roughness: 0.5, metalness: 0.7 }));
     return m;
   }
 }
