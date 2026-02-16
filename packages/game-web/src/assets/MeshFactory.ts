@@ -37,68 +37,225 @@ export class MeshFactory {
   createCitizenMesh(): THREE.Group {
     const group = new THREE.Group();
     const skin = this.mat('skin');
-    const cloth = this.mat('cloth');
-
-    // Body (capsule-like: cylinder + two hemispheres)
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.5, 8), cloth);
-    body.position.y = 0.55;
-    body.castShadow = true;
-    group.add(body);
-
-    // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), skin);
-    head.position.y = 0.95;
-    head.castShadow = true;
-    group.add(head);
-
-    // Facial features
     const dark = this.mat('dark');
+    const tunic = this.mat('tunic');
+    const pantsMat = this.mat('pants');
+    const bootsMat = this.mat('boots');
+    const beltMat = this.mat('belt');
+    const hairMat = this.mat('hair');
+    const eyeWhite = this.mat('eyeWhite');
 
-    // Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.025, 6, 6);
-    const leftEye = new THREE.Mesh(eyeGeo, dark);
-    leftEye.position.set(-0.05, 0.97, 0.09);
-    group.add(leftEye);
-    const rightEye = new THREE.Mesh(eyeGeo, dark);
-    rightEye.position.set(0.05, 0.97, 0.09);
-    group.add(rightEye);
+    // ── Body Group (torso, pelvis, belt, collar) ──
+    const bodyGroup = new THREE.Group();
+    bodyGroup.name = 'bodyGroup';
+    bodyGroup.position.y = 0.50;
 
-    // Nose
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), skin);
-    nose.position.set(0, 0.94, 0.11);
-    group.add(nose);
+    // Torso — tapered, wider at shoulders, narrower at waist
+    const torso = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.10, 0.14, 0.30, 10), tunic,
+    );
+    torso.position.y = 0.10;
+    torso.castShadow = true;
+    bodyGroup.add(torso);
 
-    // Mouth
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.02), dark);
-    mouth.position.set(0, 0.91, 0.10);
-    group.add(mouth);
+    // Pelvis/hip — wider capsule connecting torso to legs
+    const pelvis = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.14, 0.12, 0.10, 10), pantsMat,
+    );
+    pelvis.position.y = -0.10;
+    pelvis.castShadow = true;
+    bodyGroup.add(pelvis);
 
-    // Arms (pivot at shoulder so they can swing)
+    // Belt — thin ring at waist
+    const belt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.145, 0.145, 0.03, 10), beltMat,
+    );
+    belt.position.y = -0.04;
+    belt.castShadow = true;
+    bodyGroup.add(belt);
+
+    // Belt buckle — small box at front
+    const buckle = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.03, 0.02),
+      new THREE.MeshStandardMaterial({ color: 0xB8860B, roughness: 0.4, metalness: 0.6 }),
+    );
+    buckle.position.set(0, -0.04, 0.14);
+    bodyGroup.add(buckle);
+
+    // Collar/neckline — small ring at top of torso
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.10, 0.03, 10), tunic,
+    );
+    collar.position.y = 0.26;
+    collar.castShadow = true;
+    bodyGroup.add(collar);
+
+    group.add(bodyGroup);
+
+    // ── Neck ──
+    const neck = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.045, 0.05, 0.06, 8), skin,
+    );
+    neck.position.y = 0.80;
+    neck.castShadow = true;
+    group.add(neck);
+
+    // ── Head Group (head, hair, face features) ──
+    const headGroup = new THREE.Group();
+    headGroup.name = 'headGroup';
+    headGroup.position.y = 0.93;
+
+    // Head — slightly oval sphere
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 12, 12), skin,
+    );
+    head.scale.set(1, 1.08, 0.95);
+    head.castShadow = true;
+    headGroup.add(head);
+
+    // ── Hair ──
+    // Main hair cap — top of head
+    const hairTop = new THREE.Mesh(
+      new THREE.SphereGeometry(0.125, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat,
+    );
+    hairTop.position.y = 0.02;
+    hairTop.castShadow = true;
+    headGroup.add(hairTop);
+
+    // Hair sides — left and right volume
+    for (const side of [-1, 1]) {
+      const hairSide = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 8, 6), hairMat,
+      );
+      hairSide.position.set(side * 0.09, 0.02, -0.02);
+      hairSide.scale.set(0.7, 1.1, 0.9);
+      hairSide.castShadow = true;
+      headGroup.add(hairSide);
+    }
+
+    // Hair back — volume at back of head
+    const hairBack = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 8, 6), hairMat,
+    );
+    hairBack.position.set(0, -0.01, -0.08);
+    hairBack.scale.set(1, 1.0, 0.7);
+    hairBack.castShadow = true;
+    headGroup.add(hairBack);
+
+    // ── Face ──
+    // Eyes — white base + dark pupil
+    for (const side of [-1, 1]) {
+      const eyeWhiteMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.028, 8, 8), eyeWhite,
+      );
+      eyeWhiteMesh.position.set(side * 0.045, 0.02, 0.10);
+      headGroup.add(eyeWhiteMesh);
+
+      const pupil = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 8, 8), dark,
+      );
+      pupil.position.set(side * 0.045, 0.02, 0.12);
+      headGroup.add(pupil);
+
+      // Eyebrow — small flattened box above eye
+      const eyebrow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.008, 0.015), dark,
+      );
+      eyebrow.position.set(side * 0.045, 0.055, 0.10);
+      eyebrow.rotation.x = -0.1;
+      headGroup.add(eyebrow);
+    }
+
+    // Nose — small protruding shape
+    const nose = new THREE.Mesh(
+      new THREE.ConeGeometry(0.015, 0.03, 6), skin,
+    );
+    nose.position.set(0, -0.005, 0.12);
+    nose.rotation.x = -Math.PI / 2;
+    headGroup.add(nose);
+
+    // Mouth — small dark line
+    const mouth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.008, 0.01), dark,
+    );
+    mouth.position.set(0, -0.04, 0.11);
+    headGroup.add(mouth);
+
+    // Ears
+    for (const side of [-1, 1]) {
+      const ear = new THREE.Mesh(
+        new THREE.SphereGeometry(0.025, 6, 6), skin,
+      );
+      ear.position.set(side * 0.12, 0.0, 0.0);
+      ear.scale.set(0.4, 0.8, 0.6);
+      headGroup.add(ear);
+    }
+
+    group.add(headGroup);
+
+    // ── Arms (pivot at shoulder so they can swing) ──
     for (const side of [-1, 1]) {
       const armPivot = new THREE.Group();
       armPivot.name = side === -1 ? 'leftArm' : 'rightArm';
-      armPivot.position.set(side * 0.22, 0.75, 0);
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6), cloth);
-      arm.position.set(0, -0.175, 0);
-      arm.castShadow = true;
-      armPivot.add(arm);
-      // Hand (small sphere at arm tip)
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), skin);
+      armPivot.position.set(side * 0.19, 0.72, 0);
+
+      // Upper arm — tunic sleeve
+      const upperArm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.04, 0.17, 8), tunic,
+      );
+      upperArm.position.y = -0.085;
+      upperArm.castShadow = true;
+      armPivot.add(upperArm);
+
+      // Forearm — skin (rolled-up sleeves look)
+      const forearm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.035, 0.15, 8), skin,
+      );
+      forearm.position.y = -0.245;
+      forearm.castShadow = true;
+      armPivot.add(forearm);
+
+      // Hand — mitten-style rounded box
+      const hand = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.05, 0.04), skin,
+      );
       hand.position.set(0, -0.37, 0);
       hand.castShadow = true;
       armPivot.add(hand);
+
       group.add(armPivot);
     }
 
-    // Legs (pivot at hip so they can swing)
+    // ── Legs (pivot at hip so they can swing) ──
     for (const side of [-1, 1]) {
       const legPivot = new THREE.Group();
       legPivot.name = side === -1 ? 'leftLeg' : 'rightLeg';
-      legPivot.position.set(side * 0.08, 0.30, 0);
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6), cloth);
-      leg.position.set(0, -0.15, 0);
-      leg.castShadow = true;
-      legPivot.add(leg);
+      legPivot.position.set(side * 0.07, 0.30, 0);
+
+      // Upper leg (thigh) — slightly thicker
+      const thigh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.055, 0.15, 8), pantsMat,
+      );
+      thigh.position.y = -0.075;
+      thigh.castShadow = true;
+      legPivot.add(thigh);
+
+      // Lower leg (shin) — slightly narrower
+      const shin = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.045, 0.12, 8), pantsMat,
+      );
+      shin.position.y = -0.21;
+      shin.castShadow = true;
+      legPivot.add(shin);
+
+      // Boot — box-like with slight rounding
+      const boot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.06, 0.08), bootsMat,
+      );
+      boot.position.set(0, -0.30, 0.01);
+      boot.castShadow = true;
+      legPivot.add(boot);
+
       group.add(legPivot);
     }
 
@@ -807,6 +964,13 @@ export class MeshFactory {
     m.set('chicken', new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8, metalness: 0.0 }));
     m.set('comb', new THREE.MeshStandardMaterial({ color: 0xCC2222, roughness: 0.6, metalness: 0.0 }));
     m.set('beak', new THREE.MeshStandardMaterial({ color: 0xFF8C00, roughness: 0.5, metalness: 0.1 }));
+    m.set('hair', new THREE.MeshStandardMaterial({ color: 0x4A3728, roughness: 0.9, metalness: 0.0 }));
+    m.set('hairLight', new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.9, metalness: 0.0 }));
+    m.set('boots', new THREE.MeshStandardMaterial({ color: 0x3D2B1F, roughness: 0.85, metalness: 0.0 }));
+    m.set('belt', new THREE.MeshStandardMaterial({ color: 0x2E1503, roughness: 0.7, metalness: 0.0 }));
+    m.set('tunic', new THREE.MeshStandardMaterial({ color: 0x4A6741, roughness: 0.75, metalness: 0.0 }));
+    m.set('pants', new THREE.MeshStandardMaterial({ color: 0x6B5B4A, roughness: 0.8, metalness: 0.0 }));
+    m.set('eyeWhite', new THREE.MeshStandardMaterial({ color: 0xF0F0F0, roughness: 0.3, metalness: 0.0 }));
     return m;
   }
 }
