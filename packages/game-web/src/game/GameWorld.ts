@@ -76,8 +76,6 @@ import { AnimalAnimator } from '../animation/AnimalAnimator.js';
 const MALE_NAMES = ['Aldric', 'Cedric', 'Edmund', 'Gilbert', 'Ivar'];
 const FEMALE_NAMES = ['Beatrice', 'Dorothea', 'Fiona', 'Helena', 'Juliana'];
 
-/** Jobs to cycle through when spawning starting citizens */
-const STARTING_JOBS: JobType[] = [JobType.Woodcutter, JobType.Quarrier];
 
 export class GameWorld {
   readonly world: World;
@@ -107,8 +105,6 @@ export class GameWorld {
   // Entity → environment instance mapping for hide/show on depletion
   private resourceInstanceMap = new Map<EntityId, { type: string; index: number }>();
 
-  // Round-robin counter for default job assignment
-  private nextJobIndex = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -274,11 +270,8 @@ export class GameWorld {
     };
     pos.y = this.terrainMesh.getHeightAt(pos.x, pos.z);
 
-    // Determine job: use provided jobType, or round-robin through STARTING_JOBS
-    const assignedJob = jobType ?? STARTING_JOBS[this.nextJobIndex % STARTING_JOBS.length];
-    if (jobType == null) {
-      this.nextJobIndex++;
-    }
+    // Determine job: use provided jobType, or default to Idle (wander)
+    const assignedJob = jobType ?? JobType.Idle;
 
     // Random gender 50/50 and matching name
     const gender = Math.random() < 0.5 ? Gender.Male : Gender.Female;
@@ -296,7 +289,7 @@ export class GameWorld {
     this.world.addComponent(entity, TRANSFORM, createTransform(pos));
     this.world.addComponent(entity, VELOCITY, createVelocity());
     this.world.addComponent(entity, CITIZEN, createCitizen(
-      name, gender, assignedJob, CitizenState.Idle, 100, 100, 0, 0, Mood.Neutral, age, lifeGoal,
+      name, gender, jobType ?? null, CitizenState.Idle, 100, 100, 0, 0, Mood.Neutral, age, lifeGoal,
     ));
     this.world.addComponent(entity, CARRY, createCarry());
     this.world.addComponent(entity, SELECTABLE, createSelectable());
