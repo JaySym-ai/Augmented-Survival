@@ -19,6 +19,7 @@ const SPEED_OPTIONS: SpeedOption[] = [
   { label: '▶️ 1×', scale: 1, isPause: false },
   { label: '⏩ 2×', scale: 2, isPause: false },
   { label: '⏩ 3×', scale: 3, isPause: false },
+  { label: '⏩ 5×', scale: 5, isPause: false },
 ];
 
 export class TimeControls {
@@ -85,6 +86,11 @@ export class TimeControls {
         case '3':
           this.timeSystem.resume();
           this.timeSystem.setTimeScale(3);
+          this.updateActiveButton();
+          break;
+        case '5':
+          this.timeSystem.resume();
+          this.timeSystem.setTimeScale(5);
           this.updateActiveButton();
           break;
       }
