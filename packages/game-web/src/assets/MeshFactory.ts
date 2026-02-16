@@ -1570,6 +1570,89 @@ export class MeshFactory {
       group.add(cpost);
     }
 
+    // Tree Stumps (2-3 around the hut)
+    const stumpPositions: [number, number, number][] = [
+      [W / 2 + 0.5, 0, -D / 2 - 0.3],
+      [-W / 2 - 0.6, 0, -D / 2 - 0.2],
+      [0, 0, -D / 2 - 0.5],
+    ];
+    for (const [sx, sy, sz] of stumpPositions) {
+      const stumpHeight = 0.15 + Math.random() * 0.1;
+      const stump = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.1, stumpHeight, 8), logMat,
+      ));
+      stump.position.set(sx, sy + stumpHeight / 2, sz);
+      group.add(stump);
+      const stumpTop = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.065, 0.08, 0.02, 8), darkWood,
+      ));
+      stumpTop.position.set(sx, sy + stumpHeight, sz);
+      group.add(stumpTop);
+    }
+
+    // Axe stuck in one stump (the first one)
+    const stuckAxeGroup = new THREE.Group();
+    const stuckAxeHandle = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.02, 0.4, 6), darkWood,
+    ));
+    stuckAxeHandle.rotation.x = Math.PI / 8;
+    stuckAxeGroup.add(stuckAxeHandle);
+    const stuckAxeHead = shad(new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.055, 0.022), ironMetal,
+    ));
+    stuckAxeHead.position.set(0.07, 0.08, 0);
+    stuckAxeGroup.add(stuckAxeHead);
+    stuckAxeGroup.position.set(stumpPositions[0][0] + 0.05, stumpPositions[0][1] + 0.18, stumpPositions[0][2] + 0.08);
+    stuckAxeGroup.rotation.z = Math.PI / 6;
+    group.add(stuckAxeGroup);
+
+    // Chopping block (horizontal log section)
+    const choppingBlock = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 0.15, 8), logMat,
+    ));
+    choppingBlock.rotation.x = Math.PI / 2;
+    choppingBlock.position.set(W / 2 + 0.55, 0.06, D / 2 - 0.55);
+    group.add(choppingBlock);
+    const choppingBlockTop = shad(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.095, 0.1, 0.02, 8), darkWood,
+    ));
+    choppingBlockTop.rotation.x = Math.PI / 2;
+    choppingBlockTop.position.set(W / 2 + 0.55, 0.14, D / 2 - 0.55);
+    group.add(choppingBlockTop);
+
+    // Additional scattered logs around the hut
+    const scatteredLogPositions: [number, number, number, number][] = [
+      [-W / 2 - 0.5, 0.04, 0.3, Math.PI / 2 + 0.15],
+      [-W / 2 - 0.6, 0.035, -0.5, Math.PI / 2 - 0.1],
+      [W / 2 + 0.3, 0.03, -D / 2 - 0.4, Math.PI / 2 + 0.2],
+      [0.3, 0.025, -D / 2 - 0.35, Math.PI / 2 - 0.25],
+    ];
+    for (const [lx, ly, lz, rot] of scatteredLogPositions) {
+      const log = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.05, 0.35, 6), logMat,
+      ));
+      log.rotation.x = rot;
+      log.rotation.z = (Math.random() - 0.5) * 0.1;
+      log.position.set(lx, ly, lz);
+      group.add(log);
+    }
+
+    // Small log pile near the back
+    const extraPileX = -W / 2 - 0.35;
+    const extraPileZ = -D / 2 + 0.4;
+    const extraPilePositions = [
+      [0, 0.04, 0], [0.08, 0.04, 0.05], [-0.05, 0.04, -0.04],
+    ];
+    for (const [lx, ly, lz] of extraPilePositions) {
+      const pileLog = shad(new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.055, 0.32, 6), logMat,
+      ));
+      pileLog.rotation.x = Math.PI / 2;
+      pileLog.rotation.z = (Math.random() - 0.5) * 0.15;
+      pileLog.position.set(extraPileX + lx, ly, extraPileZ + lz);
+      group.add(pileLog);
+    }
+
     return group;
   }
 
