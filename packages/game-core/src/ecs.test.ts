@@ -462,7 +462,7 @@ describe('JobAssignmentSystem', () => {
   it('should create idle citizen with JobAssignment', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Idle));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Male, JobType.Woodcutter, CitizenState.Idle));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
 
     world.step(0.016);
@@ -474,7 +474,7 @@ describe('JobAssignmentSystem', () => {
   it('should not run when paused', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Idle));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Male, JobType.Woodcutter, CitizenState.Idle));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
     
     timeSystem.pause();
@@ -487,7 +487,7 @@ describe('JobAssignmentSystem', () => {
   it('should recover stuck Walking citizens', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Walking));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Male, JobType.Woodcutter, CitizenState.Walking));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
     
     const stateChangeHandler = vi.fn();
@@ -502,7 +502,7 @@ describe('JobAssignmentSystem', () => {
   it('should recover stuck Delivering citizens', () => {
     const citizen = world.createEntity();
     world.addComponent(citizen, TRANSFORM, createTransform({ x: 0, y: 0, z: 0 }));
-    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Homme, JobType.Woodcutter, CitizenState.Delivering));
+    world.addComponent(citizen, CITIZEN, createCitizen('Test', Gender.Male, JobType.Woodcutter, CitizenState.Delivering));
     world.addComponent(citizen, JOB_ASSIGNMENT, createJobAssignment(JobType.Woodcutter));
     
     world.step(0.016);

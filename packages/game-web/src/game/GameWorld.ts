@@ -275,8 +275,8 @@ export class GameWorld {
     }
 
     // Random gender 50/50 and matching name
-    const gender = Math.random() < 0.5 ? Gender.Homme : Gender.Femme;
-    const names = gender === Gender.Homme ? MALE_NAMES : FEMALE_NAMES;
+    const gender = Math.random() < 0.5 ? Gender.Male : Gender.Female;
+    const names = gender === Gender.Male ? MALE_NAMES : FEMALE_NAMES;
     const name = names[Math.floor(Math.random() * names.length)];
 
     // Random age between 18 and 65

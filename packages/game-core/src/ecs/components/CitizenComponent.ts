@@ -32,7 +32,7 @@ export const CITIZEN = 'Citizen' as const;
 
 export function createCitizen(
   name: string,
-  gender: Gender = Gender.Homme,
+  gender: Gender = Gender.Male,
   job: JobType | null = null,
   state: CitizenState = CitizenState.Idle,
   hunger = 100,

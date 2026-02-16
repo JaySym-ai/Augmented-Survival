@@ -332,12 +332,12 @@ export class SelectionPanel {
     ageRow.appendChild(ageValue);
     this.citizenAgeText = ageValue;
 
-    // Sexe row (right after Age)
+    // Gender row (right after Age)
     const genderRow = document.createElement('div');
     genderRow.className = 'sel-row';
     const genderLabel = document.createElement('span');
     genderLabel.className = 'label';
-    genderLabel.textContent = 'Sexe';
+    genderLabel.textContent = 'Gender';
     const genderValue = document.createElement('span');
     genderRow.appendChild(genderLabel);
     genderRow.appendChild(genderValue);
@@ -559,19 +559,19 @@ export class SelectionPanel {
   }
 
   private static readonly MOOD_DISPLAY: Record<Mood, string> = {
-    [Mood.Joyful]: '😄 Joyeux',
+    [Mood.Joyful]: '😄 Joyful',
     [Mood.Content]: '😊 Content',
-    [Mood.Neutral]: '😐 Neutre',
-    [Mood.Sad]: '😢 Triste',
-    [Mood.Angry]: '😠 Énervé',
+    [Mood.Neutral]: '😐 Neutral',
+    [Mood.Sad]: '😢 Sad',
+    [Mood.Angry]: '😠 Angry',
   };
 
   private static readonly LIFE_GOAL_DISPLAY: Record<LifeGoal, string> = {
-    [LifeGoal.Prosper]: '🌟 Prospérité',
-    [LifeGoal.Socialize]: '👨‍👩‍👧 Famille',
+    [LifeGoal.Prosper]: '🌟 Prosperity',
+    [LifeGoal.Socialize]: '👨‍👩‍👧 Socialize',
     [LifeGoal.Explore]: '🧭 Exploration',
-    [LifeGoal.Build]: '🔨 Artisanat',
-    [LifeGoal.Survive]: '🌿 Tranquillité',
+    [LifeGoal.Build]: '🔨 Build',
+    [LifeGoal.Survive]: '🌿 Survive',
   };
 
   /** Update only the dynamic values in the cached citizen DOM. */
@@ -583,10 +583,10 @@ export class SelectionPanel {
     const currentJob = citizen.job ?? JobType.Idle;
 
     if (this.citizenAgeText) {
-      this.citizenAgeText.textContent = `${citizen.age} ans`;
+      this.citizenAgeText.textContent = `${citizen.age} y/o`;
     }
     if (this.citizenGenderText) {
-      this.citizenGenderText.textContent = citizen.gender === Gender.Homme ? '👨 Homme' : '👩 Femme';
+      this.citizenGenderText.textContent = citizen.gender === Gender.Male ? '👨 Male' : '👩 Female';
     }
     if (this.citizenMoodText) {
       this.citizenMoodText.textContent = SelectionPanel.MOOD_DISPLAY[citizen.mood] ?? citizen.mood;
@@ -597,9 +597,9 @@ export class SelectionPanel {
     if (this.citizenRelationText) {
       if (citizen.partnerId != null) {
         const partner = this.world.getComponent<CitizenComponent>(citizen.partnerId, CITIZEN);
-        this.citizenRelationText.textContent = partner ? `💕 ${partner.name}` : 'Célibataire';
+        this.citizenRelationText.textContent = partner ? `💕 ${partner.name}` : 'Single';
       } else {
-        this.citizenRelationText.textContent = 'Célibataire';
+        this.citizenRelationText.textContent = 'Single';
       }
     }
     if (this.citizenJobText) {

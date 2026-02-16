@@ -25,8 +25,8 @@ export enum Mood {
  * Gender of a citizen.
  */
 export enum Gender {
-  Homme = 'Homme',
-  Femme = 'Femme',
+  Male = 'Male',
+  Female = 'Female',
 }
 
 /**
