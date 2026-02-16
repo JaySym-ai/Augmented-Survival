@@ -9,6 +9,10 @@ import { JOB_ASSIGNMENT } from '../ecs/components/JobAssignmentComponent';
 import type { JobAssignmentComponent } from '../ecs/components/JobAssignmentComponent';
 import { CONSTRUCTION_WORK } from '../ecs/components/ConstructionWorkComponent';
 import { CONSTRUCTION_SITE } from '../ecs/components/ConstructionSiteComponent';
+import { PATH_FOLLOW } from '../ecs/components/PathFollowComponent';
+import { GATHERING } from '../ecs/components/GatheringComponent';
+import { CARRY } from '../ecs/components/CarryComponent';
+import type { CarryComponent } from '../ecs/components/CarryComponent';
 import { TEMPORARY_BUILDER } from '../ecs/components/TemporaryBuilderComponent';
 import type { TemporaryBuilderComponent } from '../ecs/components/TemporaryBuilderComponent';
 import { JobType } from '../types/jobs';
@@ -72,7 +76,8 @@ export class AutoBuilderSystem extends System {
   }
 
   /**
-   * Find the nearest idle citizen and assign them as a temporary builder.
+   * Find the nearest available citizen and assign them as a temporary builder.
+   * Prefers idle villagers; falls back to any non-Building villager.
    */
   private autoAssignBuilder(world: World, buildingId: EntityId): void {
     // Verify building still has a construction site
@@ -84,9 +89,11 @@ export class AutoBuilderSystem extends System {
     // Find all citizens with CITIZEN + TRANSFORM
     const citizens = world.query(CITIZEN, TRANSFORM);
 
+    // Two-pass approach: first try idle villagers, then fall back to any non-Building villager
     let bestId: EntityId | null = null;
     let bestDist = Infinity;
 
+    // Pass 1: prefer idle villagers
     for (const entityId of citizens) {
       const citizen = world.getComponent<CitizenComponent>(entityId, CITIZEN);
       if (!citizen || citizen.state !== CitizenState.Idle) continue;
@@ -107,10 +114,46 @@ export class AutoBuilderSystem extends System {
       }
     }
 
+    // Pass 2: if no idle villager found, pick any non-Building villager
+    if (bestId === null) {
+      bestDist = Infinity;
+      for (const entityId of citizens) {
+        const citizen = world.getComponent<CitizenComponent>(entityId, CITIZEN);
+        if (!citizen || citizen.state === CitizenState.Building) continue;
+
+        // Skip citizens who already have TEMPORARY_BUILDER
+        if (world.hasComponent(entityId, TEMPORARY_BUILDER)) continue;
+
+        const transform = world.getComponent<TransformComponent>(entityId, TRANSFORM);
+        if (!transform) continue;
+
+        const dist = distanceSq(transform.position, buildingTransform.position);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestId = entityId;
+        }
+      }
+    }
+
     if (bestId === null) return;
+
+    // Clean up current task components before reassignment
+    if (world.hasComponent(bestId, PATH_FOLLOW)) {
+      world.removeComponent(bestId, PATH_FOLLOW);
+    }
+    if (world.hasComponent(bestId, GATHERING)) {
+      world.removeComponent(bestId, GATHERING);
+    }
+    if (world.hasComponent(bestId, CARRY)) {
+      world.removeComponent(bestId, CARRY);
+    }
+    if (world.hasComponent(bestId, CONSTRUCTION_WORK)) {
+      world.removeComponent(bestId, CONSTRUCTION_WORK);
+    }
 
     // Save previous job and assign as Builder
     const citizen = world.getComponent<CitizenComponent>(bestId, CITIZEN)!;
+    citizen.state = CitizenState.Idle; // Clean slate before job assignment
     const jobAssignment = world.getComponent<JobAssignmentComponent>(bestId, JOB_ASSIGNMENT);
 
     const previousJobType = jobAssignment ? jobAssignment.jobType : JobType.Idle;
