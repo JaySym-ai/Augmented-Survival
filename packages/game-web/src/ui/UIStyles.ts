@@ -106,6 +106,100 @@ const CSS = /* css */ `
   transform: translateX(-50%);
   display: flex; gap: 8px;
   padding: 10px 16px;
+  transition: all 0.3s ease;
+}
+.ui-build-menu.collapsed {
+  padding: 8px 12px;
+  gap: 0;
+}
+
+.build-menu-toggle {
+  display: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--ui-accent);
+  background: linear-gradient(145deg, rgba(40, 30, 20, 0.95), rgba(20, 15, 10, 0.98));
+  color: var(--ui-accent);
+  cursor: pointer;
+  font-size: 24px;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 215, 0, 0.15),
+    0 0 20px rgba(218, 165, 32, 0.1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.build-menu-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.2), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.build-menu-toggle:hover {
+  border-color: var(--ui-accent-hover);
+  color: var(--ui-accent-hover);
+  transform: scale(1.08);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 215, 0, 0.25),
+    0 0 30px rgba(240, 192, 64, 0.35),
+    0 0 60px rgba(218, 165, 32, 0.15);
+}
+.build-menu-toggle:hover::before {
+  opacity: 1;
+}
+.build-menu-toggle:active {
+  transform: scale(0.95);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 215, 0, 0.15),
+    0 0 20px rgba(240, 192, 64, 0.25);
+}
+
+.ui-build-menu.collapsed .ui-build-card {
+  display: none;
+}
+.ui-build-menu.collapsed .build-menu-toggle {
+  display: flex;
+}
+.ui-build-menu.collapsed .build-menu-minimize {
+  display: none;
+}
+
+.build-menu-minimize {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--ui-border);
+  background: linear-gradient(145deg, rgba(40, 30, 20, 0.95), rgba(20, 15, 10, 0.98));
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+.build-menu-minimize:hover {
+  border-color: var(--ui-accent);
+  color: var(--ui-accent);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 10px rgba(218, 165, 32, 0.2);
+}
+.build-menu-minimize:active {
+  transform: scale(0.95);
 }
 .ui-build-card {
   display: flex; flex-direction: column;

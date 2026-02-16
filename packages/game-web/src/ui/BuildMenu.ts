@@ -35,6 +35,7 @@ export class BuildMenu {
   private activeType: BuildingType | null = null;
   private collapsed = true;
   private toggleBtn: HTMLButtonElement;
+  private minimizeBtn: HTMLButtonElement;
 
   constructor(
     parent: HTMLElement,
@@ -50,6 +51,12 @@ export class BuildMenu {
     this.toggleBtn.textContent = '🔨';
     this.toggleBtn.addEventListener('click', () => this.toggleCollapsed());
     this.el.appendChild(this.toggleBtn);
+
+    this.minimizeBtn = document.createElement('button');
+    this.minimizeBtn.className = 'build-menu-minimize';
+    this.minimizeBtn.textContent = '▼';
+    this.minimizeBtn.addEventListener('click', () => this.toggleCollapsed());
+    this.el.appendChild(this.minimizeBtn);
 
     for (const bType of BUILDABLE) {
       const def = BUILDING_DEFS[bType];
