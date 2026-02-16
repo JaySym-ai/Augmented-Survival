@@ -74,9 +74,16 @@ export class SelectionManager {
   ) {
     // Create selection ring (yellow torus)
     const ringGeo = new THREE.TorusGeometry(0.8, 0.05, 8, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffdd00,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.85,
+    });
     this.selectionRing = new THREE.Mesh(ringGeo, ringMat);
     this.selectionRing.rotation.x = -Math.PI / 2;
+    this.selectionRing.renderOrder = 999;
     this.selectionRing.visible = false;
     gameWorld.scene.add(this.selectionRing);
 
@@ -164,9 +171,16 @@ export class SelectionManager {
   /** Spawn an animated command feedback marker (torus ring) at the given position. */
   private spawnCommandMarker(position: { x: number; y: number; z: number }, color: number): void {
     const geo = new THREE.TorusGeometry(0.9, 0.06, 8, 32);
-    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, depthWrite: false });
+    const mat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+      depthTest: false,
+    });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.rotation.x = -Math.PI / 2;
+    mesh.renderOrder = 999;
     mesh.position.set(position.x, position.y + 0.1, position.z);
     mesh.scale.setScalar(0.6); // starts small
     this.gameWorld.scene.add(mesh);
