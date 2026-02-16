@@ -899,10 +899,7 @@ export class MeshFactory {
     mountPlate.position.set(0.12, 0, 0.05);
     doorGroup.add(mountPlate);
 
-    // Stone step in front of door
-    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.25), stoneMat));
-    doorStep.position.set(0, -doorH / 2 - 0.05, 0.15);
-    doorGroup.add(doorStep);
+
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.06);
     group.add(doorGroup);
@@ -1224,6 +1221,19 @@ export class MeshFactory {
       hinge.position.set(-0.05, hy, 0.06);
       leftDoorGroup.add(hinge);
     }
+
+    // X-brace diagonals on left door half
+    const braceW = doorW / 2 - 0.06;
+    const braceH = doorH - 0.1;
+    const braceLen = Math.sqrt(braceW * braceW + braceH * braceH);
+    const braceAngle = Math.atan2(braceH, braceW);
+    for (const dir of [1, -1]) {
+      const brace = shad(new THREE.Mesh(new THREE.BoxGeometry(braceLen, 0.04, 0.03), darkWood));
+      brace.rotation.z = dir * braceAngle;
+      brace.position.set(-doorW / 4, 0, 0.04);
+      leftDoorGroup.add(brace);
+    }
+
     doorGroup.add(leftDoorGroup);
 
     const rightDoorGroup = new THREE.Group();
@@ -1239,6 +1249,15 @@ export class MeshFactory {
       hinge.position.set(0.05, hy, 0.06);
       rightDoorGroup.add(hinge);
     }
+
+    // X-brace diagonals on right door half
+    for (const dir of [1, -1]) {
+      const brace = shad(new THREE.Mesh(new THREE.BoxGeometry(braceLen, 0.04, 0.03), darkWood));
+      brace.rotation.z = dir * braceAngle;
+      brace.position.set(doorW / 4, 0, 0.04);
+      rightDoorGroup.add(brace);
+    }
+
     doorGroup.add(rightDoorGroup);
 
     const handlePlate = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.02), ironMetal));
@@ -1250,9 +1269,7 @@ export class MeshFactory {
     handleBar.position.set(0, 0.1, 0.1);
     doorGroup.add(handleBar);
 
-    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 0.3), stoneMat));
-    doorStep.position.set(0, -doorH / 2 - 0.06, 0.2);
-    doorGroup.add(doorStep);
+
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.02, D / 2 + 0.08);
     group.add(doorGroup);
@@ -1520,9 +1537,7 @@ export class MeshFactory {
     hinge.position.set(-0.02, 0.15, 0.04);
     doorGroup.add(hinge);
 
-    const doorStep = shad(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.2), stoneMat));
-    doorStep.position.set(0, -doorH / 2 - 0.04, 0.12);
-    doorGroup.add(doorStep);
+
 
     doorGroup.position.set(0, foundH + doorH / 2 + 0.015, D / 2 + 0.05);
     group.add(doorGroup);

@@ -68,7 +68,7 @@ import {
   CitizenNeedsSystem,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
-import { TerrainMesh } from '../world/TerrainMesh.js';
+import { TerrainMesh, getMaxHeightForFootprint } from '../world/TerrainMesh.js';
 import { EnvironmentObjects } from '../world/EnvironmentSystem.js';
 import { CitizenAnimator } from '../animation/CitizenAnimator.js';
 import { AnimalAnimator } from '../animation/AnimalAnimator.js';
@@ -105,6 +105,9 @@ export class GameWorld {
   // Entity → environment instance mapping for hide/show on depletion
   private resourceInstanceMap = new Map<EntityId, { type: string; index: number }>();
 
+
+  // Track building footprints for terrain modification exclude zones
+  private buildingFootprints: Array<{x: number, z: number, width: number, depth: number}> = [];
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -186,23 +189,37 @@ export class GameWorld {
   private spawnTownCenter(): void {
     const def = BUILDING_DEFS[BuildingType.TownCenter];
     const entityId = this.world.createEntity();
-    const y = this.terrainMesh.getHeightAt(0, 0);
+    const y = getMaxHeightForFootprint(this.terrainMesh, 0, 0, def.size.width, def.size.depth);
     this.world.addComponent(entityId, TRANSFORM, createTransform({ x: 0, y, z: 0 }));
     this.world.addComponent(entityId, BUILDING, createBuilding(BuildingType.TownCenter, def.workerSlots, true));
     this.world.addComponent(entityId, STORAGE, createStorage(def.storageCapacity));
     this.world.addComponent(entityId, SELECTABLE, createSelectable());
 
+    // Raise terrain for town center
+    this.buildingFootprints.push({x: 0, z: 0, width: def.size.width, depth: def.size.depth});
+    this.terrainMesh.raiseTerrainForBuilding(0, 0, def.size.width, def.size.depth, y, []);
+
     const mesh = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
     mesh.position.set(0, y, 0);
     mesh.castShadow = true;
+
     this.scene.add(mesh);
     this.entityMeshes.set(entityId, mesh);
 
     // Campfire with benches in front of the barn
     const campfire = this.meshFactory.createCampfire();
-    const campfireY = this.terrainMesh.getHeightAt(0, 4);
-    campfire.position.set(0, campfireY, 4);
+    const campfireY = getMaxHeightForFootprint(this.terrainMesh, 0, 7, 2.6, 2.6);
+    campfire.position.set(0, campfireY, 7);
+
+    // Raise terrain for campfire, excluding TC footprint
+    this.buildingFootprints.push({x: 0, z: 7, width: 2.6, depth: 2.6});
+    this.terrainMesh.raiseTerrainForBuilding(0, 7, 2.6, 2.6, campfireY,
+      this.buildingFootprints.filter(fp => !(fp.x === 0 && fp.z === 7)));
+
     this.scene.add(campfire);
+
+    // Refresh terrain geometry once after all initial terrain modifications
+    this.terrainMesh.refreshGeometry();
   }
 
   private createResourceEntities(): void {
@@ -358,7 +375,7 @@ export class GameWorld {
     if (!this.resourceStore.canAfford(def.cost)) return null;
     this.resourceStore.deduct(def.cost);
 
-    position.y = this.terrainMesh.getHeightAt(position.x, position.z);
+    position.y = getMaxHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
 
     const entityId = this.buildingPlacement.placeBuilding(this.world, type, position, {
       cost: def.cost,
@@ -372,6 +389,16 @@ export class GameWorld {
       const mesh = this.meshFactory.createBuildingMesh(type);
       mesh.position.set(position.x, position.y, position.z);
       mesh.castShadow = true;
+
+      // Raise terrain around building footprint
+      this.buildingFootprints.push({x: position.x, z: position.z, width: def.size.width, depth: def.size.depth});
+      const currentFp = this.buildingFootprints[this.buildingFootprints.length - 1];
+      this.terrainMesh.raiseTerrainForBuilding(
+        position.x, position.z, def.size.width, def.size.depth, position.y,
+        this.buildingFootprints.filter(fp => fp !== currentFp)
+      );
+      this.terrainMesh.refreshGeometry();
+
       // Make semi-transparent for under-construction
       mesh.traverse((child) => {
         if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {

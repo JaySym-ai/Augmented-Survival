@@ -37,6 +37,134 @@ export class TerrainMesh {
 
     // Compute vertex colors based on height and slope
     const colors = new Float32Array(positions.count * 3);
+    this.computeVertexColors(geometry, colors);
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    // PBR material with vertex colors
+    const material = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.85,
+      metalness: 0.0,
+      flatShading: false,
+    });
+
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh.receiveShadow = true;
+    this.mesh.castShadow = false;
+    this.mesh.name = 'terrain';
+  }
+
+  /**
+   * Raise terrain heightmap around a building footprint so the ground meets the building floor.
+   * Inside the footprint: raise to max(current, targetHeight).
+   * Outside footprint within slope radius: smooth hermite blend, only raising.
+   * Vertices inside excludeZones are skipped.
+   */
+  raiseTerrainForBuilding(
+    centerX: number,
+    centerZ: number,
+    footprintWidth: number,
+    footprintDepth: number,
+    targetHeight: number,
+    excludeZones?: Array<{ x: number; z: number; width: number; depth: number }>,
+  ): void {
+    const { width, depth, resolution, heightMap } = this.terrainData;
+    const halfFW = footprintWidth / 2;
+    const halfFD = footprintDepth / 2;
+    const slopeExtend = Math.max(footprintWidth, footprintDepth) * 1.5;
+    const moundRadiusX = halfFW + slopeExtend;
+    const moundRadiusZ = halfFD + slopeExtend;
+
+    // Determine grid bounds to iterate
+    const minGX = Math.max(0, Math.floor(((centerX - moundRadiusX + width / 2) / width) * (resolution - 1)));
+    const maxGX = Math.min(resolution - 1, Math.ceil(((centerX + moundRadiusX + width / 2) / width) * (resolution - 1)));
+    const minGZ = Math.max(0, Math.floor(((centerZ - moundRadiusZ + depth / 2) / depth) * (resolution - 1)));
+    const maxGZ = Math.min(resolution - 1, Math.ceil(((centerZ + moundRadiusZ + depth / 2) / depth) * (resolution - 1)));
+
+    for (let gz = minGZ; gz <= maxGZ; gz++) {
+      for (let gx = minGX; gx <= maxGX; gx++) {
+        // Convert grid back to world
+        const worldX = (gx / (resolution - 1)) * width - width / 2;
+        const worldZ = (gz / (resolution - 1)) * depth - depth / 2;
+
+        // Check if inside any exclude zone (with ~0.5 unit margin)
+        if (excludeZones) {
+          let excluded = false;
+          for (const zone of excludeZones) {
+            const margin = 0.5;
+            if (
+              worldX >= zone.x - zone.width / 2 - margin &&
+              worldX <= zone.x + zone.width / 2 + margin &&
+              worldZ >= zone.z - zone.depth / 2 - margin &&
+              worldZ <= zone.z + zone.depth / 2 + margin
+            ) {
+              excluded = true;
+              break;
+            }
+          }
+          if (excluded) continue;
+        }
+
+        const dx = worldX - centerX;
+        const dz = worldZ - centerZ;
+        const idx = gz * resolution + gx;
+        const currentHeight = heightMap[idx];
+
+        // Check if inside footprint rectangle
+        if (Math.abs(dx) <= halfFW && Math.abs(dz) <= halfFD) {
+          // Inside footprint: raise to target
+          heightMap[idx] = Math.max(currentHeight, targetHeight);
+        } else {
+          // Outside footprint: compute distance from footprint edge
+          const edgeDX = Math.max(0, Math.abs(dx) - halfFW);
+          const edgeDZ = Math.max(0, Math.abs(dz) - halfFD);
+          const edgeDist = Math.sqrt(edgeDX * edgeDX + edgeDZ * edgeDZ);
+
+          if (edgeDist < slopeExtend) {
+            // Smooth hermite blend from targetHeight at edge to original at mound boundary
+            const t = edgeDist / slopeExtend;
+            const smooth = t * t * (3 - 2 * t); // hermite: 0 at edge, 1 at boundary
+            const blendedHeight = targetHeight + (currentHeight - targetHeight) * smooth;
+            // Only raise, never lower
+            heightMap[idx] = Math.max(currentHeight, blendedHeight);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Refresh the Three.js mesh geometry from the current heightMap data.
+   * Re-reads vertex Y positions, recomputes normals, and recomputes vertex colors.
+   */
+  refreshGeometry(): void {
+    const geometry = this.mesh.geometry;
+    const { heightMap } = this.terrainData;
+    const positions = geometry.attributes.position;
+
+    // Update vertex Y positions from heightMap
+    for (let i = 0; i < positions.count; i++) {
+      positions.setY(i, heightMap[i]);
+    }
+    positions.needsUpdate = true;
+
+    // Recompute normals after height changes
+    geometry.computeVertexNormals();
+
+    // Recompute vertex colors
+    const colors = geometry.attributes.color;
+    const colorArray = colors.array as Float32Array;
+    this.computeVertexColors(geometry, colorArray);
+    colors.needsUpdate = true;
+  }
+
+  /**
+   * Compute vertex colors based on height and slope for the given geometry.
+   * Shared by constructor and refreshGeometry() to ensure consistent coloring.
+   */
+  private computeVertexColors(geometry: THREE.BufferGeometry, colors: Float32Array): void {
+    const { heightMap } = this.terrainData;
+    const positions = geometry.attributes.position;
     const normals = geometry.attributes.normal;
     const tempColor = new THREE.Color();
 
@@ -102,21 +230,6 @@ export class TerrainMesh {
       colors[i * 3 + 1] = tempColor.g;
       colors[i * 3 + 2] = tempColor.b;
     }
-
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    // PBR material with vertex colors
-    const material = new THREE.MeshStandardMaterial({
-      vertexColors: true,
-      roughness: 0.85,
-      metalness: 0.0,
-      flatShading: false,
-    });
-
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.receiveShadow = true;
-    this.mesh.castShadow = false;
-    this.mesh.name = 'terrain';
   }
 
   /** Get interpolated height at world XZ position */
@@ -152,3 +265,44 @@ export class TerrainMesh {
   }
 }
 
+/**
+ * Sample terrain height at 5 points (center + 4 corners of the footprint)
+ * and return the maximum. This prevents buildings from clipping into slopes.
+ */
+export function getMaxHeightForFootprint(
+  terrainMesh: TerrainMesh,
+  centerX: number,
+  centerZ: number,
+  width: number,
+  depth: number,
+): number {
+  const hw = width / 2;
+  const hd = depth / 2;
+  const hCenter = terrainMesh.getHeightAt(centerX, centerZ);
+  const hNW = terrainMesh.getHeightAt(centerX - hw, centerZ - hd);
+  const hNE = terrainMesh.getHeightAt(centerX + hw, centerZ - hd);
+  const hSW = terrainMesh.getHeightAt(centerX - hw, centerZ + hd);
+  const hSE = terrainMesh.getHeightAt(centerX + hw, centerZ + hd);
+  return Math.max(hCenter, hNW, hNE, hSW, hSE);
+}
+
+/**
+ * Sample terrain height at 5 points (center + 4 corners of the footprint)
+ * and return the minimum. Used to calculate foundation extension depth on slopes.
+ */
+export function getMinHeightForFootprint(
+  terrainMesh: TerrainMesh,
+  centerX: number,
+  centerZ: number,
+  width: number,
+  depth: number,
+): number {
+  const hw = width / 2;
+  const hd = depth / 2;
+  const hCenter = terrainMesh.getHeightAt(centerX, centerZ);
+  const hNW = terrainMesh.getHeightAt(centerX - hw, centerZ - hd);
+  const hNE = terrainMesh.getHeightAt(centerX + hw, centerZ - hd);
+  const hSW = terrainMesh.getHeightAt(centerX - hw, centerZ + hd);
+  const hSE = terrainMesh.getHeightAt(centerX + hw, centerZ + hd);
+  return Math.min(hCenter, hNW, hNE, hSW, hSE);
+}
