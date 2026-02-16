@@ -87,7 +87,6 @@ class GameApp {
     // Wire selection events to UI
     this.gameWorld.eventBus.on('EntitySelected', ({ entityId }) => {
       this.gameUI.showSelection(entityId);
-      this.focusCameraOnVillagerSelection(entityId);
     });
     this.gameWorld.eventBus.on('EntityDeselected', () => {
       this.gameUI.hideSelection();
@@ -177,6 +176,7 @@ class GameApp {
     const entityId = custom.detail?.entityId;
     if (entityId == null) return;
     this.selectionManager.select(entityId);
+    this.focusCameraOnVillagerSelection(entityId);
   };
 
   private focusCameraOnVillagerSelection(entityId: EntityId): void {
