@@ -959,6 +959,313 @@ export class MeshFactory {
     });
   }
 
+  createLogWoodMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    // Base warm brown fill
+    ctx.fillStyle = '#8B6914';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Broad colour variation bands (simulate heartwood / sapwood)
+    for (let y = 0; y < 512; y += 1) {
+      const t = y / 512;
+      const r = Math.floor(139 + Math.sin(t * 12 + 1.3) * 18 + Math.sin(t * 37) * 8);
+      const g = Math.floor(105 + Math.sin(t * 12 + 1.3) * 14 + Math.sin(t * 37) * 6);
+      const b = Math.floor(20 + Math.sin(t * 12 + 1.3) * 8 + Math.sin(t * 37) * 4);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, y, 512, 1);
+    }
+
+    // Fine grain lines running horizontally (along the log length)
+    for (let i = 0; i < 220; i++) {
+      const y = Math.random() * 512;
+      const len = 80 + Math.random() * 400;
+      const x = Math.random() * (512 - len);
+      const thickness = 0.5 + Math.random() * 1.5;
+      const dark = Math.random() > 0.5;
+      const alpha = 0.08 + Math.random() * 0.18;
+      ctx.strokeStyle = dark
+        ? `rgba(50, 30, 5, ${alpha})`
+        : `rgba(170, 130, 50, ${alpha})`;
+      ctx.lineWidth = thickness;
+      ctx.beginPath();
+      // Slight waviness
+      const wave = Math.random() * 3;
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + len * 0.5, y + wave, x + len, y - wave * 0.5);
+      ctx.stroke();
+    }
+
+    // Medium grain streaks (darker)
+    for (let i = 0; i < 60; i++) {
+      const y = Math.random() * 512;
+      const len = 120 + Math.random() * 350;
+      const x = Math.random() * (512 - len);
+      ctx.strokeStyle = `rgba(60, 35, 10, ${0.12 + Math.random() * 0.15})`;
+      ctx.lineWidth = 1.5 + Math.random() * 2;
+      ctx.beginPath();
+      const wave = (Math.random() - 0.5) * 4;
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(
+        x + len * 0.33, y + wave,
+        x + len * 0.66, y - wave,
+        x + len, y + wave * 0.3,
+      );
+      ctx.stroke();
+    }
+
+    // Wood knots (small dark ovals with ring detail)
+    const knotCount = 4 + Math.floor(Math.random() * 4);
+    for (let k = 0; k < knotCount; k++) {
+      const kx = 40 + Math.random() * 432;
+      const ky = 40 + Math.random() * 432;
+      const rx = 6 + Math.random() * 12;
+      const ry = 4 + Math.random() * 8;
+
+      // Dark centre
+      ctx.fillStyle = 'rgba(40, 22, 5, 0.7)';
+      ctx.beginPath();
+      ctx.ellipse(kx, ky, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Concentric rings around knot
+      for (let ring = 1; ring <= 3; ring++) {
+        ctx.strokeStyle = `rgba(55, 32, 10, ${0.35 - ring * 0.08})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.ellipse(kx, ky, rx + ring * 4, ry + ring * 3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Lighter highlight on knot edge
+      ctx.strokeStyle = 'rgba(160, 120, 50, 0.25)';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.ellipse(kx - 1, ky - 1, rx * 0.6, ry * 0.6, 0, 0, Math.PI);
+      ctx.stroke();
+    }
+
+    // Subtle bark-edge hints along top and bottom
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * 512;
+      const edge = Math.random() > 0.5 ? Math.random() * 20 : 492 + Math.random() * 20;
+      ctx.fillStyle = `rgba(50, 30, 10, ${0.15 + Math.random() * 0.2})`;
+      ctx.fillRect(x, edge, 3 + Math.random() * 8, 2 + Math.random() * 4);
+    }
+
+    // Tiny speckle noise for organic feel
+    for (let i = 0; i < 600; i++) {
+      const x = Math.random() * 512;
+      const y = Math.random() * 512;
+      const bright = Math.random() > 0.5;
+      ctx.fillStyle = bright
+        ? `rgba(180, 140, 60, ${0.06 + Math.random() * 0.08})`
+        : `rgba(40, 25, 8, ${0.06 + Math.random() * 0.08})`;
+      ctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0x9B7530,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+  }
+
+  createWoodShingleMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    // Dark brown base
+    ctx.fillStyle = '#5C4033';
+    ctx.fillRect(0, 0, 256, 256);
+
+    const shingleH = 32;
+    const shingleW = 28;
+    const rows = Math.ceil(256 / shingleH) + 1;
+
+    for (let row = 0; row < rows; row++) {
+      const yBase = row * shingleH;
+      const offset = row % 2 === 0 ? 0 : shingleW * 0.5;
+
+      for (let col = -1; col < Math.ceil(256 / shingleW) + 1; col++) {
+        const x = col * shingleW + offset;
+
+        // Per-shingle colour variation
+        const shade = Math.floor(Math.random() * 30 - 15);
+        const r = Math.min(255, Math.max(0, 92 + shade));
+        const g = Math.min(255, Math.max(0, 64 + shade));
+        const b = Math.min(255, Math.max(0, 51 + shade));
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+
+        // Rounded-bottom shingle shape
+        ctx.beginPath();
+        ctx.moveTo(x + 1, yBase + 2);
+        ctx.lineTo(x + shingleW - 1, yBase + 2);
+        ctx.lineTo(x + shingleW - 1, yBase + shingleH - 6);
+        ctx.quadraticCurveTo(
+          x + shingleW * 0.5, yBase + shingleH + 2,
+          x + 1, yBase + shingleH - 6,
+        );
+        ctx.closePath();
+        ctx.fill();
+
+        // Subtle wood grain lines on each shingle
+        ctx.strokeStyle = `rgba(40, 25, 15, ${0.15 + Math.random() * 0.1})`;
+        ctx.lineWidth = 0.5;
+        for (let g2 = 0; g2 < 3; g2++) {
+          const gy = yBase + 6 + g2 * 8 + Math.random() * 4;
+          ctx.beginPath();
+          ctx.moveTo(x + 3, gy);
+          ctx.lineTo(x + shingleW - 3, gy + (Math.random() - 0.5) * 2);
+          ctx.stroke();
+        }
+      }
+
+      // Shadow line between rows
+      ctx.fillStyle = 'rgba(20, 10, 5, 0.4)';
+      ctx.fillRect(0, yBase, 256, 2);
+    }
+
+    // Weathering speckles
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      ctx.fillStyle = Math.random() > 0.5
+        ? `rgba(100, 90, 70, ${0.1 + Math.random() * 0.1})`
+        : `rgba(30, 18, 8, ${0.08 + Math.random() * 0.1})`;
+      ctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0x6B5040,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+  }
+
+  createStoneFoundationMaterial(): THREE.MeshStandardMaterial {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    // Mortar base
+    ctx.fillStyle = '#999999';
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Draw irregular stones in a rough grid
+    const stoneRows = [
+      { y: 0, h: 42 },
+      { y: 44, h: 38 },
+      { y: 84, h: 44 },
+      { y: 130, h: 36 },
+      { y: 168, h: 42 },
+      { y: 212, h: 44 },
+    ];
+
+    for (const row of stoneRows) {
+      let x = 2;
+      while (x < 254) {
+        const w = 28 + Math.floor(Math.random() * 36);
+        const inset = 2 + Math.floor(Math.random() * 2);
+
+        // Stone colour variation
+        const base = 110 + Math.floor(Math.random() * 50);
+        const r = base + Math.floor(Math.random() * 15 - 7);
+        const g = base + Math.floor(Math.random() * 10 - 5);
+        const b = base + Math.floor(Math.random() * 15 - 7);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+
+        // Rounded rectangle stone
+        const sx = x + inset;
+        const sy = row.y + inset;
+        const sw = Math.min(w - inset * 2, 254 - sx);
+        const sh = row.h - inset * 2;
+        if (sw > 4 && sh > 4) {
+          const radius = 3 + Math.random() * 3;
+          ctx.beginPath();
+          ctx.moveTo(sx + radius, sy);
+          ctx.lineTo(sx + sw - radius, sy);
+          ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + radius);
+          ctx.lineTo(sx + sw, sy + sh - radius);
+          ctx.quadraticCurveTo(sx + sw, sy + sh, sx + sw - radius, sy + sh);
+          ctx.lineTo(sx + radius, sy + sh);
+          ctx.quadraticCurveTo(sx, sy + sh, sx, sy + sh - radius);
+          ctx.lineTo(sx, sy + radius);
+          ctx.quadraticCurveTo(sx, sy, sx + radius, sy);
+          ctx.closePath();
+          ctx.fill();
+
+          // Subtle highlight on top edge
+          ctx.strokeStyle = `rgba(200, 200, 200, ${0.15 + Math.random() * 0.1})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(sx + radius, sy + 1);
+          ctx.lineTo(sx + sw - radius, sy + 1);
+          ctx.stroke();
+
+          // Shadow on bottom edge
+          ctx.strokeStyle = `rgba(40, 40, 40, ${0.2 + Math.random() * 0.1})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(sx + radius, sy + sh - 1);
+          ctx.lineTo(sx + sw - radius, sy + sh - 1);
+          ctx.stroke();
+
+          // Surface speckles on stone face
+          for (let s = 0; s < 5; s++) {
+            const spx = sx + 4 + Math.random() * (sw - 8);
+            const spy = sy + 4 + Math.random() * (sh - 8);
+            ctx.fillStyle = `rgba(${80 + Math.random() * 60}, ${80 + Math.random() * 60}, ${80 + Math.random() * 60}, 0.2)`;
+            ctx.fillRect(spx, spy, 1 + Math.random() * 2, 1 + Math.random() * 2);
+          }
+        }
+
+        x += w;
+      }
+    }
+
+    // Mortar line darkening
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      ctx.fillStyle = `rgba(60, 55, 50, ${0.08 + Math.random() * 0.08})`;
+      ctx.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 2);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      color: 0x999999,
+      roughness: 0.95,
+      metalness: 0.0,
+    });
+  }
+
   private createMaterials(): Map<string, THREE.MeshStandardMaterial> {
     const m = new Map<string, THREE.MeshStandardMaterial>();
     m.set('wood', new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 0.8, metalness: 0.0 }));
@@ -982,6 +1289,9 @@ export class MeshFactory {
     m.set('tunic', new THREE.MeshStandardMaterial({ color: 0x4A6741, roughness: 0.75, metalness: 0.0 }));
     m.set('pants', new THREE.MeshStandardMaterial({ color: 0x6B5B4A, roughness: 0.8, metalness: 0.0 }));
     m.set('eyeWhite', new THREE.MeshStandardMaterial({ color: 0xF0F0F0, roughness: 0.3, metalness: 0.0 }));
+    m.set('logWood', new THREE.MeshStandardMaterial({ color: 0x9B7530, roughness: 0.8, metalness: 0.0 }));
+    m.set('darkWood', new THREE.MeshStandardMaterial({ color: 0x4A3520, roughness: 0.85, metalness: 0.0 }));
+    m.set('ironMetal', new THREE.MeshStandardMaterial({ color: 0x3A3A3A, roughness: 0.5, metalness: 0.7 }));
     return m;
   }
 }
