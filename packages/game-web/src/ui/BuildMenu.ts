@@ -33,6 +33,9 @@ export class BuildMenu {
   private el: HTMLDivElement;
   private cards = new Map<BuildingType, HTMLButtonElement>();
   private activeType: BuildingType | null = null;
+  private collapsed = true;
+  private toggleBtn: HTMLButtonElement;
+  private minimizeBtn: HTMLButtonElement;
 
   constructor(
     parent: HTMLElement,
@@ -41,7 +44,19 @@ export class BuildMenu {
     private onCancel: () => void,
   ) {
     this.el = document.createElement('div');
-    this.el.className = 'ui-build-menu ui-panel';
+    this.el.className = 'ui-build-menu ui-panel collapsed';
+
+    this.toggleBtn = document.createElement('button');
+    this.toggleBtn.className = 'build-menu-toggle';
+    this.toggleBtn.textContent = '🔨';
+    this.toggleBtn.addEventListener('click', () => this.toggleCollapsed());
+    this.el.appendChild(this.toggleBtn);
+
+    this.minimizeBtn = document.createElement('button');
+    this.minimizeBtn.className = 'build-menu-minimize';
+    this.minimizeBtn.textContent = '▼';
+    this.minimizeBtn.addEventListener('click', () => this.toggleCollapsed());
+    this.el.appendChild(this.minimizeBtn);
 
     for (const bType of BUILDABLE) {
       const def = BUILDING_DEFS[bType];
@@ -98,6 +113,15 @@ export class BuildMenu {
     for (const [bType, card] of this.cards) {
       card.classList.toggle('active', bType === this.activeType);
     }
+  }
+
+  private toggleCollapsed(): void {
+    this.setCollapsed(!this.collapsed);
+  }
+
+  setCollapsed(collapsed: boolean): void {
+    this.collapsed = collapsed;
+    this.el.classList.toggle('collapsed', collapsed);
   }
 
   /** Enter build mode for a specific type (called externally) */
