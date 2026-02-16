@@ -201,13 +201,8 @@ export class GameWorld {
     const tcSlopeDepth = y - tcMinY;
     if (tcSlopeDepth > 0.05) {
       const tcFoundationHeight = tcSlopeDepth + 0.3;
-      const tcFoundationGeo = new THREE.BoxGeometry(4.3, tcFoundationHeight, 4.3);
-      const tcFoundationMat = new THREE.MeshStandardMaterial({ color: 0x8B8680, roughness: 0.9 });
-      const tcFoundationMesh = new THREE.Mesh(tcFoundationGeo, tcFoundationMat);
-      tcFoundationMesh.position.y = -tcFoundationHeight / 2;
-      tcFoundationMesh.castShadow = true;
-      tcFoundationMesh.receiveShadow = true;
-      mesh.add(tcFoundationMesh);
+      const tcFoundationExt = this.meshFactory.createFoundationExtension(4.3, 4.3, tcFoundationHeight, 'stone');
+      mesh.add(tcFoundationExt);
     }
 
     this.scene.add(mesh);
@@ -223,13 +218,8 @@ export class GameWorld {
     const campfireSlopeDepth = campfireY - minCampfireY;
     if (campfireSlopeDepth > 0.05) {
       const moundHeight = campfireSlopeDepth + 0.2;
-      const moundGeo = new THREE.CylinderGeometry(1.4, 1.6, moundHeight, 16);
-      const moundMat = new THREE.MeshStandardMaterial({ color: 0x6B5B3A, roughness: 1.0 });
-      const moundMesh = new THREE.Mesh(moundGeo, moundMat);
-      moundMesh.position.y = -moundHeight / 2;
-      moundMesh.castShadow = true;
-      moundMesh.receiveShadow = true;
-      campfire.add(moundMesh);
+      const terrainMound = this.meshFactory.createTerrainMound(1.4, 1.6, moundHeight);
+      campfire.add(terrainMound);
     }
 
     this.scene.add(campfire);
@@ -399,15 +389,11 @@ export class GameWorld {
       const slopeDepth = position.y - minY;
       if (slopeDepth > 0.05) {
         const foundationHeight = slopeDepth + 0.3;
-        const foundationGeo = new THREE.BoxGeometry(def.size.width + 0.3, foundationHeight, def.size.depth + 0.3);
-        const foundationColor = type === BuildingType.FarmField ? 0x6B5B3A : 0x8B8680;
-        const foundationRoughness = type === BuildingType.FarmField ? 1.0 : 0.9;
-        const foundationMat = new THREE.MeshStandardMaterial({ color: foundationColor, roughness: foundationRoughness });
-        const foundationMesh = new THREE.Mesh(foundationGeo, foundationMat);
-        foundationMesh.position.y = -foundationHeight / 2;
-        foundationMesh.castShadow = true;
-        foundationMesh.receiveShadow = true;
-        mesh.add(foundationMesh);
+        const foundationType = type === BuildingType.FarmField ? 'dirt' : 'stone';
+        const foundationExt = this.meshFactory.createFoundationExtension(
+          def.size.width + 0.3, def.size.depth + 0.3, foundationHeight, foundationType,
+        );
+        mesh.add(foundationExt);
       }
 
       // Make semi-transparent for under-construction

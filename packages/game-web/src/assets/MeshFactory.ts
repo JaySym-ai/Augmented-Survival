@@ -640,6 +640,202 @@ export class MeshFactory {
     return group;
   }
 
+  /**
+   * Creates a visually detailed foundation extension for buildings on slopes.
+   * Matches the existing stone foundation style with textured material and 3D details.
+   */
+  createFoundationExtension(
+    width: number,
+    depth: number,
+    height: number,
+    type: 'stone' | 'dirt',
+  ): THREE.Group {
+    const group = new THREE.Group();
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
+
+    if (type === 'stone') {
+      const stoneMat = this.createStoneFoundationMaterial();
+
+      // Main foundation block with textured stone
+      const mainBlock = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(width, height, depth),
+        stoneMat,
+      ));
+      mainBlock.position.y = -height / 2;
+      group.add(mainBlock);
+
+      // Corner protruding stones (same style as existing building foundations)
+      for (const cx of [-1, 1]) {
+        for (const cz of [-1, 1]) {
+          const cornerStone = shad(new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, height + 0.05, 0.25),
+            stoneMat,
+          ));
+          cornerStone.position.set(
+            cx * (width / 2 - 0.05),
+            -height / 2,
+            cz * (depth / 2 - 0.05),
+          );
+          group.add(cornerStone);
+        }
+      }
+
+      // Scattered rough stones along the base edges for organic look
+      const roughStoneMat = this.mat('stone');
+      const stoneCount = 6 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < stoneCount; i++) {
+        const size = 0.08 + Math.random() * 0.12;
+        const stone = shad(new THREE.Mesh(
+          new THREE.DodecahedronGeometry(size, 0),
+          roughStoneMat,
+        ));
+        const side = Math.floor(Math.random() * 4);
+        let sx: number, sz: number;
+        if (side === 0) { sx = (Math.random() - 0.5) * width; sz = -depth / 2; }
+        else if (side === 1) { sx = (Math.random() - 0.5) * width; sz = depth / 2; }
+        else if (side === 2) { sx = -width / 2; sz = (Math.random() - 0.5) * depth; }
+        else { sx = width / 2; sz = (Math.random() - 0.5) * depth; }
+        stone.position.set(sx, -height + size * 0.5, sz);
+        stone.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+        stone.scale.y = 0.6 + Math.random() * 0.4;
+        group.add(stone);
+      }
+
+      // Moss patches at the base (visual transition to terrain)
+      const mossMat = new THREE.MeshStandardMaterial({
+        color: 0x4A5A3A, roughness: 1.0, metalness: 0.0,
+      });
+      for (let i = 0; i < 3; i++) {
+        const patch = new THREE.Mesh(
+          new THREE.BoxGeometry(0.3 + Math.random() * 0.4, 0.03, 0.3 + Math.random() * 0.4),
+          mossMat,
+        );
+        patch.position.set(
+          (Math.random() - 0.5) * width * 0.8,
+          -height + 0.02,
+          (Math.random() - 0.5) * depth * 0.8,
+        );
+        group.add(patch);
+      }
+    } else {
+      // Dirt type (for FarmField)
+      const dirtMat = this.mat('dirt');
+      const mainBlock = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(width, height, depth),
+        dirtMat,
+      ));
+      mainBlock.position.y = -height / 2;
+      group.add(mainBlock);
+
+      // Small rocks embedded in the dirt
+      const roughStoneMat = this.mat('stone');
+      for (let i = 0; i < 4; i++) {
+        const size = 0.06 + Math.random() * 0.08;
+        const rock = shad(new THREE.Mesh(
+          new THREE.DodecahedronGeometry(size, 0),
+          roughStoneMat,
+        ));
+        rock.position.set(
+          (Math.random() - 0.5) * width * 0.8,
+          -height + size * 0.5,
+          (Math.random() - 0.5) * depth * 0.8,
+        );
+        group.add(rock);
+      }
+    }
+
+    return group;
+  }
+
+  /**
+   * Creates a natural-looking terrain mound for campfires and similar structures on slopes.
+   * Uses LatheGeometry with a smooth profile curve for a natural hill shape.
+   */
+  createTerrainMound(
+    topRadius: number,
+    bottomRadius: number,
+    height: number,
+  ): THREE.Group {
+    const group = new THREE.Group();
+    const shad = (m: THREE.Mesh) => { m.castShadow = true; m.receiveShadow = true; return m; };
+    const dirtMat = this.mat('dirt');
+
+    // Build smooth mound profile using LatheGeometry
+    const points: THREE.Vector2[] = [];
+    const steps = 12;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps; // 0 = bottom, 1 = top
+      const smoothT = Math.pow(t, 0.6); // gentler slope at bottom, steeper near top
+      const smoothR = bottomRadius + (topRadius - bottomRadius) * smoothT;
+      const y = -height * (1 - t); // from -height at bottom to 0 at top
+      points.push(new THREE.Vector2(smoothR, y));
+    }
+    const moundGeo = new THREE.LatheGeometry(points, 16);
+    const mound = shad(new THREE.Mesh(moundGeo, dirtMat));
+    group.add(mound);
+
+    // Scattered stones partially embedded on the slopes
+    const stoneMat = this.mat('stone');
+    const stoneCount = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < stoneCount; i++) {
+      const size = 0.06 + Math.random() * 0.1;
+      const stone = shad(new THREE.Mesh(
+        new THREE.DodecahedronGeometry(size, 0),
+        stoneMat,
+      ));
+      const angle = Math.random() * Math.PI * 2;
+      const dist = bottomRadius * (0.5 + Math.random() * 0.4);
+      const yPos = -height * (0.3 + Math.random() * 0.5);
+      stone.position.set(Math.cos(angle) * dist, yPos, Math.sin(angle) * dist);
+      stone.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      stone.scale.y = 0.5 + Math.random() * 0.5;
+      group.add(stone);
+    }
+
+    // Grass tufts around the lower rim
+    const leafMat = this.mat('leaf');
+    const grassCount = 5 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < grassCount; i++) {
+      const tuftAngle = Math.random() * Math.PI * 2;
+      const tuftDist = bottomRadius * (0.85 + Math.random() * 0.2);
+      const tuft = new THREE.Mesh(
+        new THREE.ConeGeometry(0.04 + Math.random() * 0.03, 0.12 + Math.random() * 0.08, 4),
+        leafMat,
+      );
+      tuft.position.set(
+        Math.cos(tuftAngle) * tuftDist,
+        -height + 0.05,
+        Math.sin(tuftAngle) * tuftDist,
+      );
+      tuft.rotation.set(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * Math.PI,
+        (Math.random() - 0.5) * 0.3,
+      );
+      group.add(tuft);
+    }
+
+    // Small roots/twigs on the surface
+    const woodMat = this.mat('wood');
+    for (let i = 0; i < 3; i++) {
+      const twigAngle = Math.random() * Math.PI * 2;
+      const twigDist = bottomRadius * (0.4 + Math.random() * 0.4);
+      const twig = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.01, 0.015, 0.15 + Math.random() * 0.1, 4),
+        woodMat,
+      );
+      twig.position.set(
+        Math.cos(twigAngle) * twigDist,
+        -height * 0.5,
+        Math.sin(twigAngle) * twigDist,
+      );
+      twig.rotation.set(Math.random() * 0.5, Math.random() * Math.PI, Math.PI / 2 + (Math.random() - 0.5) * 0.3);
+      group.add(twig);
+    }
+
+    return group;
+  }
+
   dispose(): void {
     this.meshCache.forEach((geo) => geo.dispose());
     this.meshCache.clear();
