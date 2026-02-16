@@ -771,8 +771,28 @@ export class MeshFactory {
       points.push(new THREE.Vector2(smoothR, y));
     }
     const moundGeo = new THREE.LatheGeometry(points, 16);
-    const mound = shad(new THREE.Mesh(moundGeo, dirtMat));
+    const moundMat = dirtMat.clone();
+    moundMat.side = THREE.DoubleSide;
+    const mound = shad(new THREE.Mesh(moundGeo, moundMat));
     group.add(mound);
+
+    // Top cap (flat circle at y=0)
+    const topCap = shad(new THREE.Mesh(
+      new THREE.CircleGeometry(topRadius, 16),
+      moundMat,
+    ));
+    topCap.rotation.x = -Math.PI / 2;
+    topCap.position.y = 0;
+    group.add(topCap);
+
+    // Bottom cap (flat circle at y=-height)
+    const bottomCap = shad(new THREE.Mesh(
+      new THREE.CircleGeometry(bottomRadius, 16),
+      moundMat,
+    ));
+    bottomCap.rotation.x = -Math.PI / 2;
+    bottomCap.position.y = -height;
+    group.add(bottomCap);
 
     // Scattered stones partially embedded on the slopes
     const stoneMat = this.mat('stone');
