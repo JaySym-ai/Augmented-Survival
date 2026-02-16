@@ -610,7 +610,7 @@ export class MeshFactory {
 
       // Front & back walls (along X axis)
       for (const side of [-1, 1]) {
-        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, W + overhang * 2, 8), logMat));
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, W + overhang * 2, 12), logMat));
         log.rotation.z = Math.PI / 2;
         log.position.set(0, y, side * D / 2);
         walls.add(log);
@@ -618,7 +618,7 @@ export class MeshFactory {
 
       // Left & right walls (along Z axis)
       for (const side of [-1, 1]) {
-        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, D + overhang * 2, 8), logMat));
+        const log = shad(new THREE.Mesh(new THREE.CylinderGeometry(r, r, D + overhang * 2, 12), logMat));
         log.rotation.x = Math.PI / 2;
         log.position.set(side * W / 2, y, 0);
         walls.add(log);
@@ -637,6 +637,31 @@ export class MeshFactory {
         }
       }
     }
+
+    // Backing panels to prevent light leaks between logs
+    const backingThickness = 0.02;
+    const backingH = wallH + logR; // full wall height
+    const backingY = foundH + backingH / 2;
+
+    // Front & back backing panels
+    for (const side of [-1, 1]) {
+      const backing = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(W - 0.05, backingH, backingThickness),
+        logMat
+      ));
+      backing.position.set(0, backingY, side * (D / 2 - logR * 0.5));
+      walls.add(backing);
+    }
+    // Left & right backing panels
+    for (const side of [-1, 1]) {
+      const backing = shad(new THREE.Mesh(
+        new THREE.BoxGeometry(backingThickness, backingH, D - 0.05),
+        logMat
+      ));
+      backing.position.set(side * (W / 2 - logR * 0.5), backingY, 0);
+      walls.add(backing);
+    }
+
     group.add(walls);
 
     // ── 3. Corner Posts ──
