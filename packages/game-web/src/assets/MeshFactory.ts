@@ -828,14 +828,6 @@ export class MeshFactory {
     roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
     group.add(roofMesh);
 
-    // Ridge beam along the top
-    const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, D - 0.2, 6), darkWood,
-    ));
-    ridgeBeam.rotation.x = Math.PI / 2;
-    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
-    group.add(ridgeBeam);
-
     // Visible rafter ends (front and back, 3 per side)
     const rafterPositions = [-0.6, 0, 0.6];
     for (const rx of rafterPositions) {
@@ -1176,13 +1168,6 @@ export class MeshFactory {
     roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
     group.add(roofMesh);
 
-    const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, D - 0.2, 6), darkWood,
-    ));
-    ridgeBeam.rotation.x = Math.PI / 2;
-    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
-    group.add(ridgeBeam);
-
     const rafterPositions = [-0.8, 0, 0.8];
     for (const rx of rafterPositions) {
       for (const side of [-1, 1]) {
@@ -1480,13 +1465,6 @@ export class MeshFactory {
     const roofMesh = shad(new THREE.Mesh(roofGeo, shingleMat));
     roofMesh.position.set(0, roofBaseY, -roofDepth / 2);
     group.add(roofMesh);
-
-    const ridgeBeam = shad(new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, D - 0.2, 6), darkWood,
-    ));
-    ridgeBeam.rotation.x = Math.PI / 2;
-    ridgeBeam.position.set(0, roofBaseY + roofPeak, 0);
-    group.add(ridgeBeam);
 
     // Rafter ends
     const rafterPositions = [-0.5, 0, 0.5];
