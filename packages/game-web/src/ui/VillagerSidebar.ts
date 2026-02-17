@@ -45,6 +45,35 @@ export class VillagerSidebar {
 
     this.listEl = document.createElement('div');
     this.listEl.className = 'villager-sidebar-list';
+
+    // Event delegation: pointerdown fires immediately on press, before the
+    // next frame can destroy the row via renderRows()'s innerHTML = ''.
+    this.listEl.addEventListener('pointerdown', (event) => {
+      const row = (event.target as HTMLElement).closest('.villager-row') as HTMLElement | null;
+      if (!row) return;
+      const entityId = Number(row.dataset.entityId);
+      if (Number.isNaN(entityId)) return;
+      event.stopPropagation();
+      this.el.dispatchEvent(new CustomEvent<{ entityId: EntityId }>(VILLAGER_SIDEBAR_SELECT_EVENT, {
+        bubbles: true,
+        detail: { entityId },
+      }));
+    });
+
+    // Keyboard accessibility: Enter/Space on a focused row
+    this.listEl.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const row = (event.target as HTMLElement).closest('.villager-row') as HTMLElement | null;
+      if (!row) return;
+      const entityId = Number(row.dataset.entityId);
+      if (Number.isNaN(entityId)) return;
+      event.preventDefault();
+      this.el.dispatchEvent(new CustomEvent<{ entityId: EntityId }>(VILLAGER_SIDEBAR_SELECT_EVENT, {
+        bubbles: true,
+        detail: { entityId },
+      }));
+    });
+
     this.el.appendChild(this.listEl);
 
     parent.appendChild(this.el);
@@ -95,18 +124,6 @@ export class VillagerSidebar {
       row.tabIndex = 0;
       row.setAttribute('role', 'button');
       row.style.cursor = 'pointer';
-      row.addEventListener('click', (event) => {
-        event.stopPropagation();
-        this.el.dispatchEvent(new CustomEvent<{ entityId: EntityId }>(VILLAGER_SIDEBAR_SELECT_EVENT, {
-          bubbles: true,
-          detail: { entityId },
-        }));
-      });
-      row.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        row.click();
-      });
 
       const selectable = this.world.getComponent(entityId, SELECTABLE) as { selected?: boolean } | undefined;
       const isSelected = Boolean(selectable?.selected);
