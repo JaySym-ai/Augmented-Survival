@@ -2,6 +2,7 @@
  * Augmented Survival — Medieval City Builder
  * Web entry point: creates GameApp, wires all systems, starts game loop
  */
+import * as THREE from 'three';
 import { GameRenderer } from './renderer/GameRenderer.js';
 import { PRESET_HIGH } from './renderer/RenderSettings.js';
 import { RTSCameraController } from './camera/RTSCameraController.js';
@@ -86,7 +87,6 @@ class GameApp {
     // Wire selection events to UI
     this.gameWorld.eventBus.on('EntitySelected', ({ entityId }) => {
       this.gameUI.showSelection(entityId);
-      this.focusCameraOnVillagerSelection(entityId);
     });
     this.gameWorld.eventBus.on('EntityDeselected', () => {
       this.gameUI.hideSelection();
@@ -176,6 +176,7 @@ class GameApp {
     const entityId = custom.detail?.entityId;
     if (entityId == null) return;
     this.selectionManager.select(entityId);
+    this.focusCameraOnVillagerSelection(entityId);
   };
 
   private focusCameraOnVillagerSelection(entityId: EntityId): void {
@@ -185,9 +186,8 @@ class GameApp {
     const transform = this.gameWorld.world.getComponent<TransformComponent>(entityId, TRANSFORM);
     if (!transform) return;
 
-    const target = this.cameraController.getLookAtPosition();
-    target.set(transform.position.x, 0, transform.position.z);
-    this.cameraController.setTarget(target);
+    const target = new THREE.Vector3(transform.position.x, 0, transform.position.z);
+    this.cameraController.panTo(target);
   }
 }
 

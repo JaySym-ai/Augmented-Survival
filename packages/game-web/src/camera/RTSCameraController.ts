@@ -66,6 +66,9 @@ export class RTSCameraController {
   private lastTouchAngle = 0;
   private lastTouchCenter = new THREE.Vector2();
 
+  // Pan animation state
+  private panAnimation: { from: THREE.Vector3; to: THREE.Vector3; elapsed: number; duration: number } | null = null;
+
   // Raycasting
   private raycaster = new THREE.Raycaster();
   private groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -129,7 +132,10 @@ export class RTSCameraController {
   }
 
   // ---- Input Handlers ----
-  private onKeyDown(e: KeyboardEvent): void { this.keys.add(e.key.toLowerCase()); }
+  private onKeyDown(e: KeyboardEvent): void {
+    this.keys.add(e.key.toLowerCase());
+    this.panAnimation = null; // cancel pan animation on keyboard input
+  }
   private onKeyUp(e: KeyboardEvent): void { this.keys.delete(e.key.toLowerCase()); }
 
   private onMouseMove(e: MouseEvent): void {
@@ -139,6 +145,7 @@ export class RTSCameraController {
       const dx = e.clientX - this.lastMousePosition.x;
       const dy = e.clientY - this.lastMousePosition.y;
       this.panByScreenDelta(dx, dy);
+      this.panAnimation = null; // cancel pan animation on mouse drag
     }
 
     if (this.isRightMouseDown) {
@@ -162,6 +169,7 @@ export class RTSCameraController {
 
   private onWheel(e: WheelEvent): void {
     e.preventDefault();
+    this.panAnimation = null; // cancel pan animation on scroll
     const delta = Math.sign(e.deltaY) * this.config.zoomSpeed;
     this.targetDistance = THREE.MathUtils.clamp(
       this.targetDistance + delta,
@@ -184,6 +192,7 @@ export class RTSCameraController {
 
   private onTouchMove(e: TouchEvent): void {
     e.preventDefault();
+    this.panAnimation = null; // cancel pan animation on touch
     if (this.touches.size === 1) {
       // Single finger: pan
       const t = e.changedTouches[0];
@@ -317,8 +326,22 @@ export class RTSCameraController {
     this.targetPosition.x = THREE.MathUtils.clamp(this.targetPosition.x, -b, b);
     this.targetPosition.z = THREE.MathUtils.clamp(this.targetPosition.z, -b, b);
 
-    // Smooth interpolation
-    this.currentPosition.lerp(this.targetPosition, smoothFactor);
+    // Pan animation (overrides normal position smoothing while active)
+    if (this.panAnimation) {
+      this.panAnimation.elapsed += dt;
+      const t = THREE.MathUtils.clamp(this.panAnimation.elapsed / this.panAnimation.duration, 0, 1);
+      // Ease-in-out quadratic
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      this.currentPosition.lerpVectors(this.panAnimation.from, this.panAnimation.to, eased);
+      if (t >= 1) {
+        this.panAnimation = null;
+      }
+    } else {
+      // Normal smooth interpolation for position
+      this.currentPosition.lerp(this.targetPosition, smoothFactor);
+    }
+
+    // Smooth interpolation for rotation and distance (always active)
     this.currentRotation = THREE.MathUtils.lerp(this.currentRotation, this.targetRotation, smoothFactor);
     this.currentDistance = THREE.MathUtils.lerp(this.currentDistance, this.targetDistance, smoothFactor);
 
@@ -360,6 +383,20 @@ export class RTSCameraController {
   setTarget(position: THREE.Vector3): void {
     this.targetPosition.copy(position);
     this.targetPosition.y = 0; // keep on ground plane
+  }
+
+  /** Animate camera to a position over a duration using ease-in-out */
+  panTo(position: THREE.Vector3, duration = 0.8): void {
+    const to = position.clone();
+    to.y = 0; // keep on ground plane
+    this.panAnimation = {
+      from: this.currentPosition.clone(),
+      to,
+      elapsed: 0,
+      duration,
+    };
+    // Set targetPosition so after animation completes, normal smoothing keeps camera there
+    this.targetPosition.copy(to);
   }
 
   /** Handle window resize */
