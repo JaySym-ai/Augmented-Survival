@@ -1,7 +1,7 @@
-# 🏰 Augmented Survival — A Community-Made Medieval World
+# 🏰 Augmented Survival — A Community-Made Medieval City Builder
 
 <p align="center">
-  <strong>Built by the Intent by Augment Code Community</strong><br>
+  <strong>Built by the Augment Code Community</strong><br>
   <a href="https://www.augmentcode.com/product/intent">Intent by Augment Code</a> • 
   <a href="https://www.reddit.com/r/AugmentCodeAI/">Reddit Community</a> • 
   <a href="https://augmented.r02.ovh">Play Online Demo</a>
