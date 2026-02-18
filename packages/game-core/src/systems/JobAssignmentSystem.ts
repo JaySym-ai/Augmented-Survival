@@ -277,6 +277,9 @@ export class JobAssignmentSystem extends System {
         }
         break;
       }
+      case JobType.Stationed:
+        // Player manually stationed this citizen — do nothing, stay put
+        break;
       default:
         // Idle, Hauler — wander randomly when not busy
         this.wanderRandomly(world, entityId, citizen, transform);

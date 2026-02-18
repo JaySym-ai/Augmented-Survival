@@ -10,5 +10,6 @@ export enum JobType {
   Hauler = 'Hauler',
   Miner = 'Miner',
   Forager = 'Forager',
+  Stationed = 'Stationed',
 }
 
