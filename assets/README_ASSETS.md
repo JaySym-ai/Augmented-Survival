@@ -4,7 +4,6 @@ This directory contains all game assets organized by type.
 
 ## Directory Structure
 
-- `characters/` — Character models and animations
 - `buildings/` — Building models (houses, workshops, walls, etc.)
 - `props/` — Environmental props (trees, rocks, crates, etc.)
 - `terrain/` — Terrain textures and heightmaps
