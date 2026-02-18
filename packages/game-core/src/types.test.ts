@@ -56,6 +56,7 @@ describe('Types', () => {
       expect(JobType.Hauler).toBe('Hauler');
       expect(JobType.Miner).toBe('Miner');
       expect(JobType.Forager).toBe('Forager');
+      expect(JobType.Stationed).toBe('Stationed');
     });
   });
 

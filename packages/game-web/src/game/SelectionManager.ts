@@ -270,6 +270,10 @@ export class SelectionManager {
       world.removeComponent(entityId, CONSTRUCTION_WORK);
     }
 
+    // Override job assignment so JobAssignmentSystem doesn't re-dispatch
+    citizen.job = JobType.Stationed;
+    world.addComponent(entityId, JOB_ASSIGNMENT, createJobAssignment(JobType.Stationed));
+
     // Set citizen to Idle — PathFollowSystem will set it to Walking
     citizen.state = CitizenState.Idle;
 

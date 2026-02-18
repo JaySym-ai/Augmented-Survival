@@ -60,5 +60,11 @@ export const JOB_DEFS: Record<JobType, JobDef> = {
     targetResource: ResourceType.Hemp,
     description: 'Gathers hemp, branches and other natural materials.',
   },
+  [JobType.Stationed]: {
+    type: JobType.Stationed,
+    displayName: 'Idle',
+    targetResource: null,
+    description: 'Citizen stationed at a location by the player.',
+  },
 };
 
