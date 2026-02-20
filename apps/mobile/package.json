@@ -8,13 +8,12 @@
     "run:ios": "cap run ios"
   },
   "dependencies": {
-    "@capacitor/core": "^6.2.0"
+    "@capacitor/core": "^8.1.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.2.0",
-    "@capacitor/ios": "^6.2.0",
-    "@capacitor/android": "^6.2.0",
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/ios": "^8.1.0",
     "typescript": "^5.3.3"
   }
 }
-
