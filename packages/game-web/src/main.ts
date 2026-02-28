@@ -103,9 +103,11 @@ class GameApp {
 
     // Resize handling
     window.addEventListener('resize', this.onResize);
+    window.addEventListener('keydown', this.onGlobalKeyDown);
     this.onResize();
 
     console.log('[Augmented Survival] Game initialized with OpenClaw autonomous agents');
+    console.log('[Augmented Survival] Press F to focus camera on FrostD4D');
   }
 
   // Public API for UI
@@ -168,9 +170,28 @@ class GameApp {
     this.gameRenderer.onResize();
   };
 
+  private onGlobalKeyDown = (event: KeyboardEvent): void => {
+    if (event.repeat || event.key.toLowerCase() !== 'f') return;
+
+    const target = event.target;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof HTMLElement && target.isContentEditable)
+    ) {
+      return;
+    }
+
+    const frostTownCenter = this.openClawManager.getFrostFounderTownCenter();
+    if (!frostTownCenter) return;
+
+    this.cameraController.panTo(frostTownCenter, 1.0);
+  };
+
   dispose(): void {
     cancelAnimationFrame(this.animationFrameId);
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('keydown', this.onGlobalKeyDown);
     this.container.removeEventListener('click', this.onPlacementClick, true);
     this.container.removeEventListener(VILLAGER_SIDEBAR_SELECT_EVENT, this.onSidebarSelect as EventListener);
     this.openClawManager.dispose();

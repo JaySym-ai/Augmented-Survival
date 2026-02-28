@@ -171,8 +171,8 @@ export class AssetEvolutionSystem {
   /**
    * Create a town marker mesh.
    */
-  createTownMarkerMesh(agentName: string): THREE.Group {
-    return this.artGenerator.createTownMarker(agentName);
+  createTownMarkerMesh(agentName: string, isFounder = false): THREE.Group {
+    return this.artGenerator.createTownMarker(agentName, isFounder);
   }
 
   /**

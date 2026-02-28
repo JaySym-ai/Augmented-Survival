@@ -46,6 +46,8 @@ const AGENT_NAMES = [
   'Mossveil', 'Stormhaven', 'Cloudspire', 'Duskhollow', 'Dawnfield',
 ];
 
+export const FROST_FOUNDER_NAME = 'FrostD4D';
+
 /** Architectural styles to randomly assign */
 const STYLES = Object.values(ArchitecturalStyle);
 
@@ -66,6 +68,7 @@ export class OpenClawWorldManager {
   private agentEntities: EntityId[] = [];
   private roadMeshes: THREE.Mesh[] = [];
   private markerMeshes: THREE.Object3D[] = [];
+  private frostFounderEntityId: EntityId | null = null;
 
   constructor(gameWorld: GameWorld) {
     this.gameWorld = gameWorld;
@@ -118,7 +121,8 @@ export class OpenClawWorldManager {
   spawnAgent(centerX: number, centerZ: number, seed: number, index: number): EntityId {
     // Generate unique personality
     const rng = this.seededRandom(seed);
-    const name = AGENT_NAMES[index % AGENT_NAMES.length];
+    const isFounder = this.frostFounderEntityId == null;
+    const name = isFounder ? FROST_FOUNDER_NAME : AGENT_NAMES[index % AGENT_NAMES.length];
     const style = STYLES[Math.floor(rng() * STYLES.length)];
     const priority = PRIORITIES[Math.floor(rng() * PRIORITIES.length)];
     const secondaryPriority = PRIORITIES[Math.floor(rng() * PRIORITIES.length)];
@@ -135,6 +139,10 @@ export class OpenClawWorldManager {
     );
 
     this.gameWorld.world.addComponent(agentEntityId, OPENCLAW_AGENT, agentComponent);
+
+    if (isFounder) {
+      this.frostFounderEntityId = agentEntityId;
+    }
 
     // Create per-agent evolution system
     const evolutionSystem = new AssetEvolutionSystem(this.scene, artDNA);
@@ -155,7 +163,7 @@ export class OpenClawWorldManager {
     }
 
     // Create town marker
-    const marker = evolutionSystem.createTownMarkerMesh(name);
+    const marker = evolutionSystem.createTownMarkerMesh(name, isFounder);
     marker.position.set(centerX + 4, this.gameWorld.terrainMesh.getHeightAt(centerX + 4, centerZ - 3), centerZ - 3);
     this.scene.add(marker);
     this.markerMeshes.push(marker);
@@ -299,6 +307,21 @@ export class OpenClawWorldManager {
   }
 
   /**
+   * Get FrostD4D's town center for camera focus affordances.
+   */
+  getFrostFounderTownCenter(): THREE.Vector3 | null {
+    if (this.frostFounderEntityId == null) return null;
+
+    const founder = this.gameWorld.world.getComponent<OpenClawAgentComponent>(
+      this.frostFounderEntityId,
+      OPENCLAW_AGENT,
+    );
+    if (!founder) return null;
+
+    return new THREE.Vector3(founder.townPlan.centerX, 0, founder.townPlan.centerZ);
+  }
+
+  /**
    * Get the Three.js mesh for a building entity (from GameWorld's internal map).
    */
   private getBuildingMesh(entityId: EntityId): THREE.Group | null {
@@ -347,5 +370,7 @@ export class OpenClawWorldManager {
       system.dispose();
     }
     this.agentEvolutionSystems.clear();
+
+    this.frostFounderEntityId = null;
   }
 }
