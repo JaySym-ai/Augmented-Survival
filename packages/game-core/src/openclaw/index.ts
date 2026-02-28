@@ -61,3 +61,36 @@ export {
 // Town System
 export { OpenClawTownSystem } from './OpenClawTownSystem';
 export type { OpenClawTownCallbacks } from './OpenClawTownSystem';
+
+// Network — Agent connection protocol, server, and client SDK
+export {
+  generateCommandId,
+  isValidClientMessage,
+  isValidServerMessage,
+  AgentServer,
+  AgentClient,
+} from './network';
+export type {
+  ClientMessage,
+  ServerMessage,
+  AgentJoinMessage,
+  AgentCommandMessage,
+  JoinAcceptedMessage,
+  WorldStateMessage,
+  CommandResultMessage,
+  AgentEventMessage,
+  AgentConnectionMessage,
+  AgentStateSnapshot,
+  AgentSummary,
+  GameEvent,
+  AgentServerConfig,
+  AgentSocket,
+  AgentSocketServer,
+  OnJoinAccepted,
+  OnJoinRejected,
+  OnWorldState,
+  OnCommandResult,
+  OnGameEvent,
+  OnChat,
+  OnAgentConnection,
+} from './network';
