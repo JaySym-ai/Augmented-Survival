@@ -370,10 +370,23 @@ export class GameWorld {
     return entity;
   }
 
+  /**
+   * Place a building for an OpenClaw agent — skips global resource check
+   * because the agent already deducted from its own pool.
+   */
+  placeBuildingForAgent(type: BuildingType, position: Vector3): EntityId | null {
+    return this.placeBuildingInternal(type, position);
+  }
+
   placeBuilding(type: BuildingType, position: Vector3): EntityId | null {
     const def = BUILDING_DEFS[type];
     if (!this.resourceStore.canAfford(def.cost)) return null;
     this.resourceStore.deduct(def.cost);
+    return this.placeBuildingInternal(type, position);
+  }
+
+  private placeBuildingInternal(type: BuildingType, position: Vector3): EntityId | null {
+    const def = BUILDING_DEFS[type];
 
     position.y = getMaxHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
 

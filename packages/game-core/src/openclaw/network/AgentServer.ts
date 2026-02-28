@@ -212,6 +212,15 @@ export class AgentServer {
       }
     }
 
+    // Route citizen resource deliveries to owning agent's pool
+    this.eventBus.on('ResourceDelivered', (event) => {
+      const ownerAgent = this.findOwningAgent(event.entityId);
+      if (ownerAgent) {
+        ownerAgent.resources[event.resourceType] =
+          (ownerAgent.resources[event.resourceType] ?? 0) + event.amount;
+      }
+    });
+
     // Listen for events to relay to agents
     this.setupEventRelays();
   }
@@ -391,8 +400,8 @@ export class AgentServer {
     // Create town center
     this.createTownCenter(entityId, agentComponent, centerX, centerZ);
 
-    // Spawn starting citizens
-    for (let i = 0; i < 3; i++) {
+    // Spawn starting citizens (4 per agent for social dynamics)
+    for (let i = 0; i < 4; i++) {
       const citizenId = this.spawnCitizen(
         centerX + (Math.random() - 0.5) * 6,
         centerZ + (Math.random() - 0.5) * 6,
@@ -464,18 +473,19 @@ export class AgentServer {
         const x = command.x as number;
         const z = command.z as number;
 
-        // Check if affordable
+        // Check if affordable from agent's own pool
         const def = BUILDING_DEFS[type];
         if (!def) {
           this.sendResult(socket, commandId, false, `Unknown building type: ${type}`);
           return;
         }
-        if (!this.resourceStore.canAfford(def.cost)) {
+        if (!this.canAgentAfford(agentComp, def.cost)) {
           this.sendResult(socket, commandId, false, 'Insufficient resources');
           return;
         }
 
-        this.resourceStore.deduct(def.cost);
+        // Deduct from agent's own pool
+        this.deductFromAgent(agentComp, def.cost);
         const pos: Vector3 = { x, y: 0, z };
         const buildingId = this.buildingPlacement.placeBuilding(this.world, type, pos, {
           cost: def.cost,
@@ -514,13 +524,9 @@ export class AgentServer {
       case 'evolve_art': {
         const intensity = (command.intensity as number) ?? 0.5;
 
-        // Art evolution costs resources
+        // Art evolution costs resources from agent's own pool
         const artCost = getArtEvolutionCost(intensity);
-        const availableForArt: Partial<Record<ResourceType, number>> = {};
-        for (const rt of Object.values(ResourceType)) {
-          availableForArt[rt] = this.resourceStore.getResource(rt);
-        }
-        if (!canAffordArtCost(artCost.resources, availableForArt)) {
+        if (!canAffordArtCost(artCost.resources, agentComp.resources)) {
           const needed = Object.entries(artCost.resources)
             .map(([r, a]) => `${a} ${r}`)
             .join(', ');
@@ -529,13 +535,8 @@ export class AgentServer {
           return;
         }
 
-        // Deduct resources
-        for (const [resource, amount] of Object.entries(artCost.resources)) {
-          if (amount && amount > 0) {
-            const current = this.resourceStore.getResource(resource as ResourceType);
-            this.resourceStore.setResource(resource as ResourceType, current - amount);
-          }
-        }
+        // Deduct from agent's own pool
+        this.deductFromAgent(agentComp, artCost.resources);
 
         // Track investment
         const investmentValue = Object.values(artCost.resources).reduce((sum, v) => sum + (v ?? 0), 0);
@@ -729,10 +730,8 @@ export class AgentServer {
     const agentComp = this.world.getComponent<OpenClawAgentComponent>(agent.entityId, OPENCLAW_AGENT);
     if (!agentComp) return;
 
-    const resources: Partial<Record<ResourceType, number>> = {};
-    for (const rt of Object.values(ResourceType)) {
-      resources[rt] = this.resourceStore.getResource(rt);
-    }
+    // Send the agent's own resource pool (not the global one)
+    const resources: Partial<Record<ResourceType, number>> = { ...agentComp.resources };
 
     const culturalValue = calculateCulturalValue(agentComp);
     const agentState: AgentStateSnapshot = {
@@ -821,6 +820,47 @@ export class AgentServer {
       if (agent.joined) count++;
     }
     return count;
+  }
+
+  // ─── Agent Lookup ──────────────────────────────────────────────
+
+  /**
+   * Find which agent owns a given citizen entity.
+   */
+  private findOwningAgent(citizenEntityId: EntityId): OpenClawAgentComponent | null {
+    for (const [, connected] of this.connectedAgents) {
+      if (!connected.joined) continue;
+      const agent = this.world.getComponent<OpenClawAgentComponent>(connected.entityId, OPENCLAW_AGENT);
+      if (agent && agent.citizenEntities.includes(citizenEntityId)) {
+        return agent;
+      }
+    }
+    return null;
+  }
+
+  // ─── Agent Resource Helpers ─────────────────────────────────────
+
+  private canAgentAfford(
+    agent: OpenClawAgentComponent,
+    cost: Partial<Record<ResourceType, number>>,
+  ): boolean {
+    for (const [type, amount] of Object.entries(cost)) {
+      if (amount == null) continue;
+      const current = agent.resources[type as ResourceType] ?? 0;
+      if (current < amount) return false;
+    }
+    return true;
+  }
+
+  private deductFromAgent(
+    agent: OpenClawAgentComponent,
+    cost: Partial<Record<ResourceType, number>>,
+  ): void {
+    for (const [type, amount] of Object.entries(cost)) {
+      if (amount == null || amount <= 0) continue;
+      agent.resources[type as ResourceType] =
+        (agent.resources[type as ResourceType] ?? 0) - amount;
+    }
   }
 
   // ─── Event Relays ───────────────────────────────────────────────

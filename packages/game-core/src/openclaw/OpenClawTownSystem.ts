@@ -75,6 +75,8 @@ export class OpenClawTownSystem extends System {
   private gameTime = 0;
   private collaborationTimer = 0;
   private collaborationInterval = 15; // Check for collaborations every 15 seconds
+  /** Cached reference to the ECS world (set on first update) */
+  private worldRef: World | null = null;
 
   constructor(
     private timeSystem: TimeSystem,
@@ -82,6 +84,16 @@ export class OpenClawTownSystem extends System {
     private resourceStore: ResourceStoreSystem,
   ) {
     super('OpenClawTownSystem');
+
+    // Route citizen resource deliveries to the owning agent's pool
+    this.eventBus.on('ResourceDelivered', (event) => {
+      if (!this.worldRef) return;
+      const ownerAgent = this.findOwningAgent(this.worldRef, event.entityId);
+      if (ownerAgent) {
+        ownerAgent.resources[event.resourceType] =
+          (ownerAgent.resources[event.resourceType] ?? 0) + event.amount;
+      }
+    });
   }
 
   /** Set callbacks for rendering layer integration */
@@ -91,6 +103,7 @@ export class OpenClawTownSystem extends System {
 
   update(world: World, dt: number): void {
     if (this.timeSystem.isPaused()) return;
+    this.worldRef = world;
     const scaledDt = this.timeSystem.getScaledDt(dt);
     this.gameTime += scaledDt;
 
@@ -130,14 +143,8 @@ export class OpenClawTownSystem extends System {
     if (agent.decisionTimer >= agent.decisionInterval) {
       agent.decisionTimer = 0;
 
-      // Get current resources
-      const resources: Partial<Record<ResourceType, number>> = {};
-      for (const rt of Object.values(ResourceType)) {
-        resources[rt] = this.resourceStore.getResource(rt);
-      }
-
-      // Make a strategic decision
-      const decision = makeStrategicDecision(agent, resources, this.gameTime);
+      // Make a strategic decision using the agent's own resource pool
+      const decision = makeStrategicDecision(agent, agent.resources, this.gameTime);
       agent.pendingDecisions.push(decision);
     }
 
@@ -207,6 +214,15 @@ export class OpenClawTownSystem extends System {
     decision: AgentDecision,
   ): void {
     if (!decision.buildingType || !decision.position || !this.callbacks) return;
+
+    // Deduct building cost from agent's own resource pool
+    const buildingCost = this.getBuildingCost(decision.buildingType);
+    for (const [resource, amount] of Object.entries(buildingCost)) {
+      if (amount && amount > 0) {
+        agent.resources[resource as ResourceType] =
+          (agent.resources[resource as ResourceType] ?? 0) - amount;
+      }
+    }
 
     const position: Vector3 = {
       x: decision.position.x,
@@ -301,25 +317,19 @@ export class OpenClawTownSystem extends System {
     entityId: EntityId,
     agent: OpenClawAgentComponent,
   ): void {
-    // Get available resources to determine what we can afford
-    const resources: Partial<Record<ResourceType, number>> = {};
-    for (const rt of Object.values(ResourceType)) {
-      resources[rt] = this.resourceStore.getResource(rt);
-    }
-
-    // Choose intensity based on what we can afford and strategic needs
-    const intensity = chooseArtIntensity(agent, resources);
+    // Choose intensity based on what the agent can afford from its own pool
+    const intensity = chooseArtIntensity(agent, agent.resources);
     if (intensity <= 0) return; // Can't afford any art evolution
 
-    // Calculate and check cost
+    // Calculate and check cost against agent's own resources
     const cost = getArtEvolutionCost(intensity);
-    if (!canAffordArtCost(cost.resources, resources)) return;
+    if (!canAffordArtCost(cost.resources, agent.resources)) return;
 
-    // Deduct resources — art costs real materials
+    // Deduct resources from the agent's own pool
     for (const [resource, amount] of Object.entries(cost.resources)) {
       if (amount && amount > 0) {
-        const current = this.resourceStore.getResource(resource as ResourceType);
-        this.resourceStore.setResource(resource as ResourceType, current - amount);
+        agent.resources[resource as ResourceType] =
+          (agent.resources[resource as ResourceType] ?? 0) - amount;
       }
     }
 
@@ -411,16 +421,19 @@ export class OpenClawTownSystem extends System {
         // Check if agents are close enough to interact
         if (!areAgentsNearby(agentA, agentB)) continue;
 
-        // Try trade
-        const resourcesA: Partial<Record<ResourceType, number>> = {};
-        const resourcesB: Partial<Record<ResourceType, number>> = {};
-        for (const rt of Object.values(ResourceType)) {
-          resourcesA[rt] = this.resourceStore.getResource(rt);
-          resourcesB[rt] = this.resourceStore.getResource(rt);
-        }
-
-        const tradeResult = attemptTrade(agentA, agentB, resourcesA, resourcesB);
+        // Try trade using each agent's own resource pool
+        const tradeResult = attemptTrade(agentA, agentB, agentA.resources, agentB.resources);
         if (tradeResult.success) {
+          // Apply transfers between agent pools
+          for (const transfer of tradeResult.transfers) {
+            const from = transfer.from === 'A' ? agentA : agentB;
+            const to = transfer.from === 'A' ? agentB : agentA;
+            from.resources[transfer.resource] =
+              (from.resources[transfer.resource] ?? 0) - transfer.amount;
+            to.resources[transfer.resource] =
+              (to.resources[transfer.resource] ?? 0) + transfer.amount;
+          }
+
           // Record positive interaction for both
           recordInteraction(agentA, agentEntities[j] as number, 'trade', 'positive', this.gameTime);
           recordInteraction(agentB, agentEntities[i] as number, 'trade', 'positive', this.gameTime);
@@ -432,22 +445,23 @@ export class OpenClawTownSystem extends System {
         }
 
         // Try art crossover (happens rarely, requires trust AND resources)
-        // Cultural exchange isn't free — both agents pay materials
+        // Each agent pays from its own pool
         const crossoverCost = getArtCrossoverCost();
         const canAffordCrossover =
-          canAffordArtCost(crossoverCost, resourcesA) &&
-          canAffordArtCost(crossoverCost, resourcesB);
+          canAffordArtCost(crossoverCost, agentA.resources) &&
+          canAffordArtCost(crossoverCost, agentB.resources);
 
         if (canAffordCrossover) {
           const seed = Math.floor(this.gameTime * 1000) + agentEntities[i] as number;
           const crossoverDNA = attemptArtCrossover(agentA, agentB, agentEntities[j] as number, seed);
           if (crossoverDNA) {
-            // Deduct crossover cost from shared resource pool
+            // Deduct crossover cost from each agent's own pool
             for (const [resource, amount] of Object.entries(crossoverCost)) {
               if (amount && amount > 0) {
-                const current = this.resourceStore.getResource(resource as ResourceType);
-                // Both agents contribute, so deduct twice
-                this.resourceStore.setResource(resource as ResourceType, current - amount * 2);
+                agentA.resources[resource as ResourceType] =
+                  (agentA.resources[resource as ResourceType] ?? 0) - amount;
+                agentB.resources[resource as ResourceType] =
+                  (agentB.resources[resource as ResourceType] ?? 0) - amount;
               }
             }
 
@@ -470,5 +484,34 @@ export class OpenClawTownSystem extends System {
         }
       }
     }
+  }
+
+  /**
+   * Get the resource cost for a building type.
+   */
+  private getBuildingCost(type: string): Partial<Record<ResourceType, number>> {
+    switch (type) {
+      case 'House': return { [ResourceType.Wood]: 10, [ResourceType.Stone]: 5 };
+      case 'StorageBarn': return { [ResourceType.Wood]: 15 };
+      case 'WoodcutterHut': return { [ResourceType.Wood]: 5 };
+      case 'FarmField': return { [ResourceType.Wood]: 5 };
+      case 'Quarry': return { [ResourceType.Wood]: 10 };
+      default: return {};
+    }
+  }
+
+  /**
+   * Find which agent owns a given citizen entity.
+   * Returns the agent component, or null if not owned by any agent.
+   */
+  private findOwningAgent(world: World, citizenEntityId: EntityId): OpenClawAgentComponent | null {
+    const agentEntities = world.query(OPENCLAW_AGENT);
+    for (const agentEntity of agentEntities) {
+      const agent = world.getComponent<OpenClawAgentComponent>(agentEntity, OPENCLAW_AGENT);
+      if (agent && agent.citizenEntities.includes(citizenEntityId)) {
+        return agent;
+      }
+    }
+    return null;
   }
 }

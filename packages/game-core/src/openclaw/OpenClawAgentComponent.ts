@@ -21,6 +21,7 @@ import type {
   AgentDecision,
   ArtMemory,
 } from './types';
+import { ResourceType } from '../types/resources';
 
 /** The OpenClaw agent's personality and state */
 export interface OpenClawAgentComponent {
@@ -92,6 +93,9 @@ export interface OpenClawAgentComponent {
 
   /** Number of art crossovers with other agents */
   crossoversCompleted: number;
+
+  /** Per-agent resource stockpile — isolated from other agents */
+  resources: Record<ResourceType, number>;
 }
 
 export const OPENCLAW_AGENT = 'OpenClawAgent' as const;
@@ -139,5 +143,14 @@ export function createOpenClawAgent(
     culturalValue: 0,
     commissionsCompleted: 0,
     crossoversCompleted: 0,
+    resources: {
+      [ResourceType.Wood]: 30,
+      [ResourceType.Food]: 20,
+      [ResourceType.Stone]: 15,
+      [ResourceType.Iron]: 0,
+      [ResourceType.Gold]: 5,
+      [ResourceType.Hemp]: 0,
+      [ResourceType.Branch]: 0,
+    },
   };
 }

@@ -159,7 +159,7 @@ export interface WorldStateMessage {
   agentState: AgentStateSnapshot;
   /** Other agents visible to this agent */
   otherAgents: AgentSummary[];
-  /** Global resource pool */
+  /** This agent's resource pool (per-agent, isolated) */
   resources: Partial<Record<ResourceType, number>>;
 }
 

@@ -246,8 +246,8 @@ export class OpenClawWorldManager {
     // Create town center for this agent
     this.createAgentTownCenter(agentEntityId, agentComponent, centerX, centerZ);
 
-    // Spawn starting citizens for this agent
-    for (let c = 0; c < 3; c++) {
+    // Spawn starting citizens (4 per agent for social dynamics)
+    for (let c = 0; c < 4; c++) {
       const citizenPos: Vector3 = {
         x: centerX + (Math.random() - 0.5) * 6,
         y: 0,
@@ -327,9 +327,10 @@ export class OpenClawWorldManager {
 
     const evolutionSystem = this.agentEvolutionSystems.get(agentEntityId);
 
-    // Place building through GameWorld's existing system
+    // Place building — uses agent placement (skips global resource deduction,
+    // since costs were already deducted from the agent's own pool)
     const type = buildingType as BuildingType;
-    const buildingId = this.gameWorld.placeBuilding(type, position);
+    const buildingId = this.gameWorld.placeBuildingForAgent(type, position);
 
     if (buildingId != null && evolutionSystem) {
       // Register with evolution system for future visual evolution
