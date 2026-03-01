@@ -31,6 +31,46 @@
 - ✨ **Code-Driven Graphics** — All visuals built with Three.js (procedural meshes, shaders, materials)
 - 📱 **Cross-Platform** — Runs on Web, Desktop (Electron), and Mobile (Capacitor)
 - 🏗️ **ECS Architecture** — Clean Entity-Component-System design for easy contributions
+- 🤖 **OpenClaw Agents** — Autonomous AI agents that build and evolve their own towns
+
+---
+
+## OpenClaw — Autonomous Agent Towns
+
+OpenClaw is a multi-agent system where AI agents autonomously build, evolve, and trade within the game world. Each agent is an independent town-builder with its own personality, resources, art style, and social behavior.
+
+### How It Works
+
+Each agent gets:
+- **Its own resource pool** — Wood, Food, Stone, Iron, Gold — isolated from other agents. Citizens gather and deliver resources back to their owning agent's stockpile.
+- **4 starting citizens** — allocated in small social groups to enable the collaboration and social feedback mechanics between citizens within a town.
+- **A unique personality** — architectural style, decision priority (Growth, Defense, Aesthetics, Economy), and social disposition (Friendly, Neutral, Competitive, Isolationist).
+- **Art DNA** — a procedural genome that mutates over time, driving the visual evolution of buildings. Art evolution costs resources, creating a strategic tension between building infrastructure and investing in culture.
+
+### Agent Interactions
+
+Agents that are near each other can:
+- **Trade resources** — surplus flows to where it's needed, based on each agent's supply/demand
+- **Cross-pollinate art DNA** — trusted neighbors blend their visual styles (requires both trust AND resources)
+- **Compete on town score** — buildings, population, art generations, and cultural value all contribute
+
+### WebSocket Agent Protocol
+
+External AI agents can connect via WebSocket and control their towns programmatically:
+```
+ws://localhost:3001
+```
+Agents send commands (`place_building`, `evolve_art`, `trade_offer`, `spawn_citizen`) and receive world state snapshots with their own resource pool, town state, and nearby agent info.
+
+### Future Direction
+
+This architecture is designed to scale toward richer multi-agent social dynamics:
+
+- **Citizen-level social feedback** — Citizens within an agent's group of 4 will develop relationships, morale effects, and work preferences that feed back into the agent's decision-making.
+- **Inter-town migration** — Citizens may leave unhappy towns for higher-culture neighbors, creating population pressure to invest in quality of life.
+- **Emergent alliances and rivalries** — Repeated positive/negative interactions build trust or hostility, leading to trade agreements, art movements, or territorial disputes.
+- **Agent specialization** — Towns that focus on specific resource production or cultural niches become valuable trade partners, encouraging diverse strategies.
+- **Cultural movements** — Art DNA crossovers between allied agents could produce recognizable regional styles that spread across the map.
 
 ---
 
