@@ -14,7 +14,10 @@ import { VILLAGER_SIDEBAR_SELECT_EVENT } from './ui/VillagerSidebar.js';
 import {
   CITIZEN,
   TRANSFORM,
+  deleteSave,
+  listSaves,
   saveGame,
+  serialize,
   type EntityId,
   type TransformComponent,
   type SaveData,
@@ -25,6 +28,14 @@ import {
   getDesktopMenuEvents,
   loadDesktopSaveData,
 } from './utils/DesktopBridge.js';
+import type { SaveLoadController } from './ui/SaveLoadPanel.js';
+import {
+  createDefaultSaveSlot,
+  downloadJsonFile,
+  getDownloadFilename,
+  parseSaveDataJson,
+  sanitizeSaveSlotName,
+} from './utils/SaveFileUtils.js';
 
 class GameApp {
   private gameRenderer: GameRenderer;
@@ -37,7 +48,11 @@ class GameApp {
   private lastTime = 0;
   private animationFrameId = 0;
 
-  constructor(container: HTMLElement, initialSaveData?: SaveData) {
+  constructor(
+    container: HTMLElement,
+    initialSaveData: SaveData | undefined,
+    saveLoadController: SaveLoadController,
+  ) {
     this.container = container;
 
     // Camera controller (creates THREE.PerspectiveCamera internally)
@@ -84,6 +99,7 @@ class GameApp {
       buildingPlacement: this.gameWorld.buildingPlacement,
       world: this.gameWorld.world,
       gameRenderer: this.gameRenderer,
+      saveLoadController,
       onBuildingSelected: (type) => {
         this.buildingGhost.startPlacement(type);
       },
@@ -120,6 +136,8 @@ class GameApp {
   getBuildingGhost(): BuildingGhostPreview { return this.buildingGhost; }
   getCameraController(): RTSCameraController { return this.cameraController; }
   getRenderer(): GameRenderer { return this.gameRenderer; }
+  openSaveDialog(): void { this.gameUI.openSaveDialog(); }
+  openLoadDialog(): void { this.gameUI.openLoadDialog(); }
 
   /** Start the render loop */
   start(): void {
@@ -210,9 +228,42 @@ class GameApp {
 class GameRuntime {
   private app: GameApp;
   private readonly storageProvider = createDesktopStorageProvider();
+  private readonly saveLoadController: SaveLoadController;
 
   constructor(private readonly container: HTMLElement) {
-    this.app = new GameApp(container);
+    this.saveLoadController = {
+      platform: this.storageProvider ? 'desktop' : 'web',
+      listSaves: async () => {
+        if (!this.storageProvider) {
+          return [];
+        }
+        return listSaves(this.storageProvider);
+      },
+      saveToSlot: async (slot) => {
+        if (!this.storageProvider) {
+          throw new Error('Local desktop saves are unavailable.');
+        }
+        await this.saveToDesktopSlot(slot);
+      },
+      loadFromSlot: async (slot) => {
+        if (!this.storageProvider) {
+          throw new Error('Local desktop saves are unavailable.');
+        }
+        return this.loadFromDesktopSlot(slot);
+      },
+      deleteSave: async (slot) => {
+        if (!this.storageProvider) {
+          throw new Error('Local desktop saves are unavailable.');
+        }
+        await deleteSave(slot, this.storageProvider);
+      },
+      downloadSave: async (slot) => {
+        await this.downloadWebSave(slot);
+      },
+      importSaveFile: async (file) => this.importWebSave(file),
+    };
+
+    this.app = new GameApp(container, undefined, this.saveLoadController);
   }
 
   start(): void {
@@ -250,9 +301,48 @@ class GameRuntime {
     return true;
   }
 
+  openSaveDialog(): void {
+    this.app.openSaveDialog();
+  }
+
+  openLoadDialog(): void {
+    this.app.openLoadDialog();
+  }
+
+  private createCurrentSaveData(slot: string): SaveData {
+    const normalizedSlot = sanitizeSaveSlotName(slot) || createDefaultSaveSlot();
+    const gameWorld = this.app.getGameWorld();
+    const saveData = serialize(
+      gameWorld.world,
+      gameWorld.resourceStore,
+      gameWorld.timeSystem,
+    );
+    saveData.slot = normalizedSlot;
+    return saveData;
+  }
+
+  private async downloadWebSave(slot: string): Promise<void> {
+    const saveData = this.createCurrentSaveData(slot);
+    downloadJsonFile(getDownloadFilename(saveData.slot), JSON.stringify(saveData));
+    this.app.getGameWorld().eventBus.emit('GameSaved', {
+      slot: saveData.slot,
+      timestamp: saveData.timestamp,
+    });
+  }
+
+  private async importWebSave(file: File): Promise<boolean> {
+    const json = await file.text();
+    const saveData = parseSaveDataJson(json);
+    if (!saveData.slot) {
+      saveData.slot = sanitizeSaveSlotName(file.name.replace(/\.json$/i, '')) || createDefaultSaveSlot();
+    }
+    this.replaceApp(saveData);
+    return true;
+  }
+
   private replaceApp(initialSaveData: SaveData): void {
     this.app.dispose();
-    this.app = new GameApp(this.container, initialSaveData);
+    this.app = new GameApp(this.container, initialSaveData, this.saveLoadController);
     this.app.start();
     this.app.getGameWorld().eventBus.emit('GameLoaded', {
       slot: initialSaveData.slot || DESKTOP_MENU_SLOT,
@@ -273,15 +363,11 @@ runtime.start();
 const desktopMenuEvents = getDesktopMenuEvents();
 if (desktopMenuEvents) {
   desktopMenuEvents.onMenuSave(() => {
-    void runtime.saveToDesktopSlot().catch((error: unknown) => {
-      console.error('[Augmented Survival] Failed to save desktop game', error);
-    });
+    runtime.openSaveDialog();
   });
 
   desktopMenuEvents.onMenuLoad(() => {
-    void runtime.loadFromDesktopSlot().catch((error: unknown) => {
-      console.error('[Augmented Survival] Failed to load desktop game', error);
-    });
+    runtime.openLoadDialog();
   });
 }
 
