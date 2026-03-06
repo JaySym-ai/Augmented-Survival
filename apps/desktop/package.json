@@ -2,9 +2,9 @@
   "name": "@augmented-survival/desktop",
   "version": "0.1.0",
   "private": true,
-  "main": "electron/main.ts",
+  "main": "dist/main.js",
   "scripts": {
-    "dev": "electron .",
+    "dev": "npm run build && electron .",
     "build": "tsc -p tsconfig.json",
     "package": "electron-builder"
   },
@@ -15,7 +15,7 @@
       "output": "dist-electron"
     },
     "files": [
-      "electron/**/*",
+      "dist/**/*",
       "../../packages/game-web/dist/**/*"
     ],
     "win": {

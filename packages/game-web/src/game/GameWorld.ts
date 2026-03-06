@@ -8,12 +8,15 @@ import {
   EventBus,
   type GameEventMap,
   type EntityId,
+  type SaveData,
   type TransformComponent,
   type VelocityComponent,
   type Vector3,
+  type ResourceNodeComponent,
   type BuildingComponent,
   type CitizenComponent,
   type ConstructionWorkComponent,
+  type AnimalComponent,
   TRANSFORM,
   VELOCITY,
   CITIZEN,
@@ -25,6 +28,7 @@ import {
   JOB_ASSIGNMENT,
   GATHERING,
   CONSTRUCTION_WORK,
+  CONSTRUCTION_SITE,
   DEPLETED_RESOURCE,
   EQUIPMENT,
   ANIMAL,
@@ -66,6 +70,7 @@ import {
   AnimalAISystem,
   AutoBuilderSystem,
   CitizenNeedsSystem,
+  deserialize,
 } from '@augmented-survival/game-core';
 import { MeshFactory } from '../assets/MeshFactory.js';
 import { TerrainMesh, getMaxHeightForFootprint } from '../world/TerrainMesh.js';
@@ -109,7 +114,7 @@ export class GameWorld {
   // Track building footprints for terrain modification exclude zones
   private buildingFootprints: Array<{x: number, z: number, width: number, depth: number}> = [];
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, initialSaveData?: SaveData) {
     this.scene = scene;
     this.eventBus = new EventBus<GameEventMap>();
     this.world = new World();
@@ -160,6 +165,19 @@ export class GameWorld {
     this.world.addSystem(this.buildingPlacement);
     this.world.addSystem(animalAI);
 
+    if (initialSaveData) {
+      deserialize(initialSaveData, this.world, this.resourceStore, this.timeSystem);
+      this.rebuildRuntimeStateFromWorld();
+    } else {
+      this.initializeFreshWorld();
+    }
+
+    // 9. Listen to events for visual updates
+    this.setupEventListeners();
+  }
+
+  private initializeFreshWorld(): void {
+
     // 4. Set starting resources
     const config = DEFAULT_GAME_CONFIG;
     for (const [type, amount] of Object.entries(config.startingResources)) {
@@ -181,45 +199,237 @@ export class GameWorld {
 
     // 8. Spawn initial animals near town center
     this.spawnInitialAnimals();
+  }
 
-    // 9. Listen to events for visual updates
-    this.setupEventListeners();
+  private rebuildRuntimeStateFromWorld(): void {
+    this.clearRuntimeState();
+    this.resourceInstanceMap.clear();
+    this.buildingFootprints = [];
+
+    for (const entityId of this.world.query(SELECTABLE)) {
+      const selectable = this.world.getComponent<{ selected: boolean; hoverHighlight: boolean }>(entityId, SELECTABLE);
+      if (selectable) {
+        selectable.selected = false;
+        selectable.hoverHighlight = false;
+      }
+    }
+
+    this.rebuildBuildingVisuals();
+    this.rebuildResourceInstanceMap();
+    this.syncLoadedResourceVisuals();
+    this.rebuildCitizenVisuals();
+    this.rebuildAnimalVisuals();
   }
 
   private spawnTownCenter(): void {
     const def = BUILDING_DEFS[BuildingType.TownCenter];
     const entityId = this.world.createEntity();
     const y = getMaxHeightForFootprint(this.terrainMesh, 0, 0, def.size.width, def.size.depth);
-    this.world.addComponent(entityId, TRANSFORM, createTransform({ x: 0, y, z: 0 }));
+    const position = { x: 0, y, z: 0 };
+    this.world.addComponent(entityId, TRANSFORM, createTransform(position));
     this.world.addComponent(entityId, BUILDING, createBuilding(BuildingType.TownCenter, def.workerSlots, true));
     this.world.addComponent(entityId, STORAGE, createStorage(def.storageCapacity));
     this.world.addComponent(entityId, SELECTABLE, createSelectable());
 
-    // Raise terrain for town center
-    this.buildingFootprints.push({x: 0, z: 0, width: def.size.width, depth: def.size.depth});
-    this.terrainMesh.raiseTerrainForBuilding(0, 0, def.size.width, def.size.depth, y, []);
+    this.raiseTerrainForFootprint(position.x, position.z, def.size.width, def.size.depth, position.y);
+    this.raiseTownCenterCampfireTerrain(position);
 
-    const mesh = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
-    mesh.position.set(0, y, 0);
+    const mesh = this.createBuildingVisual(BuildingType.TownCenter, position);
+    mesh.position.set(position.x, position.y, position.z);
     mesh.castShadow = true;
 
     this.scene.add(mesh);
     this.entityMeshes.set(entityId, mesh);
 
-    // Campfire with benches in front of the barn
-    const campfire = this.meshFactory.createCampfire();
-    const campfireY = getMaxHeightForFootprint(this.terrainMesh, 0, 7, 2.6, 2.6);
-    campfire.position.set(0, campfireY, 7);
-
-    // Raise terrain for campfire, excluding TC footprint
-    this.buildingFootprints.push({x: 0, z: 7, width: 2.6, depth: 2.6});
-    this.terrainMesh.raiseTerrainForBuilding(0, 7, 2.6, 2.6, campfireY,
-      this.buildingFootprints.filter(fp => !(fp.x === 0 && fp.z === 7)));
-
-    this.scene.add(campfire);
-
     // Refresh terrain geometry once after all initial terrain modifications
     this.terrainMesh.refreshGeometry();
+  }
+
+  private raiseTerrainForFootprint(
+    x: number,
+    z: number,
+    width: number,
+    depth: number,
+    targetHeight: number,
+  ): void {
+    const footprint = { x, z, width, depth };
+    this.buildingFootprints.push(footprint);
+    this.terrainMesh.raiseTerrainForBuilding(
+      x,
+      z,
+      width,
+      depth,
+      targetHeight,
+      this.buildingFootprints.filter((existing) => existing !== footprint),
+    );
+  }
+
+  private raiseTownCenterCampfireTerrain(position: Vector3): void {
+    const campfireY = getMaxHeightForFootprint(this.terrainMesh, position.x, position.z + 7, 2.6, 2.6);
+    this.raiseTerrainForFootprint(position.x, position.z + 7, 2.6, 2.6, campfireY);
+  }
+
+  private createBuildingVisual(type: BuildingType, position: Vector3): THREE.Object3D {
+    if (type !== BuildingType.TownCenter) {
+      return this.meshFactory.createBuildingMesh(type);
+    }
+
+    const group = new THREE.Group();
+    const townCenter = this.meshFactory.createBuildingMesh(BuildingType.StorageBarn);
+    const campfire = this.meshFactory.createCampfire();
+    const campfireY = getMaxHeightForFootprint(this.terrainMesh, position.x, position.z + 7, 2.6, 2.6);
+
+    campfire.position.set(0, campfireY - position.y, 7);
+    group.add(townCenter);
+    group.add(campfire);
+
+    return group;
+  }
+
+  private applyConstructionOpacity(mesh: THREE.Object3D): void {
+    mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+        child.material = child.material.clone();
+        child.material.transparent = true;
+        child.material.opacity = 0.5;
+      }
+    });
+  }
+
+  private rebuildBuildingVisuals(): void {
+    const buildingEntities = this.world.query(BUILDING, TRANSFORM).sort((a, b) => a - b);
+
+    for (const entityId of buildingEntities) {
+      const building = this.world.getComponent<BuildingComponent>(entityId, BUILDING);
+      const transform = this.world.getComponent<TransformComponent>(entityId, TRANSFORM);
+      if (!building || !transform) continue;
+
+      const def = BUILDING_DEFS[building.type];
+      this.raiseTerrainForFootprint(
+        transform.position.x,
+        transform.position.z,
+        def.size.width,
+        def.size.depth,
+        transform.position.y,
+      );
+
+      if (building.type === BuildingType.TownCenter) {
+        this.raiseTownCenterCampfireTerrain(transform.position);
+      }
+    }
+
+    this.terrainMesh.refreshGeometry();
+
+    for (const entityId of buildingEntities) {
+      const building = this.world.getComponent<BuildingComponent>(entityId, BUILDING);
+      const transform = this.world.getComponent<TransformComponent>(entityId, TRANSFORM);
+      if (!building || !transform) continue;
+
+      const mesh = this.createBuildingVisual(building.type, transform.position);
+      mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
+      mesh.castShadow = true;
+
+      if (!building.isConstructed || this.world.hasComponent(entityId, CONSTRUCTION_SITE)) {
+        this.applyConstructionOpacity(mesh);
+      }
+
+      this.scene.add(mesh);
+      this.entityMeshes.set(entityId, mesh);
+    }
+  }
+
+  private rebuildResourceInstanceMap(): void {
+    const resourceEntities = this.world.query(RESOURCE_NODE, TRANSFORM).sort((a, b) => a - b);
+    const counters = { tree: 0, rock: 0, iron: 0, gold: 0, hemp: 0, branch: 0 };
+
+    for (const entityId of resourceEntities) {
+      const resource = this.world.getComponent<ResourceNodeComponent>(entityId, RESOURCE_NODE);
+      if (!resource) continue;
+
+      switch (resource.type) {
+        case ResourceType.Wood:
+          this.resourceInstanceMap.set(entityId, { type: 'tree', index: counters.tree++ });
+          break;
+        case ResourceType.Stone:
+          this.resourceInstanceMap.set(entityId, { type: 'rock', index: counters.rock++ });
+          break;
+        case ResourceType.Iron:
+          this.resourceInstanceMap.set(entityId, { type: 'iron', index: counters.iron++ });
+          break;
+        case ResourceType.Gold:
+          this.resourceInstanceMap.set(entityId, { type: 'gold', index: counters.gold++ });
+          break;
+        case ResourceType.Hemp:
+          this.resourceInstanceMap.set(entityId, { type: 'hemp', index: counters.hemp++ });
+          break;
+        case ResourceType.Branch:
+          this.resourceInstanceMap.set(entityId, { type: 'branch', index: counters.branch++ });
+          break;
+      }
+    }
+  }
+
+  private syncLoadedResourceVisuals(): void {
+    const resourceEntities = this.world.query(RESOURCE_NODE).sort((a, b) => a - b);
+
+    for (const entityId of resourceEntities) {
+      const resource = this.world.getComponent<ResourceNodeComponent>(entityId, RESOURCE_NODE);
+      const instance = this.resourceInstanceMap.get(entityId);
+      if (!resource || !instance) continue;
+
+      if (resource.amount <= 0 || this.world.hasComponent(entityId, DEPLETED_RESOURCE)) {
+        this.environment.hideResourceInstance(instance.type, instance.index);
+      }
+    }
+  }
+
+  private rebuildCitizenVisuals(): void {
+    const citizenEntities = this.world.query(CITIZEN, TRANSFORM).sort((a, b) => a - b);
+
+    for (const entityId of citizenEntities) {
+      const transform = this.world.getComponent<TransformComponent>(entityId, TRANSFORM);
+      if (!transform) continue;
+
+      const mesh = this.meshFactory.createCitizenMesh();
+      mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+      this.entityMeshes.set(entityId, mesh);
+      this.citizenAnimators.set(entityId, new CitizenAnimator(mesh));
+    }
+  }
+
+  private rebuildAnimalVisuals(): void {
+    const animalEntities = this.world.query(ANIMAL, TRANSFORM).sort((a, b) => a - b);
+
+    for (const entityId of animalEntities) {
+      const animal = this.world.getComponent<AnimalComponent>(entityId, ANIMAL);
+      const transform = this.world.getComponent<TransformComponent>(entityId, TRANSFORM);
+      if (!animal || !transform) continue;
+
+      const mesh = animal.type === 'sheep'
+        ? this.meshFactory.createSheepMesh()
+        : this.meshFactory.createChickenMesh();
+      mesh.position.set(transform.position.x, transform.position.y, transform.position.z);
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+      this.entityMeshes.set(entityId, mesh);
+      this.animalAnimators.set(entityId, new AnimalAnimator(mesh, animal.type));
+    }
+  }
+
+  private clearRuntimeState(): void {
+    for (const mesh of this.entityMeshes.values()) {
+      this.scene.remove(mesh);
+    }
+    this.entityMeshes.clear();
+    this.citizenAnimators.clear();
+    this.animalAnimators.clear();
+
+    for (const tool of this.citizenTools.values()) {
+      tool.removeFromParent();
+    }
+    this.citizenTools.clear();
   }
 
   private createResourceEntities(): void {
@@ -385,28 +595,14 @@ export class GameWorld {
     });
 
     if (entityId != null) {
-      // Create ghost/construction mesh (semi-transparent)
-      const mesh = this.meshFactory.createBuildingMesh(type);
+      const mesh = this.createBuildingVisual(type, position);
       mesh.position.set(position.x, position.y, position.z);
       mesh.castShadow = true;
 
-      // Raise terrain around building footprint
-      this.buildingFootprints.push({x: position.x, z: position.z, width: def.size.width, depth: def.size.depth});
-      const currentFp = this.buildingFootprints[this.buildingFootprints.length - 1];
-      this.terrainMesh.raiseTerrainForBuilding(
-        position.x, position.z, def.size.width, def.size.depth, position.y,
-        this.buildingFootprints.filter(fp => fp !== currentFp)
-      );
+      this.raiseTerrainForFootprint(position.x, position.z, def.size.width, def.size.depth, position.y);
       this.terrainMesh.refreshGeometry();
 
-      // Make semi-transparent for under-construction
-      mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-          child.material = child.material.clone();
-          child.material.transparent = true;
-          child.material.opacity = 0.5;
-        }
-      });
+      this.applyConstructionOpacity(mesh);
       this.scene.add(mesh);
       this.entityMeshes.set(entityId, mesh);
     }
@@ -695,17 +891,10 @@ export class GameWorld {
   }
 
   dispose(): void {
-    for (const mesh of this.entityMeshes.values()) {
-      this.scene.remove(mesh);
-    }
-    this.entityMeshes.clear();
-    this.citizenAnimators.clear();
-    this.animalAnimators.clear();
-    // Clean up tool meshes
-    for (const tool of this.citizenTools.values()) {
-      tool.removeFromParent();
-    }
-    this.citizenTools.clear();
+    this.clearRuntimeState();
+    this.resourceInstanceMap.clear();
+    this.buildingFootprints = [];
+    this.eventBus.clear();
     this.terrainMesh.dispose();
     this.environment.dispose();
     this.meshFactory.dispose();

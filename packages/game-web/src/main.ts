@@ -11,8 +11,31 @@ import { SelectionManager } from './game/SelectionManager.js';
 import { BuildingGhostPreview } from './game/BuildingGhostPreview.js';
 import { GameUI } from './ui/GameUI.js';
 import { VILLAGER_SIDEBAR_SELECT_EVENT } from './ui/VillagerSidebar.js';
-import { CITIZEN, TRANSFORM } from '@augmented-survival/game-core';
-import type { EntityId, TransformComponent } from '@augmented-survival/game-core';
+import {
+  CITIZEN,
+  TRANSFORM,
+  deleteSave,
+  listSaves,
+  saveGame,
+  serialize,
+  type EntityId,
+  type TransformComponent,
+  type SaveData,
+} from '@augmented-survival/game-core';
+import {
+  createDesktopStorageProvider,
+  DESKTOP_MENU_SLOT,
+  getDesktopMenuEvents,
+  loadDesktopSaveData,
+} from './utils/DesktopBridge.js';
+import type { SaveLoadController } from './ui/SaveLoadPanel.js';
+import {
+  createDefaultSaveSlot,
+  downloadJsonFile,
+  getDownloadFilename,
+  parseSaveDataJson,
+  sanitizeSaveSlotName,
+} from './utils/SaveFileUtils.js';
 
 class GameApp {
   private gameRenderer: GameRenderer;
@@ -25,7 +48,11 @@ class GameApp {
   private lastTime = 0;
   private animationFrameId = 0;
 
-  constructor(container: HTMLElement) {
+  constructor(
+    container: HTMLElement,
+    initialSaveData: SaveData | undefined,
+    saveLoadController: SaveLoadController,
+  ) {
     this.container = container;
 
     // Camera controller (creates THREE.PerspectiveCamera internally)
@@ -44,7 +71,7 @@ class GameApp {
     this.gameRenderer.scene.remove(this.gameRenderer.groundPlane);
 
     // Create game world (wires ECS, terrain, environment, systems)
-    this.gameWorld = new GameWorld(this.gameRenderer.scene);
+    this.gameWorld = new GameWorld(this.gameRenderer.scene, initialSaveData);
 
     // Selection
     this.selectionManager = new SelectionManager(
@@ -72,6 +99,7 @@ class GameApp {
       buildingPlacement: this.gameWorld.buildingPlacement,
       world: this.gameWorld.world,
       gameRenderer: this.gameRenderer,
+      saveLoadController,
       onBuildingSelected: (type) => {
         this.buildingGhost.startPlacement(type);
       },
@@ -108,6 +136,8 @@ class GameApp {
   getBuildingGhost(): BuildingGhostPreview { return this.buildingGhost; }
   getCameraController(): RTSCameraController { return this.cameraController; }
   getRenderer(): GameRenderer { return this.gameRenderer; }
+  openSaveDialog(): void { this.gameUI.openSaveDialog(); }
+  openLoadDialog(): void { this.gameUI.openLoadDialog(); }
 
   /** Start the render loop */
   start(): void {
@@ -169,6 +199,10 @@ class GameApp {
     this.gameWorld.dispose();
     this.cameraController.dispose();
     this.gameRenderer.dispose();
+
+    if (window.__gameApp === this) {
+      delete window.__gameApp;
+    }
   }
 
   private onSidebarSelect = (event: Event): void => {
@@ -191,14 +225,151 @@ class GameApp {
   }
 }
 
+class GameRuntime {
+  private app: GameApp;
+  private readonly storageProvider = createDesktopStorageProvider();
+  private readonly saveLoadController: SaveLoadController;
+
+  constructor(private readonly container: HTMLElement) {
+    this.saveLoadController = {
+      platform: this.storageProvider ? 'desktop' : 'web',
+      listSaves: async () => {
+        if (!this.storageProvider) {
+          return [];
+        }
+        return listSaves(this.storageProvider);
+      },
+      saveToSlot: async (slot) => {
+        if (!this.storageProvider) {
+          throw new Error('Local desktop saves are unavailable.');
+        }
+        await this.saveToDesktopSlot(slot);
+      },
+      loadFromSlot: async (slot) => {
+        if (!this.storageProvider) {
+          throw new Error('Local desktop saves are unavailable.');
+        }
+        return this.loadFromDesktopSlot(slot);
+      },
+      deleteSave: async (slot) => {
+        if (!this.storageProvider) {
+          throw new Error('Local desktop saves are unavailable.');
+        }
+        await deleteSave(slot, this.storageProvider);
+      },
+      downloadSave: async (slot) => {
+        await this.downloadWebSave(slot);
+      },
+      importSaveFile: async (file) => this.importWebSave(file),
+    };
+
+    this.app = new GameApp(container, undefined, this.saveLoadController);
+  }
+
+  start(): void {
+    this.app.start();
+  }
+
+  async saveToDesktopSlot(slot = DESKTOP_MENU_SLOT): Promise<void> {
+    if (!this.storageProvider) {
+      return;
+    }
+
+    const gameWorld = this.app.getGameWorld();
+    await saveGame(
+      slot,
+      this.storageProvider,
+      gameWorld.world,
+      gameWorld.resourceStore,
+      gameWorld.timeSystem,
+      gameWorld.eventBus,
+    );
+  }
+
+  async loadFromDesktopSlot(slot = DESKTOP_MENU_SLOT): Promise<boolean> {
+    if (!this.storageProvider) {
+      return false;
+    }
+
+    const saveData = await loadDesktopSaveData(slot, this.storageProvider);
+    if (!saveData) {
+      console.warn(`[Augmented Survival] No desktop save found for slot "${slot}"`);
+      return false;
+    }
+
+    this.replaceApp(saveData);
+    return true;
+  }
+
+  openSaveDialog(): void {
+    this.app.openSaveDialog();
+  }
+
+  openLoadDialog(): void {
+    this.app.openLoadDialog();
+  }
+
+  private createCurrentSaveData(slot: string): SaveData {
+    const normalizedSlot = sanitizeSaveSlotName(slot) || createDefaultSaveSlot();
+    const gameWorld = this.app.getGameWorld();
+    const saveData = serialize(
+      gameWorld.world,
+      gameWorld.resourceStore,
+      gameWorld.timeSystem,
+    );
+    saveData.slot = normalizedSlot;
+    return saveData;
+  }
+
+  private async downloadWebSave(slot: string): Promise<void> {
+    const saveData = this.createCurrentSaveData(slot);
+    downloadJsonFile(getDownloadFilename(saveData.slot), JSON.stringify(saveData));
+    this.app.getGameWorld().eventBus.emit('GameSaved', {
+      slot: saveData.slot,
+      timestamp: saveData.timestamp,
+    });
+  }
+
+  private async importWebSave(file: File): Promise<boolean> {
+    const json = await file.text();
+    const saveData = parseSaveDataJson(json);
+    if (!saveData.slot) {
+      saveData.slot = sanitizeSaveSlotName(file.name.replace(/\.json$/i, '')) || createDefaultSaveSlot();
+    }
+    this.replaceApp(saveData);
+    return true;
+  }
+
+  private replaceApp(initialSaveData: SaveData): void {
+    this.app.dispose();
+    this.app = new GameApp(this.container, initialSaveData, this.saveLoadController);
+    this.app.start();
+    this.app.getGameWorld().eventBus.emit('GameLoaded', {
+      slot: initialSaveData.slot || DESKTOP_MENU_SLOT,
+      timestamp: initialSaveData.timestamp,
+    });
+  }
+}
+
 // ---- Bootstrap ----
 const container = document.getElementById('app');
 if (!container) {
   throw new Error('Missing #app container element');
 }
 
-const app = new GameApp(container);
-app.start();
+const runtime = new GameRuntime(container);
+runtime.start();
+
+const desktopMenuEvents = getDesktopMenuEvents();
+if (desktopMenuEvents) {
+  desktopMenuEvents.onMenuSave(() => {
+    runtime.openSaveDialog();
+  });
+
+  desktopMenuEvents.onMenuLoad(() => {
+    runtime.openLoadDialog();
+  });
+}
 
 // Export type for UI
 export type { GameApp };

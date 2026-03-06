@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import { WEB_BUILD_BASE, WEB_DEV_SERVER_PORT } from './src/config/WebBuildConfig';
 
 export default defineConfig({
   root: __dirname,
+  base: WEB_BUILD_BASE,
   publicDir: 'public',
   build: {
     outDir: 'dist',
@@ -14,7 +16,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: WEB_DEV_SERVER_PORT,
     open: true,
   },
 });

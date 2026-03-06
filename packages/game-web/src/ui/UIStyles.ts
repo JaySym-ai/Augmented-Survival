@@ -246,6 +246,11 @@ const CSS = /* css */ `
   font-size: 16px;
 }
 
+.ui-time-controls .utility-btn {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* ===== Build Menu ===== */
 .ui-build-menu {
   position: absolute;
@@ -667,6 +672,93 @@ const CSS = /* css */ `
 }
 .ui-settings-modal .btn-primary:hover { background: var(--ui-accent-hover); }
 
+.ui-save-load-modal {
+  min-width: 360px;
+  max-width: 460px;
+}
+
+.ui-save-load-modal .save-load-subtitle {
+  margin: -6px 0 14px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ui-save-load-modal .save-load-input-row {
+  gap: 12px;
+}
+
+.ui-save-load-modal .save-load-input-row input {
+  flex: 1;
+}
+
+.ui-save-load-modal .save-load-list-section {
+  margin-top: 8px;
+}
+
+.ui-save-load-modal .save-load-list-label {
+  margin-bottom: 8px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ui-save-load-modal .save-load-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ui-save-load-modal .save-load-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  color: var(--ui-text);
+  cursor: pointer;
+}
+
+.ui-save-load-modal .save-load-list-item:hover {
+  background: var(--ui-bg-hover);
+}
+
+.ui-save-load-modal .save-load-list-item.selected {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 1px rgba(218,165,32,0.3);
+}
+
+.ui-save-load-modal .save-load-name {
+  font-weight: 600;
+}
+
+.ui-save-load-modal .save-load-meta,
+.ui-save-load-modal .save-load-empty,
+.ui-save-load-modal .save-load-status {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+}
+
+.ui-save-load-modal .save-load-empty {
+  margin: 8px 0 0;
+}
+
+.ui-save-load-modal .save-load-status {
+  min-height: 18px;
+  margin: 12px 0 0;
+}
+
+.ui-save-load-modal .save-load-status[data-state="error"] {
+  color: #ff968d;
+}
+
 /* ===== Debug Panel ===== */
 .ui-debug-panel {
   position: absolute;
@@ -831,6 +923,7 @@ const CSS = /* css */ `
   .ui-villager-sidebar.collapsed { width: 106px; }
   .ui-selection-panel { min-width: 180px; max-width: 220px; }
   .ui-settings-modal { min-width: 280px; padding: 16px; }
+  .ui-save-load-modal { min-width: 280px; }
   .ui-debug-panel { width: 220px; max-height: 50vh; top: 60px; }
   .ui-debug-panel.collapsed { width: 106px; }
 }
