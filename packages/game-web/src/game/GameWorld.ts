@@ -28,13 +28,18 @@ import {
   DEPLETED_RESOURCE,
   EQUIPMENT,
   ANIMAL,
+  DOMESTIC_ANIMAL,
+  LIVESTOCK_PEN,
   CitizenState,
   Gender,
   Mood,
   LifeGoal,
   createAnimal,
+  createDomesticAnimal,
   type AnimalType,
+  type DomesticAnimalComponent,
   type GatheringComponent,
+  type LivestockPenComponent,
   createTransform,
   createVelocity,
   createCitizen,
@@ -348,7 +353,16 @@ export class GameWorld {
       y: 0,
       z: Math.sin(angle) * radius,
     };
-    pos.y = this.terrainMesh.getHeightAt(pos.x, pos.z);
+
+    return this.spawnAnimalAt(type, pos);
+  }
+
+  private spawnAnimalAt(type: AnimalType, position: Vector3): EntityId {
+    const pos = {
+      x: position.x,
+      y: this.terrainMesh.getHeightAt(position.x, position.z),
+      z: position.z,
+    };
 
     const entity = this.world.createEntity();
     this.world.addComponent(entity, TRANSFORM, createTransform(pos));
@@ -455,6 +469,27 @@ export class GameWorld {
           }
         }
       }
+
+      const pen = this.world.getComponent<LivestockPenComponent>(event.buildingId, LIVESTOCK_PEN);
+      const transform = this.world.getComponent<TransformComponent>(event.buildingId, TRANSFORM);
+
+      if (pen && transform) {
+        for (let i = 0; i < pen.spawnCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.random() * pen.spawnRadius;
+          const spawnPos = {
+            x: transform.position.x + Math.cos(angle) * radius,
+            y: transform.position.y,
+            z: transform.position.z + Math.sin(angle) * radius,
+          };
+          const animalId = this.spawnAnimalAt(pen.animalType, spawnPos);
+          this.world.addComponent(
+            animalId,
+            DOMESTIC_ANIMAL,
+            createDomesticAnimal(event.buildingId, transform.position, pen.homeRadius),
+          );
+        }
+      }
     });
 
     // When a gather hit occurs, start gathering animation if not already active
@@ -547,6 +582,18 @@ export class GameWorld {
           citizen.state = CitizenState.Idle;
           citizen.job = null;
           this.eventBus.emit('CitizenStateChanged', { entityId: workerId, oldState, newState: CitizenState.Idle });
+        }
+      }
+
+      const domesticAnimals = this.world.query(ANIMAL, DOMESTIC_ANIMAL);
+      for (const animalId of domesticAnimals) {
+        const domestic = this.world.getComponent<DomesticAnimalComponent>(animalId, DOMESTIC_ANIMAL);
+        if (domestic?.homeBuildingId !== entityId) continue;
+
+        this.world.removeComponent(animalId, DOMESTIC_ANIMAL);
+        const animal = this.world.getComponent<ReturnType<typeof createAnimal>>(animalId, ANIMAL);
+        if (animal) {
+          animal.targetPosition = null;
         }
       }
 

@@ -29,6 +29,8 @@ export class MeshFactory {
         return this.createFarmField();
       case BuildingType.Quarry:
         return this.createQuarry();
+      case BuildingType.ChickenCoop:
+        return this.createChickenCoop();
       default:
         return this.createFallbackBox();
     }
@@ -2044,6 +2046,130 @@ export class MeshFactory {
     lanternGroup.add(lanternLight);
     lanternGroup.position.set(-1.0, -0.05, 1.0);
     group.add(lanternGroup);
+
+    return group;
+  }
+
+  private createChickenCoop(): THREE.Group {
+    const group = new THREE.Group();
+    const wood = this.mat('wood');
+    const darkWood = this.mat('darkWood');
+    const dirt = this.mat('dirt');
+    const grass = new THREE.MeshStandardMaterial({ color: 0x5D813B, roughness: 1.0, metalness: 0.0 });
+    const hay = new THREE.MeshStandardMaterial({ color: 0xC9A24F, roughness: 0.95, metalness: 0.0 });
+    const roof = new THREE.MeshStandardMaterial({ color: 0x7A5633, roughness: 0.9, metalness: 0.0 });
+
+    const shad = (m: THREE.Mesh) => {
+      m.castShadow = true;
+      m.receiveShadow = true;
+      return m;
+    };
+
+    const yard = shad(new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 2.2), grass));
+    yard.position.y = 0.03;
+    group.add(yard);
+
+    const scratchPatch = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.72, 0.03, 10), dirt));
+    scratchPatch.position.set(0.45, 0.08, 0.2);
+    scratchPatch.rotation.y = 0.35;
+    group.add(scratchPatch);
+
+    const strawPatch = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.46, 0.025, 8), hay));
+    strawPatch.position.set(0.82, 0.09, -0.35);
+    strawPatch.rotation.y = -0.2;
+    group.add(strawPatch);
+
+    for (const post of [
+      { x: -1.08, z: -0.95 },
+      { x: 0, z: -0.95 },
+      { x: 1.08, z: -0.95 },
+      { x: -1.08, z: 0.95 },
+      { x: -0.28, z: 0.95 },
+      { x: 0.28, z: 0.95 },
+      { x: 1.08, z: 0.95 },
+      { x: -1.08, z: 0 },
+      { x: 1.08, z: 0 },
+    ]) {
+      const mesh = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), darkWood));
+      mesh.position.set(post.x, 0.4, post.z);
+      group.add(mesh);
+    }
+
+    for (const y of [0.24, 0.5]) {
+      const backRail = shad(new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.08, 0.08), wood));
+      backRail.position.set(0, y, -0.95);
+      group.add(backRail);
+
+      const leftRail = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 1.82), wood));
+      leftRail.position.set(-1.08, y, 0);
+      group.add(leftRail);
+
+      const rightRail = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 1.82), wood));
+      rightRail.position.set(1.08, y, 0);
+      group.add(rightRail);
+
+      const frontLeft = shad(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.08, 0.08), wood));
+      frontLeft.position.set(-0.68, y, 0.95);
+      group.add(frontLeft);
+
+      const frontRight = shad(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.08, 0.08), wood));
+      frontRight.position.set(0.68, y, 0.95);
+      group.add(frontRight);
+    }
+
+    const gate = shad(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.62, 0.08), wood));
+    gate.position.set(0, 0.31, 0.96);
+    gate.rotation.y = 0.15;
+    group.add(gate);
+
+    for (const x of [-0.95, -0.25]) {
+      for (const z of [-0.65, -0.05]) {
+        const leg = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.68, 0.08), darkWood));
+        leg.position.set(x, 0.34, z);
+        group.add(leg);
+      }
+    }
+
+    const coopFloor = shad(new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.08, 0.75), wood));
+    coopFloor.position.set(-0.6, 0.64, -0.35);
+    group.add(coopFloor);
+
+    const coopBody = shad(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.52, 0.62), wood));
+    coopBody.position.set(-0.6, 0.96, -0.35);
+    group.add(coopBody);
+
+    const roofLeft = shad(new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.08, 0.84), roof));
+    roofLeft.position.set(-0.77, 1.19, -0.35);
+    roofLeft.rotation.z = 0.46;
+    group.add(roofLeft);
+
+    const roofRight = shad(new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.08, 0.84), roof));
+    roofRight.position.set(-0.43, 1.19, -0.35);
+    roofRight.rotation.z = -0.46;
+    group.add(roofRight);
+
+    const doorway = shad(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.24, 0.08), darkWood));
+    doorway.position.set(-0.34, 0.82, -0.02);
+    group.add(doorway);
+
+    const ramp = shad(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06, 0.92), wood));
+    ramp.position.set(-0.18, 0.32, 0.2);
+    ramp.rotation.x = -0.52;
+    group.add(ramp);
+
+    const nestingBox = shad(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.32), darkWood));
+    nestingBox.position.set(-1.02, 0.78, -0.35);
+    group.add(nestingBox);
+
+    const feeder = shad(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.14, 0.22), wood));
+    feeder.position.set(0.72, 0.14, 0.55);
+    feeder.rotation.y = -0.35;
+    group.add(feeder);
+
+    const feed = shad(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.05, 0.14), hay));
+    feed.position.set(0.72, 0.22, 0.55);
+    feed.rotation.y = -0.35;
+    group.add(feed);
 
     return group;
   }
