@@ -4,14 +4,15 @@
  */
 import * as THREE from 'three';
 import { GameRenderer } from './renderer/GameRenderer.js';
-import { PRESET_HIGH } from './renderer/RenderSettings.js';
+import { PRESET_HIGH, PRESET_ULTRA } from './renderer/RenderSettings.js';
+import type { RenderSettings } from './renderer/RenderSettings.js';
 import { RTSCameraController } from './camera/RTSCameraController.js';
 import { GameWorld } from './game/GameWorld.js';
 import { SelectionManager } from './game/SelectionManager.js';
 import { BuildingGhostPreview } from './game/BuildingGhostPreview.js';
 import { GameUI } from './ui/GameUI.js';
 import { VILLAGER_SIDEBAR_SELECT_EVENT } from './ui/VillagerSidebar.js';
-import { CITIZEN, TRANSFORM } from '@augmented-survival/game-core';
+import { BUILDING, BuildingType, CITIZEN, TRANSFORM } from '@augmented-survival/game-core';
 import type { EntityId, TransformComponent } from '@augmented-survival/game-core';
 
 class GameApp {
@@ -24,6 +25,10 @@ class GameApp {
   private container: HTMLElement;
   private lastTime = 0;
   private animationFrameId = 0;
+  private showcaseBuildingId: EntityId | null = null;
+  private showcasePreviousRenderSettings: RenderSettings | null = null;
+  private showcasePreviousTimeScale = 1;
+  private showcaseWasPaused = false;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -100,6 +105,7 @@ class GameApp {
     this.onResize();
 
     console.log('[Augmented Survival] Game initialized');
+    console.log('[Augmented Survival] Photo helpers: __gameApp.stageSheepPenShowcase(), __gameApp.captureSheepPenMarketingShot(), __gameApp.restoreGameplayView()');
   }
 
   // Public API for UI
@@ -108,6 +114,79 @@ class GameApp {
   getBuildingGhost(): BuildingGhostPreview { return this.buildingGhost; }
   getCameraController(): RTSCameraController { return this.cameraController; }
   getRenderer(): GameRenderer { return this.gameRenderer; }
+
+  setUIVisible(visible: boolean): void {
+    this.gameUI.setVisible(visible);
+  }
+
+  stageSheepPenShowcase(): { buildingId: EntityId | null; position: THREE.Vector3 } {
+    if (this.showcasePreviousRenderSettings == null) {
+      this.showcasePreviousRenderSettings = this.gameRenderer.getSettings();
+      this.showcasePreviousTimeScale = this.gameWorld.timeSystem.getTimeScale();
+      this.showcaseWasPaused = this.gameWorld.timeSystem.isPaused();
+    }
+
+    if (
+      this.showcaseBuildingId == null ||
+      !this.gameWorld.world.getComponent(this.showcaseBuildingId, BUILDING)
+    ) {
+      this.showcaseBuildingId = this.gameWorld.placeCompletedBuilding(BuildingType.SheepPen, {
+        x: 11,
+        y: 0,
+        z: 12,
+      });
+    }
+
+    const transform = this.showcaseBuildingId != null
+      ? this.gameWorld.world.getComponent<TransformComponent>(this.showcaseBuildingId, TRANSFORM)
+      : null;
+    const focus = transform
+      ? new THREE.Vector3(transform.position.x + 0.2, 0, transform.position.z + 0.1)
+      : new THREE.Vector3(11.2, 0, 12.1);
+
+    this.cameraController.focusOn(focus, {
+      duration: 1.25,
+      distance: 15,
+      rotation: -2.35,
+    });
+    this.gameRenderer.applySettings(PRESET_ULTRA);
+    this.gameWorld.timeSystem.setTimeScale(0);
+    this.gameWorld.timeSystem.pause();
+    this.gameUI.setVisible(false);
+
+    return { buildingId: this.showcaseBuildingId, position: focus };
+  }
+
+  restoreGameplayView(): void {
+    if (this.showcasePreviousRenderSettings) {
+      this.gameRenderer.applySettings(this.showcasePreviousRenderSettings);
+      this.showcasePreviousRenderSettings = null;
+    }
+
+    this.gameWorld.timeSystem.setTimeScale(this.showcasePreviousTimeScale);
+    if (this.showcaseWasPaused) {
+      this.gameWorld.timeSystem.pause();
+    } else {
+      this.gameWorld.timeSystem.resume();
+    }
+    this.gameUI.setVisible(true);
+  }
+
+  captureScreenshot(filename = 'sheep-pen-shot'): string {
+    this.gameRenderer.render();
+    const dataUrl = this.gameRenderer.renderer.domElement.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `${filename}.png`;
+    link.click();
+    return dataUrl;
+  }
+
+  async captureSheepPenMarketingShot(filename = 'sheep-pen-marketing'): Promise<string> {
+    this.stageSheepPenShowcase();
+    await new Promise((resolve) => window.setTimeout(resolve, 1400));
+    return this.captureScreenshot(filename);
+  }
 
   /** Start the render loop */
   start(): void {

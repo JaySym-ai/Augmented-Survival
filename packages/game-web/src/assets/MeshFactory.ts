@@ -29,6 +29,8 @@ export class MeshFactory {
         return this.createFarmField();
       case BuildingType.Quarry:
         return this.createQuarry();
+      case BuildingType.SheepPen:
+        return this.createSheepPen();
       default:
         return this.createFallbackBox();
     }
@@ -2044,6 +2046,183 @@ export class MeshFactory {
     lanternGroup.add(lanternLight);
     lanternGroup.position.set(-1.0, -0.05, 1.0);
     group.add(lanternGroup);
+
+    return group;
+  }
+
+  private createSheepPen(): THREE.Group {
+    const group = new THREE.Group();
+    const wood = this.mat('wood');
+    const darkWood = this.mat('darkWood');
+    const dirt = this.mat('dirt');
+    const grass = new THREE.MeshStandardMaterial({
+      color: 0x557A3A,
+      roughness: 1.0,
+      metalness: 0.0,
+    });
+    const hay = new THREE.MeshStandardMaterial({
+      color: 0xC9A24F,
+      roughness: 0.95,
+      metalness: 0.0,
+    });
+    const tarp = new THREE.MeshStandardMaterial({
+      color: 0x7A5633,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+    const water = new THREE.MeshStandardMaterial({
+      color: 0x6FA8DC,
+      roughness: 0.2,
+      metalness: 0.1,
+    });
+
+    const shad = (m: THREE.Mesh) => {
+      m.castShadow = true;
+      m.receiveShadow = true;
+      return m;
+    };
+
+    const ground = shad(new THREE.Mesh(new THREE.CylinderGeometry(1.95, 2.05, 0.08, 18), grass));
+    ground.position.y = 0.04;
+    group.add(ground);
+
+    const trampleA = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.84, 0.03, 10), dirt));
+    trampleA.position.set(0.05, 0.08, 0.15);
+    trampleA.rotation.y = 0.35;
+    group.add(trampleA);
+
+    const trampleB = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.68, 0.03, 10), dirt));
+    trampleB.position.set(0.7, 0.08, 1.02);
+    trampleB.rotation.y = -0.2;
+    group.add(trampleB);
+
+    const fenceHeight = 0.74;
+    const fenceRadius = 1.72;
+    const fenceSegments = 14;
+    const postPositions: THREE.Vector3[] = [];
+
+    for (let i = 0; i < fenceSegments; i++) {
+      const angle = (i / fenceSegments) * Math.PI * 2;
+      const x = Math.cos(angle) * fenceRadius;
+      const z = Math.sin(angle) * fenceRadius;
+      postPositions.push(new THREE.Vector3(x, 0.42, z));
+
+      const post = shad(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.88, 0.12), darkWood));
+      post.position.set(x, 0.44, z);
+      group.add(post);
+    }
+
+    const gateOpeningIndex = 3;
+    for (let i = 0; i < fenceSegments; i++) {
+      const nextIndex = (i + 1) % fenceSegments;
+      if (i === gateOpeningIndex || nextIndex === gateOpeningIndex) continue;
+
+      const start = postPositions[i];
+      const end = postPositions[nextIndex];
+      const mid = start.clone().add(end).multiplyScalar(0.5);
+      const dx = end.x - start.x;
+      const dz = end.z - start.z;
+      const length = Math.sqrt(dx * dx + dz * dz) - 0.08;
+      const rotation = Math.atan2(dx, dz);
+
+      for (const y of [0.26, 0.54]) {
+        const rail = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, length), wood));
+        rail.position.set(mid.x, y, mid.z);
+        rail.rotation.y = rotation;
+        group.add(rail);
+      }
+    }
+
+    const gatePivotLeft = postPositions[gateOpeningIndex];
+    const gatePivotRight = postPositions[(gateOpeningIndex + 1) % fenceSegments];
+
+    const gateLeft = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, fenceHeight, 0.75), wood));
+    gateLeft.position.set(gatePivotLeft.x - 0.1, fenceHeight / 2, gatePivotLeft.z - 0.04);
+    gateLeft.rotation.y = -0.75;
+    group.add(gateLeft);
+
+    const gateRight = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, fenceHeight, 0.62), wood));
+    gateRight.position.set(gatePivotRight.x + 0.02, fenceHeight / 2, gatePivotRight.z - 0.06);
+    gateRight.rotation.y = -0.18;
+    group.add(gateRight);
+
+    for (const signX of [-0.18, 0.18]) {
+      const signPost = shad(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.48, 0.06), darkWood));
+      signPost.position.set(signX, 0.95, 2.02);
+      group.add(signPost);
+    }
+
+    const signBoard = shad(new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.22, 0.08), wood));
+    signBoard.position.set(0, 1.08, 2.02);
+    group.add(signBoard);
+
+    const hayBaleA = shad(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.35), hay));
+    hayBaleA.position.set(-0.88, 0.22, -0.98);
+    hayBaleA.rotation.y = 0.18;
+    group.add(hayBaleA);
+
+    const hayBaleB = shad(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.28, 0.3), hay));
+    hayBaleB.position.set(-1.05, 0.18, -0.56);
+    hayBaleB.rotation.y = -0.3;
+    group.add(hayBaleB);
+
+    const hayBaleC = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.42, 10), hay));
+    hayBaleC.rotation.z = Math.PI / 2;
+    hayBaleC.position.set(-1.18, 0.22, -1.25);
+    group.add(hayBaleC);
+
+    const strawPatchA = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.025, 7), hay));
+    strawPatchA.position.set(-0.7, 0.09, -0.55);
+    strawPatchA.rotation.y = 0.3;
+    group.add(strawPatchA);
+
+    const strawPatchB = shad(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.42, 0.025, 7), hay));
+    strawPatchB.position.set(-0.2, 0.09, -0.75);
+    strawPatchB.rotation.y = -0.25;
+    group.add(strawPatchB);
+
+    const trough = shad(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.35), darkWood));
+    trough.position.set(0.82, 0.16, -0.76);
+    trough.rotation.y = 0.24;
+    group.add(trough);
+
+    const troughWater = shad(new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 0.23), water));
+    troughWater.position.set(0.82, 0.27, -0.76);
+    troughWater.rotation.y = 0.24;
+    group.add(troughWater);
+
+    const feedBox = shad(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.16, 0.32), wood));
+    feedBox.position.set(1.02, 0.14, -0.08);
+    feedBox.rotation.y = -0.45;
+    group.add(feedBox);
+
+    const canopyPosts = [-1.15, -0.28];
+    for (const x of canopyPosts) {
+      for (const z of [-0.95, -0.15]) {
+        const post = shad(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.1), darkWood));
+        post.position.set(x, 0.45, z);
+        group.add(post);
+      }
+    }
+
+    const canopyFrame = shad(new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.06, 1.02), wood));
+    canopyFrame.position.set(-0.72, 0.93, -0.55);
+    group.add(canopyFrame);
+
+    const canopyRoof = shad(new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.1, 1.12), tarp));
+    canopyRoof.position.set(-0.72, 1.02, -0.55);
+    canopyRoof.rotation.z = -0.08;
+    group.add(canopyRoof);
+
+    for (const brace of [
+      { x: -1.35, z: -0.15, rot: 0.55 },
+      { x: -0.08, z: -0.15, rot: -0.55 },
+    ]) {
+      const beam = shad(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), wood));
+      beam.position.set(brace.x, 0.42, brace.z);
+      beam.rotation.z = brace.rot;
+      group.add(beam);
+    }
 
     return group;
   }

@@ -73,6 +73,12 @@ export { EQUIPMENT, createEquipment } from './ecs/components/EquipmentComponent'
 export type { AnimalComponent, AnimalType, AnimalState, FlockingData } from './ecs/components/AnimalComponent';
 export { ANIMAL, createAnimal } from './ecs/components/AnimalComponent';
 
+export type { LivestockPenComponent } from './ecs/components/LivestockPenComponent';
+export { LIVESTOCK_PEN, createLivestockPen } from './ecs/components/LivestockPenComponent';
+
+export type { DomesticAnimalComponent } from './ecs/components/DomesticAnimalComponent';
+export { DOMESTIC_ANIMAL, createDomesticAnimal } from './ecs/components/DomesticAnimalComponent';
+
 export type { TemporaryBuilderComponent } from './ecs/components/TemporaryBuilderComponent';
 export { TEMPORARY_BUILDER, createTemporaryBuilder } from './ecs/components/TemporaryBuilderComponent';
 

@@ -14,6 +14,7 @@ import {
   type BuildingComponent,
   type CitizenComponent,
   type ConstructionWorkComponent,
+  type LivestockPenComponent,
   TRANSFORM,
   VELOCITY,
   CITIZEN,
@@ -25,14 +26,18 @@ import {
   JOB_ASSIGNMENT,
   GATHERING,
   CONSTRUCTION_WORK,
+  CONSTRUCTION_SITE,
   DEPLETED_RESOURCE,
   EQUIPMENT,
   ANIMAL,
+  LIVESTOCK_PEN,
+  DOMESTIC_ANIMAL,
   CitizenState,
   Gender,
   Mood,
   LifeGoal,
   createAnimal,
+  createDomesticAnimal,
   type AnimalType,
   type GatheringComponent,
   createTransform,
@@ -350,6 +355,16 @@ export class GameWorld {
     };
     pos.y = this.terrainMesh.getHeightAt(pos.x, pos.z);
 
+    return this.spawnAnimalAt(type, pos);
+  }
+
+  private spawnAnimalAt(type: AnimalType, position: Vector3): EntityId {
+    const pos = {
+      x: position.x,
+      y: this.terrainMesh.getHeightAt(position.x, position.z),
+      z: position.z,
+    };
+
     const entity = this.world.createEntity();
     this.world.addComponent(entity, TRANSFORM, createTransform(pos));
     this.world.addComponent(entity, VELOCITY, createVelocity());
@@ -413,6 +428,48 @@ export class GameWorld {
     return entityId;
   }
 
+  placeCompletedBuilding(type: BuildingType, position: Vector3): EntityId | null {
+    const def = BUILDING_DEFS[type];
+    position.y = getMaxHeightForFootprint(this.terrainMesh, position.x, position.z, def.size.width, def.size.depth);
+
+    const entityId = this.buildingPlacement.placeBuilding(this.world, type, position, {
+      cost: def.cost,
+      workerSlots: def.workerSlots,
+      storageCapacity: def.storageCapacity,
+      buildTime: def.buildTime,
+    });
+
+    if (entityId == null) return null;
+
+    const building = this.world.getComponent<BuildingComponent>(entityId, BUILDING);
+    if (building) {
+      building.isConstructed = true;
+    }
+    this.world.removeComponent(entityId, CONSTRUCTION_SITE);
+
+    const mesh = this.meshFactory.createBuildingMesh(type);
+    mesh.position.set(position.x, position.y, position.z);
+    mesh.castShadow = true;
+
+    this.buildingFootprints.push({x: position.x, z: position.z, width: def.size.width, depth: def.size.depth});
+    const currentFp = this.buildingFootprints[this.buildingFootprints.length - 1];
+    this.terrainMesh.raiseTerrainForBuilding(
+      position.x, position.z, def.size.width, def.size.depth, position.y,
+      this.buildingFootprints.filter(fp => fp !== currentFp)
+    );
+    this.terrainMesh.refreshGeometry();
+
+    this.scene.add(mesh);
+    this.entityMeshes.set(entityId, mesh);
+
+    this.eventBus.emit('ConstructionComplete', {
+      buildingId: entityId,
+      buildingType: type,
+    });
+
+    return entityId;
+  }
+
   private setupEventListeners(): void {
     // When construction completes, make building mesh fully opaque
     this.eventBus.on('ConstructionComplete', (event) => {
@@ -452,6 +509,33 @@ export class GameWorld {
               z: transform.position.z + (Math.random() - 0.5) * 2,
             };
             this.spawnCitizen(spawnPos);
+          }
+        }
+      }
+
+      if (event.buildingType === BuildingType.SheepPen) {
+        const pen = this.world.getComponent<LivestockPenComponent>(event.buildingId, LIVESTOCK_PEN);
+        const transform = this.world.getComponent<TransformComponent>(event.buildingId, TRANSFORM);
+
+        if (pen && transform) {
+          for (let i = 0; i < pen.spawnCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * pen.spawnRadius;
+            const spawnPos = {
+              x: transform.position.x + Math.cos(angle) * radius,
+              y: transform.position.y,
+              z: transform.position.z + Math.sin(angle) * radius,
+            };
+            const animalId = this.spawnAnimalAt(pen.animalType, spawnPos);
+            this.world.addComponent(
+              animalId,
+              DOMESTIC_ANIMAL,
+              createDomesticAnimal(
+                event.buildingId,
+                transform.position,
+                pen.homeRadius,
+              ),
+            );
           }
         }
       }
@@ -547,6 +631,20 @@ export class GameWorld {
           citizen.state = CitizenState.Idle;
           citizen.job = null;
           this.eventBus.emit('CitizenStateChanged', { entityId: workerId, oldState, newState: CitizenState.Idle });
+        }
+      }
+
+      const domesticAnimals = this.world.query(ANIMAL, DOMESTIC_ANIMAL);
+      for (const animalId of domesticAnimals) {
+        const domestic = this.world.getComponent<{
+          homeBuildingId: EntityId;
+        }>(animalId, DOMESTIC_ANIMAL);
+        if (domestic?.homeBuildingId !== entityId) continue;
+
+        this.world.removeComponent(animalId, DOMESTIC_ANIMAL);
+        const animal = this.world.getComponent<ReturnType<typeof createAnimal>>(animalId, ANIMAL);
+        if (animal) {
+          animal.targetPosition = null;
         }
       }
 

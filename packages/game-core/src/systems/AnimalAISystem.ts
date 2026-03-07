@@ -5,7 +5,9 @@ import type { TransformComponent } from '../ecs/components/TransformComponent';
 import { VELOCITY } from '../ecs/components/VelocityComponent';
 import type { VelocityComponent } from '../ecs/components/VelocityComponent';
 import { ANIMAL } from '../ecs/components/AnimalComponent';
-import type { AnimalComponent, AnimalType, AnimalState } from '../ecs/components/AnimalComponent';
+import type { AnimalComponent } from '../ecs/components/AnimalComponent';
+import { DOMESTIC_ANIMAL } from '../ecs/components/DomesticAnimalComponent';
+import type { DomesticAnimalComponent } from '../ecs/components/DomesticAnimalComponent';
 import type { TimeSystem } from './TimeSystem';
 import type { TerrainData } from '../terrain/TerrainGenerator';
 import { sampleTerrainHeight } from '../terrain/TerrainGenerator';
@@ -105,7 +107,7 @@ export class AnimalAISystem extends System {
 
     for (const [entityId, { transform, velocity, animal }] of animals) {
       if (animal.type === 'sheep') {
-        this.updateSheep(transform, velocity, animal, animals, scaledDt);
+        this.updateSheep(world, entityId, transform, velocity, animal, animals, scaledDt);
       } else if (animal.type === 'chicken') {
         this.updateChicken(transform, velocity, animal, scaledDt);
       }
@@ -113,6 +115,8 @@ export class AnimalAISystem extends System {
   }
 
   private updateSheep(
+    world: World,
+    entityId: number,
     transform: TransformComponent,
     velocity: VelocityComponent,
     animal: AnimalComponent,
@@ -120,8 +124,17 @@ export class AnimalAISystem extends System {
     dt: number,
   ): void {
     const pos = transform.position;
+    const domestic = world.getComponent<DomesticAnimalComponent>(entityId, DOMESTIC_ANIMAL);
+    const distanceFromTarget = animal.targetPosition ? vec3Distance(pos, animal.targetPosition) : 0;
 
-    if (!animal.targetPosition || vec3Distance(pos, animal.targetPosition) < 2) {
+    if (domestic) {
+      const distanceFromHome = vec3Distance(pos, domestic.homePosition);
+      if (distanceFromHome > domestic.returnThreshold) {
+        animal.targetPosition = { ...domestic.homePosition };
+      } else if (!animal.targetPosition || distanceFromTarget < 2) {
+        animal.targetPosition = getRandomWanderTarget(domestic.homePosition, domestic.roamRadius, this.mapHalfSize);
+      }
+    } else if (!animal.targetPosition || distanceFromTarget < 2) {
       animal.targetPosition = getRandomWanderTarget(pos, 15, this.mapHalfSize);
     }
 
@@ -138,6 +151,15 @@ export class AnimalAISystem extends System {
       avoidCenter = vec3Scale(away, 2);
     }
 
+    let homeBias = { x: 0, y: 0, z: 0 };
+    const distanceFromHome = domestic ? vec3Distance(pos, domestic.homePosition) : 0;
+    if (domestic && distanceFromHome > domestic.roamRadius * 0.8) {
+      const towardHome = vec3Normalize(vec3Sub(domestic.homePosition, pos));
+      const overshoot = Math.max(distanceFromHome - domestic.roamRadius * 0.8, 0);
+      const strength = Math.min(2.5, 0.5 + overshoot / Math.max(domestic.roamRadius, 1));
+      homeBias = vec3Scale(towardHome, strength);
+    }
+
     const steering = { x: 0, y: 0, z: 0 };
     steering.x += flockCenter.x * SHEEP_COHESION_WEIGHT;
     steering.z += flockCenter.z * SHEEP_COHESION_WEIGHT;
@@ -149,8 +171,13 @@ export class AnimalAISystem extends System {
     steering.z += toTarget.z * SHEEP_TARGET_WEIGHT;
     steering.x += avoidCenter.x;
     steering.z += avoidCenter.z;
+    steering.x += homeBias.x;
+    steering.z += homeBias.z;
 
-    const desiredSpeed = animal.targetPosition ? SHEEP_WANDER_SPEED : SHEEP_MAX_SPEED;
+    const shouldRushHome = domestic != null && distanceFromHome > domestic.returnThreshold;
+    const desiredSpeed = shouldRushHome
+      ? SHEEP_MAX_SPEED
+      : animal.targetPosition ? SHEEP_WANDER_SPEED : SHEEP_MAX_SPEED;
     const currentSpeed = vec3Length(velocity.velocity);
     
     if (currentSpeed > 0) {

@@ -28,6 +28,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     [BuildingType.WoodcutterHut]: BUILDING_DEFS[BuildingType.WoodcutterHut],
     [BuildingType.FarmField]: BUILDING_DEFS[BuildingType.FarmField],
     [BuildingType.Quarry]: BUILDING_DEFS[BuildingType.Quarry],
+    [BuildingType.SheepPen]: BUILDING_DEFS[BuildingType.SheepPen],
   },
 
   citizenBaseSpeed: 2.0,

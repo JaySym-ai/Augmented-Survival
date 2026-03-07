@@ -127,6 +127,10 @@ export class GameUI {
     this.buildMenu.exitBuildMode();
   }
 
+  setVisible(visible: boolean): void {
+    this.root.style.display = visible ? '' : 'none';
+  }
+
   /** Clean up all UI elements and event listeners */
   dispose(): void {
     this.expandableResourceBar.dispose();
