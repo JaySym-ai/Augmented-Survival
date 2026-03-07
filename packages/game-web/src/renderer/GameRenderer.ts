@@ -26,6 +26,7 @@ export class GameRenderer {
     // ---- WebGL Renderer ----
     this.renderer = new THREE.WebGLRenderer({
       antialias: false, // post-process AA instead
+      preserveDrawingBuffer: true,
       powerPreference: 'high-performance',
     });
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;

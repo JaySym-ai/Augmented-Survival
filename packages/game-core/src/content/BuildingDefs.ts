@@ -4,6 +4,15 @@
 import { BuildingType } from '../types/buildings.js';
 import { BuildingConfig } from '../types/config.js';
 import { ResourceType } from '../types/resources.js';
+import type { AnimalType } from '../ecs/components/AnimalComponent.js';
+
+export interface LivestockPenDef {
+  animalType: AnimalType;
+  capacity: number;
+  spawnCount: number;
+  homeRadius: number;
+  spawnRadius: number;
+}
 
 export interface ExtendedBuildingDef extends BuildingConfig {
   description: string;
@@ -12,6 +21,7 @@ export interface ExtendedBuildingDef extends BuildingConfig {
   storageCapacity: number;
   providesPopulation: number;
   jobType: string | null;
+  livestockPen?: LivestockPenDef;
 }
 
 export const BUILDING_DEFS: Record<BuildingType, ExtendedBuildingDef> = {
@@ -92,6 +102,26 @@ export const BUILDING_DEFS: Record<BuildingType, ExtendedBuildingDef> = {
     storageCapacity: 0,
     providesPopulation: 0,
     jobType: 'Quarrier',
+  },
+  [BuildingType.SheepPen]: {
+    type: BuildingType.SheepPen,
+    displayName: 'Sheep Pen',
+    description: 'A fenced pen that homes a small flock of domestic sheep.',
+    cost: { [ResourceType.Wood]: 12, [ResourceType.Stone]: 4 },
+    workerSlots: 0,
+    buildTime: 9,
+    size: { width: 4, depth: 4 },
+    meshId: 'building_sheep_pen',
+    storageCapacity: 0,
+    providesPopulation: 0,
+    jobType: null,
+    livestockPen: {
+      animalType: 'sheep',
+      capacity: 2,
+      spawnCount: 2,
+      homeRadius: 7,
+      spawnRadius: 2.5,
+    },
   },
 };
 

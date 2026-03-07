@@ -399,6 +399,26 @@ export class RTSCameraController {
     this.targetPosition.copy(to);
   }
 
+  /** Focus camera on a position with optional zoom/rotation for composed shots */
+  focusOn(
+    position: THREE.Vector3,
+    options: { duration?: number; distance?: number; rotation?: number } = {},
+  ): void {
+    this.panTo(position, options.duration ?? 0.8);
+
+    if (options.distance != null) {
+      this.targetDistance = THREE.MathUtils.clamp(
+        options.distance,
+        this.config.minDistance,
+        this.config.maxDistance,
+      );
+    }
+
+    if (options.rotation != null) {
+      this.targetRotation = options.rotation;
+    }
+  }
+
   /** Handle window resize */
   onResize(): void {
     this.containerWidth = this.container.clientWidth;

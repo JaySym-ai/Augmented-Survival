@@ -11,10 +11,12 @@ import { STORAGE } from '../ecs/components/StorageComponent';
 import type { StorageComponent } from '../ecs/components/StorageComponent';
 import { SELECTABLE } from '../ecs/components/SelectableComponent';
 import type { SelectableComponent } from '../ecs/components/SelectableComponent';
+import { LIVESTOCK_PEN, createLivestockPen } from '../ecs/components/LivestockPenComponent';
 import { BuildingType } from '../types/buildings';
 import { ResourceType } from '../types/resources';
 import type { EventBus } from '../events/EventBus';
 import type { GameEventMap } from '../events/GameEvents';
+import { BUILDING_DEFS } from '../content/BuildingDefs';
 
 /**
  * BuildingPlacementSystem — handles placing new buildings.
@@ -86,6 +88,18 @@ export class BuildingPlacementSystem extends System {
       selected: false,
       hoverHighlight: false,
     });
+
+    const buildingDef = BUILDING_DEFS[type];
+    if (buildingDef?.livestockPen) {
+      const pen = buildingDef.livestockPen;
+      world.addComponent(entityId, LIVESTOCK_PEN, createLivestockPen(
+        pen.animalType,
+        pen.capacity,
+        pen.spawnCount,
+        pen.homeRadius,
+        pen.spawnRadius,
+      ));
+    }
 
     // Emit BuildingPlaced event
     this.eventBus.emit('BuildingPlaced', {
