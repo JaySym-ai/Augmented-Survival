@@ -18,6 +18,7 @@ const BUILDING_ICONS: Record<BuildingType, string> = {
   [BuildingType.WoodcutterHut]: '🪓',
   [BuildingType.FarmField]: '🌾',
   [BuildingType.Quarry]: '⛏️',
+  [BuildingType.ChickenCoop]: '🐔',
 };
 
 /** Building types available in the build menu (skip TownCenter) */
@@ -27,6 +28,7 @@ const BUILDABLE: BuildingType[] = [
   BuildingType.WoodcutterHut,
   BuildingType.FarmField,
   BuildingType.Quarry,
+  BuildingType.ChickenCoop,
 ];
 
 export class BuildMenu {
