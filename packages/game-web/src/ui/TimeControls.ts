@@ -25,6 +25,8 @@ const SPEED_OPTIONS: SpeedOption[] = [
 export class TimeControls {
   private el: HTMLDivElement;
   private buttons: HTMLButtonElement[] = [];
+  private saveBtn: HTMLButtonElement;
+  private loadBtn: HTMLButtonElement;
   private settingsBtn: HTMLButtonElement;
   private onTimeScaleChanged: (e: { oldScale: number; newScale: number }) => void;
   private handleKeyDown: (e: KeyboardEvent) => void;
@@ -33,6 +35,8 @@ export class TimeControls {
     parent: HTMLElement,
     private timeSystem: TimeSystem,
     private eventBus: EventBus<GameEventMap>,
+    private onSaveClick: () => void,
+    private onLoadClick: () => void,
     private onSettingsClick: () => void,
   ) {
     this.el = document.createElement('div');
@@ -46,6 +50,18 @@ export class TimeControls {
       this.el.appendChild(btn);
       this.buttons.push(btn);
     }
+
+    this.saveBtn = document.createElement('button');
+    this.saveBtn.className = 'utility-btn';
+    this.saveBtn.textContent = 'Save';
+    this.saveBtn.addEventListener('click', () => this.onSaveClick());
+    this.el.appendChild(this.saveBtn);
+
+    this.loadBtn = document.createElement('button');
+    this.loadBtn.className = 'utility-btn';
+    this.loadBtn.textContent = 'Load';
+    this.loadBtn.addEventListener('click', () => this.onLoadClick());
+    this.el.appendChild(this.loadBtn);
 
     // Settings gear
     this.settingsBtn = document.createElement('button');
