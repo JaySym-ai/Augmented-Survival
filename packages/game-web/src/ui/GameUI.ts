@@ -20,6 +20,7 @@ import { VillagerSidebar } from './VillagerSidebar.js';
 import { TimeControls } from './TimeControls.js';
 import { SettingsPanel } from './SettingsPanel.js';
 import { DebugPanel } from './DebugPanel.js';
+import { SaveLoadPanel, type SaveLoadController } from './SaveLoadPanel.js';
 
 export interface GameUIConfig {
   container: HTMLElement;
@@ -29,6 +30,7 @@ export interface GameUIConfig {
   buildingPlacement: BuildingPlacementSystem;
   world: World;
   gameRenderer: GameRenderer;
+  saveLoadController: SaveLoadController;
   onBuildingSelected?: (type: BuildingType) => void;
   onBuildingCancelled?: () => void;
 }
@@ -41,6 +43,7 @@ export class GameUI {
   private selectionPanel: SelectionPanel;
   private timeControls: TimeControls;
   private settingsPanel: SettingsPanel;
+  private saveLoadPanel: SaveLoadPanel;
   private debugPanel: DebugPanel;
 
   constructor(private config: GameUIConfig) {
@@ -86,10 +89,17 @@ export class GameUI {
       config.gameRenderer,
     );
 
+    this.saveLoadPanel = new SaveLoadPanel(
+      this.root,
+      config.saveLoadController,
+    );
+
     this.timeControls = new TimeControls(
       this.root,
       config.timeSystem,
       config.eventBus,
+      () => this.saveLoadPanel.open('save'),
+      () => this.saveLoadPanel.open('load'),
       () => this.settingsPanel.open(),
     );
 
@@ -104,7 +114,16 @@ export class GameUI {
     this.selectionPanel.update();
     this.timeControls.update();
     this.settingsPanel.update();
+    this.saveLoadPanel.update();
     this.debugPanel.update();
+  }
+
+  openSaveDialog(): void {
+    this.saveLoadPanel.open('save');
+  }
+
+  openLoadDialog(): void {
+    this.saveLoadPanel.open('load');
   }
 
   /** Show selection panel for a specific entity */
@@ -139,6 +158,7 @@ export class GameUI {
     this.selectionPanel.dispose();
     this.timeControls.dispose();
     this.settingsPanel.dispose();
+    this.saveLoadPanel.dispose();
     this.debugPanel.dispose();
     this.root.remove();
   }

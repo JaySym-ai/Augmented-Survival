@@ -44,6 +44,7 @@ describe('Types', () => {
       expect(BuildingType.FarmField).toBe('FarmField');
       expect(BuildingType.Quarry).toBe('Quarry');
       expect(BuildingType.SheepPen).toBe('SheepPen');
+      expect(BuildingType.ChickenCoop).toBe('ChickenCoop');
     });
   });
 

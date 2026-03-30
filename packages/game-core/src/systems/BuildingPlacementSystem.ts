@@ -12,11 +12,11 @@ import type { StorageComponent } from '../ecs/components/StorageComponent';
 import { SELECTABLE } from '../ecs/components/SelectableComponent';
 import type { SelectableComponent } from '../ecs/components/SelectableComponent';
 import { LIVESTOCK_PEN, createLivestockPen } from '../ecs/components/LivestockPenComponent';
+import { BUILDING_DEFS } from '../content/BuildingDefs';
 import { BuildingType } from '../types/buildings';
 import { ResourceType } from '../types/resources';
 import type { EventBus } from '../events/EventBus';
 import type { GameEventMap } from '../events/GameEvents';
-import { BUILDING_DEFS } from '../content/BuildingDefs';
 
 /**
  * BuildingPlacementSystem — handles placing new buildings.
@@ -115,4 +115,3 @@ export class BuildingPlacementSystem extends System {
     // Placement is user-triggered — nothing per-frame
   }
 }
-

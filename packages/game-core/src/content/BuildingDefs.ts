@@ -1,10 +1,10 @@
 /**
  * Data-driven building definitions for all building types.
  */
+import type { AnimalType } from '../ecs/components/AnimalComponent.js';
 import { BuildingType } from '../types/buildings.js';
 import { BuildingConfig } from '../types/config.js';
 import { ResourceType } from '../types/resources.js';
-import type { AnimalType } from '../ecs/components/AnimalComponent.js';
 
 export interface LivestockPenDef {
   animalType: AnimalType;
@@ -123,5 +123,24 @@ export const BUILDING_DEFS: Record<BuildingType, ExtendedBuildingDef> = {
       spawnRadius: 2.5,
     },
   },
+  [BuildingType.ChickenCoop]: {
+    type: BuildingType.ChickenCoop,
+    displayName: 'Chicken Coop',
+    description: 'A cozy coop and scratch yard for cheerful domestic chickens.',
+    cost: { [ResourceType.Wood]: 8, [ResourceType.Stone]: 2 },
+    workerSlots: 0,
+    buildTime: 7,
+    size: { width: 3, depth: 3 },
+    meshId: 'building_chicken_coop',
+    storageCapacity: 0,
+    providesPopulation: 0,
+    jobType: null,
+    livestockPen: {
+      animalType: 'chicken',
+      capacity: 4,
+      spawnCount: 4,
+      homeRadius: 5,
+      spawnRadius: 2,
+    },
+  },
 };
-

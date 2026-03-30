@@ -13,14 +13,14 @@ import { BuildingPlacementSystem } from './systems/BuildingPlacementSystem';
 import { BuildingType } from './types/buildings';
 import { BUILDING_DEFS } from './content/BuildingDefs';
 
-describe('SheepPen MVP', () => {
-  it('attaches livestock pen data when a sheep pen is placed', () => {
+describe('ChickenCoop', () => {
+  it('attaches livestock pen data when a chicken coop is placed', () => {
     const world = new World();
     const eventBus = new EventBus<GameEventMap>();
     const placement = new BuildingPlacementSystem(eventBus);
-    const def = BUILDING_DEFS[BuildingType.SheepPen];
+    const def = BUILDING_DEFS[BuildingType.ChickenCoop];
 
-    const entityId = placement.placeBuilding(world, BuildingType.SheepPen, { x: 8, y: 0, z: -4 }, {
+    const entityId = placement.placeBuilding(world, BuildingType.ChickenCoop, { x: 6, y: 0, z: -3 }, {
       cost: def.cost,
       workerSlots: def.workerSlots,
       storageCapacity: def.storageCapacity,
@@ -31,31 +31,31 @@ describe('SheepPen MVP', () => {
 
     const pen = world.getComponent<LivestockPenComponent>(entityId!, LIVESTOCK_PEN);
     expect(pen).toMatchObject({
-      animalType: 'sheep',
-      capacity: 2,
-      spawnCount: 2,
-      homeRadius: 7,
-      spawnRadius: 2.5,
+      animalType: 'chicken',
+      capacity: 4,
+      spawnCount: 4,
+      homeRadius: 5,
+      spawnRadius: 2,
     });
   });
 
-  it('pulls domestic sheep back toward their home pen when they wander too far', () => {
+  it('pulls domestic chickens back toward their home coop when they wander too far', () => {
     const world = new World();
     const eventBus = new EventBus<GameEventMap>();
     const timeSystem = new TimeSystem(eventBus);
     const animalAI = new AnimalAISystem(timeSystem);
-    const penId = world.createEntity();
-    const sheepId = world.createEntity();
+    const coopId = world.createEntity();
+    const chickenId = world.createEntity();
 
-    world.addComponent(sheepId, TRANSFORM, createTransform({ x: 14, y: 0, z: 0 }));
-    world.addComponent(sheepId, VELOCITY, createVelocity());
-    world.addComponent(sheepId, ANIMAL, createAnimal('sheep'));
-    world.addComponent(sheepId, DOMESTIC_ANIMAL, createDomesticAnimal(penId, { x: 0, y: 0, z: 0 }, 6, 8));
+    world.addComponent(chickenId, TRANSFORM, createTransform({ x: 12, y: 0, z: 0 }));
+    world.addComponent(chickenId, VELOCITY, createVelocity());
+    world.addComponent(chickenId, ANIMAL, createAnimal('chicken'));
+    world.addComponent(chickenId, DOMESTIC_ANIMAL, createDomesticAnimal(coopId, { x: 0, y: 0, z: 0 }, 5, 6));
 
     animalAI.update(world, 1);
 
-    const animal = world.getComponent<ReturnType<typeof createAnimal>>(sheepId, ANIMAL);
-    const velocity = world.getComponent<ReturnType<typeof createVelocity>>(sheepId, VELOCITY);
+    const animal = world.getComponent<ReturnType<typeof createAnimal>>(chickenId, ANIMAL);
+    const velocity = world.getComponent<ReturnType<typeof createVelocity>>(chickenId, VELOCITY);
 
     expect(animal?.targetPosition).toEqual({ x: 0, y: 0, z: 0 });
     expect(velocity?.velocity.x ?? 0).toBeLessThan(0);

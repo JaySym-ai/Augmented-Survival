@@ -100,7 +100,7 @@ function createWindow(): void {
   if (isDev) {
     win.loadURL(DEV_SERVER_URL);
   } else {
-    const distPath = path.join(__dirname, '../../packages/game-web/dist/index.html');
+    const distPath = path.join(__dirname, '../../../packages/game-web/dist/index.html');
     win.loadFile(distPath);
   }
 }

@@ -70,6 +70,17 @@ function getRandomWanderTarget(pos: Vector3, radius: number, halfSize: number): 
   return { x, y: 0, z };
 }
 
+function getChickenWanderTarget(
+  pos: Vector3,
+  halfSize: number,
+  domestic?: DomesticAnimalComponent,
+): Vector3 {
+  if (domestic) {
+    return getRandomWanderTarget(domestic.homePosition, domestic.roamRadius, halfSize);
+  }
+  return getRandomWanderTarget(pos, 10, halfSize);
+}
+
 export class AnimalAISystem extends System {
   private mapHalfSize = DEFAULT_MAP_HALF_SIZE;
   private terrainData: TerrainData | null = null;
@@ -109,7 +120,7 @@ export class AnimalAISystem extends System {
       if (animal.type === 'sheep') {
         this.updateSheep(world, entityId, transform, velocity, animal, animals, scaledDt);
       } else if (animal.type === 'chicken') {
-        this.updateChicken(transform, velocity, animal, scaledDt);
+        this.updateChicken(world, entityId, transform, velocity, animal, scaledDt);
       }
     }
   }
@@ -247,12 +258,22 @@ export class AnimalAISystem extends System {
   }
 
   private updateChicken(
+    world: World,
+    entityId: number,
     transform: TransformComponent,
     velocity: VelocityComponent,
     animal: AnimalComponent,
     dt: number,
   ): void {
     const pos = transform.position;
+    const domestic = world.getComponent<DomesticAnimalComponent>(entityId, DOMESTIC_ANIMAL);
+    const distanceFromHome = domestic ? vec3Distance(pos, domestic.homePosition) : 0;
+
+    if (domestic && distanceFromHome > domestic.returnThreshold) {
+      animal.state = 'wandering';
+      animal.stateTimer = 0;
+      animal.targetPosition = { ...domestic.homePosition };
+    }
 
     animal.stateTimer += dt;
 
@@ -264,11 +285,11 @@ export class AnimalAISystem extends System {
       if (animal.stateTimer >= CHICKEN_PECK_DURATION) {
         animal.state = 'wandering';
         animal.stateTimer = 0;
-        animal.targetPosition = getRandomWanderTarget(pos, 10, this.mapHalfSize);
+        animal.targetPosition = getChickenWanderTarget(pos, this.mapHalfSize, domestic);
       }
     } else {
       if (!animal.targetPosition || vec3Distance(pos, animal.targetPosition) < 1.5) {
-        animal.targetPosition = getRandomWanderTarget(pos, 10, this.mapHalfSize);
+        animal.targetPosition = getChickenWanderTarget(pos, this.mapHalfSize, domestic);
       }
 
       if (animal.stateTimer >= CHICKEN_PECK_INTERVAL) {

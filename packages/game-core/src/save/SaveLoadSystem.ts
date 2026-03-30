@@ -19,12 +19,15 @@ import { CONSTRUCTION_SITE } from '../ecs/components/ConstructionSiteComponent';
 import { CARRY } from '../ecs/components/CarryComponent';
 import { JOB_ASSIGNMENT } from '../ecs/components/JobAssignmentComponent';
 import { EQUIPMENT } from '../ecs/components/EquipmentComponent';
+import { SELECTABLE } from '../ecs/components/SelectableComponent';
+import { ANIMAL } from '../ecs/components/AnimalComponent';
+import { DEPLETED_RESOURCE } from '../ecs/components/DepletedResourceComponent';
 
 /** Current save format version */
 const SAVE_VERSION = 1;
 
 /** Components to skip during serialization (transient/rendering-only) */
-const TRANSIENT_COMPONENTS = new Set(['MeshRef', 'Selectable', 'PathFollow', 'Gathering']);
+const TRANSIENT_COMPONENTS = new Set(['MeshRef', 'PathFollow', 'Gathering']);
 
 /** Components that contain Map fields needing special serialization */
 const MAP_FIELDS: Record<string, string[]> = {
@@ -37,7 +40,7 @@ const MAP_FIELDS: Record<string, string[]> = {
 const SERIALIZABLE_COMPONENTS = [
   TRANSFORM, VELOCITY, CITIZEN, BUILDING, RESOURCE_NODE,
   STORAGE, INVENTORY, CONSTRUCTION_SITE, CARRY, JOB_ASSIGNMENT,
-  EQUIPMENT,
+  EQUIPMENT, SELECTABLE, ANIMAL, DEPLETED_RESOURCE,
 ];
 
 /**

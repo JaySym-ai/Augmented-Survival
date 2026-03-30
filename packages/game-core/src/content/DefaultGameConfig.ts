@@ -29,6 +29,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     [BuildingType.FarmField]: BUILDING_DEFS[BuildingType.FarmField],
     [BuildingType.Quarry]: BUILDING_DEFS[BuildingType.Quarry],
     [BuildingType.SheepPen]: BUILDING_DEFS[BuildingType.SheepPen],
+    [BuildingType.ChickenCoop]: BUILDING_DEFS[BuildingType.ChickenCoop],
   },
 
   citizenBaseSpeed: 2.0,
@@ -36,4 +37,3 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   minTimeScale: 0,
   maxTimeScale: 3,
 };
-

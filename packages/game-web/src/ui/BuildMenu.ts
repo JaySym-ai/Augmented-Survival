@@ -19,6 +19,7 @@ const BUILDING_ICONS: Record<BuildingType, string> = {
   [BuildingType.FarmField]: '🌾',
   [BuildingType.Quarry]: '⛏️',
   [BuildingType.SheepPen]: '🐑',
+  [BuildingType.ChickenCoop]: '🐔',
 };
 
 /** Building types available in the build menu (skip TownCenter) */
@@ -29,6 +30,7 @@ const BUILDABLE: BuildingType[] = [
   BuildingType.FarmField,
   BuildingType.Quarry,
   BuildingType.SheepPen,
+  BuildingType.ChickenCoop,
 ];
 
 export class BuildMenu {
@@ -152,4 +154,3 @@ export class BuildMenu {
     this.el.remove();
   }
 }
-
